@@ -34,10 +34,11 @@ require_once __DIR__ . '/config/db.php';
             body * {
                 visibility: hidden;
             }
-            #invoicePrintArea, #invoicePrintArea * {
+            #invoicePrintArea, #invoicePrintArea *,
+            #reportPrintArea, #reportPrintArea * {
                 visibility: visible;
             }
-            #invoicePrintArea {
+            #invoicePrintArea, #reportPrintArea {
                 position: fixed;
                 left: 0;
                 top: 0;
@@ -137,6 +138,13 @@ require_once __DIR__ . '/config/db.php';
                         <span>အော်ဒါများ (Orders)</span>
                     </div>
                     <span id="badgeOrdersCount" class="bg-amber-500 text-stone-900 text-[10px] px-2 py-0.5 rounded-full font-extrabold">0</span>
+                </button>
+                <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-stone-400 hover:bg-stone-800 hover:text-white">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-400"></i>
+                        <span>စာရင်းချုပ် (Reports)</span>
+                    </div>
+                    <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">အပတ်/လ</span>
                 </button>
                 <button onclick="switchTab('products')" id="nav-products" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-stone-400 hover:bg-stone-800 hover:text-white">
                     <div class="flex items-center gap-3">
@@ -270,6 +278,73 @@ require_once __DIR__ . '/config/db.php';
                     </div>
                 </div>
 
+                <!-- Weekly & Monthly Quick Accounting Summary Banner -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- This Week Card -->
+                    <div class="p-5 rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-white border border-amber-200/80 shadow-xs flex flex-col justify-between">
+                        <div class="flex items-center justify-between pb-3 border-b border-amber-200/60">
+                            <div class="flex items-center gap-2.5">
+                                <span class="p-2 bg-amber-600 text-white rounded-xl shadow-xs"><i data-lucide="calendar" class="w-4 h-4"></i></span>
+                                <div>
+                                    <h4 class="font-black text-sm text-stone-900">ဒီအပတ် စာရင်းချုပ် (This Week)</h4>
+                                    <p id="overviewWeekRange" class="text-[11px] text-stone-500">ယခုအပတ် တနင်္လာ မှ တနင်္ဂနွေ အထိ</p>
+                                </div>
+                            </div>
+                            <span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold">This Week</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 py-3.5 text-center">
+                            <div>
+                                <span class="text-[10px] font-bold text-stone-400 block uppercase">ရောင်းရငွေ</span>
+                                <span id="overviewWeekRev" class="text-base sm:text-lg font-black text-amber-700">0 Ks</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-stone-400 block uppercase">အော်ဒါ</span>
+                                <span id="overviewWeekOrders" class="text-base sm:text-lg font-black text-stone-900">0</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-stone-400 block uppercase">ပို့ပြီး</span>
+                                <span id="overviewWeekDelivered" class="text-base sm:text-lg font-black text-emerald-600">0</span>
+                            </div>
+                        </div>
+                        <button onclick="switchTab('reports'); setReportMode('weekly');" class="w-full py-2 bg-white hover:bg-amber-50 text-amber-800 text-xs font-bold rounded-xl border border-amber-300 transition flex items-center justify-center gap-1.5 shadow-2xs">
+                            <span>အပတ်စဉ် အသေးစိတ် စာရင်းချုပ် ကြည့်မည်</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+
+                    <!-- This Month Card -->
+                    <div class="p-5 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-white border border-emerald-200/80 shadow-xs flex flex-col justify-between">
+                        <div class="flex items-center justify-between pb-3 border-b border-emerald-200/60">
+                            <div class="flex items-center gap-2.5">
+                                <span class="p-2 bg-emerald-600 text-white rounded-xl shadow-xs"><i data-lucide="bar-chart-2" class="w-4 h-4"></i></span>
+                                <div>
+                                    <h4 class="font-black text-sm text-stone-900">ဒီလ စာရင်းချုပ် (This Month)</h4>
+                                    <p id="overviewMonthRange" class="text-[11px] text-stone-500">ယခုလ ၁ ရက်နေ့ မှ လကုန် အထိ</p>
+                                </div>
+                            </div>
+                            <span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">This Month</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 py-3.5 text-center">
+                            <div>
+                                <span class="text-[10px] font-bold text-stone-400 block uppercase">ရောင်းရငွေ</span>
+                                <span id="overviewMonthRev" class="text-base sm:text-lg font-black text-emerald-700">0 Ks</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-stone-400 block uppercase">အော်ဒါ</span>
+                                <span id="overviewMonthOrders" class="text-base sm:text-lg font-black text-stone-900">0</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-stone-400 block uppercase">ပို့ပြီး</span>
+                                <span id="overviewMonthDelivered" class="text-base sm:text-lg font-black text-emerald-600">0</span>
+                            </div>
+                        </div>
+                        <button onclick="switchTab('reports'); setReportMode('monthly');" class="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-300 transition flex items-center justify-center gap-1.5 shadow-2xs">
+                            <span>လစဉ် အသေးစိတ် စာရင်းချုပ် ကြည့်မည်</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Recent Orders in Overview -->
                 <div class="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 space-y-4">
                     <div class="flex items-center justify-between">
@@ -303,6 +378,140 @@ require_once __DIR__ . '/config/db.php';
 
                 <div id="adminOrdersContainer" class="space-y-3">
                     <!-- Populated dynamically -->
+                </div>
+            </section>
+
+            <!-- ----------------------------------------------------------- -->
+            <!-- 2.1. REPORTS PANE (စာရင်းချုပ် - အပတ်စဉ် နှင့် လစဉ်) -->
+            <!-- ----------------------------------------------------------- -->
+            <section id="pane-reports" class="pane space-y-6 hidden">
+                <!-- Top Control Header -->
+                <div class="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                        <h4 class="font-extrabold text-stone-900 text-sm flex items-center gap-2">
+                            <span class="p-1.5 bg-emerald-600 text-white rounded-xl shadow-xs"><i data-lucide="bar-chart-3" class="w-4 h-4"></i></span>
+                            📊 အရောင်းနှင့် ဘဏ္ဍာရေး စာရင်းချုပ် (Financial Reports)
+                        </h4>
+                        <p class="text-xs text-stone-500 mt-0.5">အပတ်စဉ်၊ လစဉ် အရောင်းရငွေ၊ ပို့ခ၊ လျှော့ဈေးနှင့် အမြတ်ငွေ စာရင်းချုပ်များ</p>
+                    </div>
+
+                    <!-- Period Filter Switcher & Actions -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex bg-stone-100 p-1 rounded-2xl text-xs font-bold border border-stone-200">
+                            <button onclick="setReportMode('weekly')" id="btnReportWeekly" class="report-mode-btn px-3 py-1.5 rounded-xl bg-white text-stone-900 shadow-xs">📅 အပတ်စဉ် စာရင်းချုပ်</button>
+                            <button onclick="setReportMode('monthly')" id="btnReportMonthly" class="report-mode-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900">🗓️ လစဉ် စာရင်းချုပ်</button>
+                            <button onclick="setReportMode('custom')" id="btnReportCustom" class="report-mode-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900">📆 စိတ်ကြိုက်ရက်စွဲ</button>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button onclick="exportReportCSV()" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                <span>Excel / CSV ထုတ်ယူမည်</span>
+                            </button>
+                            <button onclick="openReportPrintModal()" class="px-3.5 py-2 bg-stone-900 hover:bg-black text-amber-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                <span>Print စာရင်းချုပ်</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Date Range Bar (shown when custom mode active) -->
+                <div id="customDateFilterBar" class="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl flex flex-wrap items-center gap-3 text-xs hidden">
+                    <span class="font-bold text-stone-700 flex items-center gap-1.5"><i data-lucide="calendar" class="w-4 h-4 text-amber-600"></i> ရက်စွဲအလိုက် စာရင်းချုပ်ရန်:</span>
+                    <div class="flex items-center gap-2">
+                        <label class="text-stone-600 font-bold">မှ:</label>
+                        <input type="date" id="repStartDate" class="px-3 py-1.5 rounded-xl border border-stone-300 bg-white font-mono text-xs">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-stone-600 font-bold">ထိ:</label>
+                        <input type="date" id="repEndDate" class="px-3 py-1.5 rounded-xl border border-stone-300 bg-white font-mono text-xs">
+                    </div>
+                    <button onclick="applyCustomDateFilter()" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition shadow-xs">စာရင်းတွက်မည်</button>
+                </div>
+
+                <!-- KPI Period Summary Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="p-5 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-1">
+                        <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">စုစုပေါင်း အရောင်းရငွေ</span>
+                        <h3 id="repStatTotalRev" class="text-xl sm:text-2xl font-black text-amber-700">0 Ks</h3>
+                        <p id="repStatTotalRevSub" class="text-[11px] text-stone-400">ကာလအတွင်း စုစုပေါင်းရောင်းရငွေ</p>
+                    </div>
+
+                    <div class="p-5 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-1">
+                        <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">အတည်ပြု အောင်မြင်ရငွေ</span>
+                        <h3 id="repStatRealizedRev" class="text-xl sm:text-2xl font-black text-emerald-600">0 Ks</h3>
+                        <p id="repStatRealizedRevSub" class="text-[11px] text-stone-400">ပို့ပြီး/အတည်ပြုပြီး အော်ဒါများ</p>
+                    </div>
+
+                    <div class="p-5 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-1">
+                        <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">စုစုပေါင်း အော်ဒါအရေအတွက်</span>
+                        <h3 id="repStatOrdersCount" class="text-xl sm:text-2xl font-black text-stone-900">0</h3>
+                        <p id="repStatOrdersSub" class="text-[11px] text-stone-400">အောင်မြင် 0 • ပယ်ဖျက် 0</p>
+                    </div>
+
+                    <div class="p-5 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-1">
+                        <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">ပို့ဆောင်ခနှင့် လျှော့ဈေး</span>
+                        <h3 id="repStatDeliveryAndDiscount" class="text-xl sm:text-2xl font-black text-blue-700">0 Ks</h3>
+                        <p id="repStatDelDiscSub" class="text-[11px] text-stone-400">ပို့ခ: 0 Ks • လျှော့ငွေ: 0 Ks</p>
+                    </div>
+                </div>
+
+                <!-- Grouped Report Table -->
+                <div class="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+                    <div class="p-5 border-b border-stone-200 flex items-center justify-between">
+                        <div>
+                            <h4 id="repTableTitle" class="font-extrabold text-sm text-stone-900">အပတ်စဉ် အသေးစိတ် စာရင်းချုပ် ဇယား</h4>
+                            <p id="repTableSubtitle" class="text-xs text-stone-500">ရက်သတ္တပတ်အလိုက် အော်ဒါအရေအတွက်၊ ပို့ဆောင်ခနှင့် အရောင်းရငွေများ</p>
+                        </div>
+                        <span id="repTableCountBadge" class="bg-stone-100 text-stone-700 text-xs px-2.5 py-1 rounded-xl font-bold">0 Weeks</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-stone-50 text-stone-600 uppercase text-[11px] font-bold border-b border-stone-200">
+                                <tr>
+                                    <th class="p-3.5" id="repColHeaderPeriod">ရက်သတ္တပတ် (Period)</th>
+                                    <th class="p-3.5">ရက်စွဲ (Date Range)</th>
+                                    <th class="p-3.5 text-center">အော်ဒါ (Orders)</th>
+                                    <th class="p-3.5 text-center">ပို့ပြီး (Delivered)</th>
+                                    <th class="p-3.5 text-center">ပယ်ဖျက် (Cancelled)</th>
+                                    <th class="p-3.5 text-right">ပို့ခ စုစုပေါင်း</th>
+                                    <th class="p-3.5 text-right">လျှော့ငွေ</th>
+                                    <th class="p-3.5 text-right font-black">စုစုပေါင်း ရောင်းရငွေ (Ks)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repTableBody" class="divide-y divide-stone-100 font-medium">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                            <tfoot id="repTableFoot" class="bg-stone-50 font-bold border-t-2 border-stone-200 text-xs">
+                                <!-- Totals -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Additional Breakdown: Payment Method & Top Selling Bags -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Payment Methods Distribution -->
+                    <div class="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+                        <h4 class="font-bold text-sm text-stone-900 flex items-center gap-2 border-b pb-3">
+                            <i data-lucide="credit-card" class="w-4 h-4 text-amber-600"></i> ငွေပေးချေမှု နည်းလမ်းအလိုက် ခွဲခြမ်းစိတ်ဖြာမှု
+                        </h4>
+                        <div id="repPaymentMethodsList" class="space-y-3 text-xs">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Top Selling Handbags in Period -->
+                    <div class="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+                        <h4 class="font-bold text-sm text-stone-900 flex items-center gap-2 border-b pb-3">
+                            <i data-lucide="award" class="w-4 h-4 text-amber-600"></i> ရောင်းအားအကောင်းဆုံး အိတ်များ (Top Products)
+                        </h4>
+                        <div id="repTopProductsList" class="space-y-2.5 text-xs">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -956,6 +1165,97 @@ require_once __DIR__ . '/config/db.php';
         </div>
     </div>
 
+    <!-- Report Print Modal (A4 Printable Accounting Report) -->
+    <div id="reportPrintModal" class="fixed inset-0 z-50 bg-stone-900/80 backdrop-blur-sm flex items-center justify-center p-4 hidden overflow-y-auto">
+        <div class="bg-white max-w-3xl w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-6 my-auto text-stone-900 text-xs">
+            <div class="flex items-center justify-between border-b pb-4 no-print">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 bg-amber-600 text-white rounded-xl"><i data-lucide="printer" class="w-4 h-4"></i></span>
+                    <h4 class="font-black text-sm text-stone-900">စာရင်းချုပ် Print အစမ်းကြည့်ရှုခြင်း (Print Preview)</h4>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                        <span>Print အခုထုတ်မည်</span>
+                    </button>
+                    <button onclick="closeReportPrintModal()" class="p-2 text-stone-400 hover:text-stone-700 rounded-xl hover:bg-stone-100 transition">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Printable Sheet Area -->
+            <div id="reportPrintArea" class="space-y-6">
+                <!-- Shop Header -->
+                <div class="flex items-start justify-between border-b-2 border-stone-900 pb-4">
+                    <div>
+                        <h2 class="text-xl font-black text-stone-900">ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး</h2>
+                        <p class="text-xs text-stone-600 mt-0.5">ပင်မဆိုင်: ၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့ • ဖုန်း: 09-963000502</p>
+                        <p class="text-[11px] text-stone-500 font-mono mt-0.5">Pont Pont Luxury Handbags • Accounting & Sales Statement</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block bg-stone-900 text-amber-400 px-3 py-1 rounded-lg text-xs font-black uppercase" id="printReportTitleBadge">အပတ်စဉ် စာရင်းချုပ်</span>
+                        <p class="text-[11px] text-stone-500 mt-1" id="printReportDateGenerated"></p>
+                    </div>
+                </div>
+
+                <!-- Period Summary Details -->
+                <div class="grid grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200 text-center">
+                    <div>
+                        <span class="text-[10px] text-stone-500 font-bold block uppercase">စုစုပေါင်း ရောင်းရငွေ</span>
+                        <span id="printRepRev" class="text-base font-black text-stone-900">0 Ks</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-stone-500 font-bold block uppercase">အော်ဒါအရေအတွက်</span>
+                        <span id="printRepOrders" class="text-base font-black text-stone-900">0</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-stone-500 font-bold block uppercase">ပို့ပြီး (Delivered)</span>
+                        <span id="printRepDelivered" class="text-base font-black text-emerald-700">0</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-stone-500 font-bold block uppercase">ပို့ခ စုစုပေါင်း</span>
+                        <span id="printRepDeliveryFee" class="text-base font-black text-blue-700">0 Ks</span>
+                    </div>
+                </div>
+
+                <!-- Breakdown Table for Print -->
+                <div>
+                    <h5 class="font-bold text-xs uppercase tracking-wider text-stone-700 mb-2">အသေးစိတ် ဇယားချုပ်:</h5>
+                    <table class="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                            <tr class="bg-stone-100 border-b border-stone-300 font-bold">
+                                <th class="p-2" id="printThPeriod">ကာလ (Period)</th>
+                                <th class="p-2">ရက်စွဲ (Dates)</th>
+                                <th class="p-2 text-center">အော်ဒါ</th>
+                                <th class="p-2 text-center">ပို့ပြီး</th>
+                                <th class="p-2 text-right">ပို့ခ</th>
+                                <th class="p-2 text-right">လျှော့ငွေ</th>
+                                <th class="p-2 text-right font-black">ရောင်းရငွေ (Ks)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="printRepTableBody" class="divide-y divide-stone-200">
+                        </tbody>
+                        <tfoot id="printRepTableFoot" class="border-t-2 border-stone-900 font-black">
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Signatures -->
+                <div class="pt-8 grid grid-cols-2 gap-8 text-center text-xs">
+                    <div>
+                        <p class="text-stone-400 mb-10">......................................................</p>
+                        <p class="font-bold text-stone-800">စာရင်းစစ်ဆေးသူ (Accountant)</p>
+                    </div>
+                    <div>
+                        <p class="text-stone-400 mb-10">......................................................</p>
+                        <p class="font-bold text-stone-800">ဆိုင်ရှင် / မန်နေဂျာ (Shop Owner)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Coupon Modal -->
     <div id="couponModal" class="fixed inset-0 z-50 bg-stone-900/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-white max-w-md w-full rounded-3xl p-6 shadow-2xl border border-stone-200 space-y-4 text-xs">
@@ -1145,6 +1445,7 @@ require_once __DIR__ . '/config/db.php';
                 'coupons': ['လျှော့ဈေး ကူပွန်များ (Coupons)', 'ဝယ်ယူသူများ အသုံးပြုနိုင်သော Discount Coupon ကုဒ်များ'],
                 'theme': ['ဆိုင် Theme ဒီဇိုင်း (Store Theme)', 'စတိုးဆိုင်၏ အရောင်နှင့် Layout ဒီဇိုင်း ပြောင်းလဲခြင်း'],
                 'settings': ['ဆိုင် ဆက်တင်များနှင့် အသိပေးစနစ် (Settings)', 'ဆိုင်အချက်အလက်များနှင့် Telegram အော်ဒါအသိပေးစနစ် ပြင်ဆင်ခြင်း'],
+                'reports': ['အရောင်း စာရင်းချုပ် (Sales Reports)', 'အပတ်စဉ်နှင့် လစဉ် အရောင်းစာရင်း၊ ဘဏ္ဍာရေး အစီရင်ခံစာနှင့် စာရင်းချုပ် ထုတ်ယူခြင်း'],
                 'chatbot': ['AI Chatbot ဆက်တင်များ (AI Assistant)', 'ဖောက်သည်များနှင့် ၂၄ နာရီ စကားပြောဆိုမည့် AI Provider (Gemini / OpenAI / Groq) နှင့် Prompt များကို စီမံခြင်း']
             };
             if (titles[tab]) {
@@ -1158,6 +1459,7 @@ require_once __DIR__ . '/config/db.php';
         function renderAll() {
             updateStats();
             renderOrders();
+            renderReports();
             renderProducts();
             renderCategories();
             renderAnnouncements();
@@ -1185,6 +1487,59 @@ require_once __DIR__ . '/config/db.php';
             }
             if (document.getElementById('badgeCouponsCount')) {
                 document.getElementById('badgeCouponsCount').innerText = (shopData.coupons || []).length;
+            }
+
+            // Weekly & Monthly calculations for Overview Cards
+            const now = new Date();
+            
+            // This week: Monday to Sunday
+            const currMonday = new Date(now);
+            const currDay = currMonday.getDay();
+            const dayDiff = currMonday.getDate() - currDay + (currDay === 0 ? -6 : 1);
+            currMonday.setDate(dayDiff);
+            currMonday.setHours(0, 0, 0, 0);
+
+            const currSunday = new Date(currMonday);
+            currSunday.setDate(currMonday.getDate() + 6);
+            currSunday.setHours(23, 59, 59, 999);
+
+            const weekOrders = orders.filter(o => {
+                const od = new Date(o.createdAt);
+                return od >= currMonday && od <= currSunday;
+            });
+            const weekRev = weekOrders.reduce((sum, o) => sum + (o.status !== 'Cancelled' ? Number(o.total || 0) : 0), 0);
+            const weekDelivered = weekOrders.filter(o => o.status === 'Delivered').length;
+
+            const wkRangeEl = document.getElementById('overviewWeekRange');
+            if (wkRangeEl) {
+                wkRangeEl.innerText = `${currMonday.getDate()}/${currMonday.getMonth()+1} မှ ${currSunday.getDate()}/${currSunday.getMonth()+1} အထိ`;
+            }
+            if (document.getElementById('overviewWeekRev')) {
+                document.getElementById('overviewWeekRev').innerText = weekRev.toLocaleString() + ' Ks';
+                document.getElementById('overviewWeekOrders').innerText = weekOrders.length;
+                document.getElementById('overviewWeekDelivered').innerText = weekDelivered;
+            }
+
+            // This month: 1st of month to end of month
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+            const monthOrders = orders.filter(o => {
+                const od = new Date(o.createdAt);
+                return od >= monthStart && od <= monthEnd;
+            });
+            const monthRev = monthOrders.reduce((sum, o) => sum + (o.status !== 'Cancelled' ? Number(o.total || 0) : 0), 0);
+            const monthDelivered = monthOrders.filter(o => o.status === 'Delivered').length;
+
+            const monthsMm = ['ဇန်နဝါရီ', 'ဖေဖော်ဝါရီ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်', 'ဇူလိုင်', 'ဩဂုတ်', 'စက်တင်ဘာ', 'အောက်တိုဘာ', 'နိုဝင်ဘာ', 'ဒီဇင်ဘာ'];
+            const moRangeEl = document.getElementById('overviewMonthRange');
+            if (moRangeEl) {
+                moRangeEl.innerText = `${now.getFullYear()} ${monthsMm[now.getMonth()]} (၁ ရက် မှ ${monthEnd.getDate()} ရက် အထိ)`;
+            }
+            if (document.getElementById('overviewMonthRev')) {
+                document.getElementById('overviewMonthRev').innerText = monthRev.toLocaleString() + ' Ks';
+                document.getElementById('overviewMonthOrders').innerText = monthOrders.length;
+                document.getElementById('overviewMonthDelivered').innerText = monthDelivered;
             }
 
             // Overview recent 5 orders
@@ -1952,6 +2307,412 @@ require_once __DIR__ . '/config/db.php';
             } catch (err) {
                 alert('ကူပွန်ဖျက်ပစ်မှု မအောင်မြင်ပါ: ' + err);
             }
+        }
+
+        // ===================================================================
+        // REPORTS MANAGEMENT (စာရင်းချုပ် - အပတ်စဉ် နှင့် လစဉ်)
+        // ===================================================================
+        let currentReportMode = 'weekly'; // 'weekly', 'monthly', 'custom'
+        let repCustomStartDate = null;
+        let repCustomEndDate = null;
+        let cachedReportRows = [];
+        let cachedReportSummary = {};
+
+        function setReportMode(mode) {
+            currentReportMode = mode;
+            document.querySelectorAll('.report-mode-btn').forEach(btn => {
+                btn.className = 'report-mode-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900';
+            });
+            const activeMap = {
+                'weekly': 'btnReportWeekly',
+                'monthly': 'btnReportMonthly',
+                'custom': 'btnReportCustom'
+            };
+            const btn = document.getElementById(activeMap[mode]);
+            if (btn) btn.className = 'report-mode-btn px-3 py-1.5 rounded-xl bg-white text-stone-900 shadow-xs font-bold';
+
+            const filterBar = document.getElementById('customDateFilterBar');
+            if (filterBar) {
+                if (mode === 'custom') {
+                    filterBar.classList.remove('hidden');
+                    const sInp = document.getElementById('repStartDate');
+                    const eInp = document.getElementById('repEndDate');
+                    const now = new Date();
+                    if (!sInp.value) {
+                        const mStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                        sInp.value = mStart.toISOString().split('T')[0];
+                    }
+                    if (!eInp.value) {
+                        eInp.value = now.toISOString().split('T')[0];
+                    }
+                } else {
+                    filterBar.classList.add('hidden');
+                }
+            }
+            renderReports();
+        }
+
+        function applyCustomDateFilter() {
+            repCustomStartDate = document.getElementById('repStartDate').value;
+            repCustomEndDate = document.getElementById('repEndDate').value;
+            renderReports();
+        }
+
+        function getWeekInfo(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+            
+            const monday = new Date(date);
+            const day = monday.getDay();
+            const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
+            monday.setDate(diff);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            
+            const formatDate = (dt) => `${dt.getDate()}/${dt.getMonth()+1}`;
+            const rangeLabel = `${formatDate(monday)} - ${formatDate(sunday)}`;
+            const year = monday.getFullYear();
+            const monthName = monday.toLocaleString('en-US', { month: 'short' });
+            
+            return {
+                key: `${year}-W${String(weekNo).padStart(2,'0')}`,
+                label: `${year} ${monthName} - အပတ် (${weekNo})`,
+                range: rangeLabel,
+                year: year,
+                week: weekNo,
+                startDate: monday,
+                endDate: sunday
+            };
+        }
+
+        function getMonthInfo(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const monthsMm = ['ဇန်နဝါရီ', 'ဖေဖော်ဝါရီ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်', 'ဇူလိုင်', 'ဩဂုတ်', 'စက်တင်ဘာ', 'အောက်တိုဘာ', 'နိုဝင်ဘာ', 'ဒီဇင်ဘာ'];
+            const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return {
+                key: `${year}-${String(month+1).padStart(2,'0')}`,
+                label: `${year} ${monthsMm[month]} (${monthsEn[month]})`,
+                range: `၁ ရက် မှ လကုန် အထိ`,
+                year: year,
+                month: month + 1
+            };
+        }
+
+        function renderReports() {
+            const allOrders = shopData.orders || [];
+            let orders = allOrders;
+
+            if (currentReportMode === 'custom' && repCustomStartDate && repCustomEndDate) {
+                const sDate = new Date(repCustomStartDate + 'T00:00:00');
+                const eDate = new Date(repCustomEndDate + 'T23:59:59');
+                orders = allOrders.filter(o => {
+                    const od = new Date(o.createdAt);
+                    return od >= sDate && od <= eDate;
+                });
+            }
+
+            // Grouping logic
+            const groups = {};
+
+            orders.forEach(o => {
+                const od = new Date(o.createdAt);
+                if (isNaN(od.getTime())) return;
+
+                let info;
+                if (currentReportMode === 'monthly') {
+                    info = getMonthInfo(od);
+                } else {
+                    info = getWeekInfo(od);
+                }
+
+                if (!groups[info.key]) {
+                    groups[info.key] = {
+                        key: info.key,
+                        label: info.label,
+                        range: info.range,
+                        ordersCount: 0,
+                        deliveredCount: 0,
+                        cancelledCount: 0,
+                        deliveryFeeTotal: 0,
+                        discountTotal: 0,
+                        revenueTotal: 0,
+                        realizedRevenue: 0,
+                        orders: []
+                    };
+                }
+
+                const g = groups[info.key];
+                g.ordersCount += 1;
+                const tot = Number(o.total || 0);
+                const fee = Number(o.deliveryFee || 0);
+                const disc = Number(o.discount || 0);
+
+                if (o.status === 'Cancelled') {
+                    g.cancelledCount += 1;
+                } else {
+                    g.revenueTotal += tot;
+                    g.deliveryFeeTotal += fee;
+                    g.discountTotal += disc;
+                    if (o.status === 'Delivered') {
+                        g.deliveredCount += 1;
+                        g.realizedRevenue += tot;
+                    }
+                }
+                g.orders.push(o);
+            });
+
+            // Convert to sorted array (latest first)
+            const rows = Object.values(groups).sort((a, b) => b.key.localeCompare(a.key));
+            cachedReportRows = rows;
+
+            // Overall Summary for Selected Period
+            let sumTotalRev = 0;
+            let sumRealizedRev = 0;
+            let sumOrders = 0;
+            let sumDelivered = 0;
+            let sumCancelled = 0;
+            let sumFee = 0;
+            let sumDiscount = 0;
+
+            rows.forEach(r => {
+                sumTotalRev += r.revenueTotal;
+                sumRealizedRev += r.realizedRevenue;
+                sumOrders += r.ordersCount;
+                sumDelivered += r.deliveredCount;
+                sumCancelled += r.cancelledCount;
+                sumFee += r.deliveryFeeTotal;
+                sumDiscount += r.discountTotal;
+            });
+
+            cachedReportSummary = {
+                sumTotalRev, sumRealizedRev, sumOrders, sumDelivered, sumCancelled, sumFee, sumDiscount
+            };
+
+            // Update KPI cards
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setTxt('repStatTotalRev', sumTotalRev.toLocaleString() + ' Ks');
+            setTxt('repStatRealizedRev', sumRealizedRev.toLocaleString() + ' Ks');
+            setTxt('repStatOrdersCount', sumOrders);
+            setTxt('repStatOrdersSub', `အောင်မြင်: ${sumDelivered} • ပယ်ဖျက်: ${sumCancelled}`);
+            setTxt('repStatDeliveryAndDiscount', (sumFee + sumDiscount).toLocaleString() + ' Ks');
+            setTxt('repStatDelDiscSub', `ပို့ခ: ${sumFee.toLocaleString()} Ks • လျှော့ငွေ: ${sumDiscount.toLocaleString()} Ks`);
+
+            // Titles
+            const titleMap = {
+                'weekly': ['အပတ်စဉ် အသေးစိတ် စာရင်းချုပ် ဇယား', 'ရက်သတ္တပတ်အလိုက် အော်ဒါအရေအတွက်၊ ပို့ဆောင်ခနှင့် အရောင်းရငွေများ', 'ရက်သတ္တပတ် (Week)'],
+                'monthly': ['လစဉ် အသေးစိတ် စာရင်းချုပ် ဇယား', 'လအလိုက် အော်ဒါအရေအတွက်၊ ပို့ဆောင်ခနှင့် အရောင်းရငွေများ', 'လ (Month)'],
+                'custom': ['ရက်စွဲအလိုက် စာရင်းချုပ် ဇယား', 'ရွေးချယ်ထားသော ရက်စွဲကာလအတွင်း စာရင်းချုပ်', 'ရက်သတ္တပတ် / လ']
+            };
+            const tInfo = titleMap[currentReportMode];
+            setTxt('repTableTitle', tInfo[0]);
+            setTxt('repTableSubtitle', tInfo[1]);
+            setTxt('repColHeaderPeriod', tInfo[2]);
+            setTxt('repTableCountBadge', `${rows.length} ${currentReportMode === 'monthly' ? 'Months' : 'Weeks'}`);
+
+            // Populate Table
+            const tbody = document.getElementById('repTableBody');
+            const tfoot = document.getElementById('repTableFoot');
+            tbody.innerHTML = '';
+            tfoot.innerHTML = '';
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-stone-400">ကာလအတွင်း စာရင်းမှတ်တမ်းများ မရှိသေးပါ။</td></tr>`;
+            } else {
+                rows.forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-amber-50/40 transition';
+                    tr.innerHTML = `
+                        <td class="p-3.5 font-bold text-stone-900">${escapeHtml(r.label)}</td>
+                        <td class="p-3.5 text-stone-500 font-mono">${escapeHtml(r.range)}</td>
+                        <td class="p-3.5 text-center font-bold text-stone-900">${r.ordersCount}</td>
+                        <td class="p-3.5 text-center font-bold text-emerald-600">${r.deliveredCount}</td>
+                        <td class="p-3.5 text-center font-bold text-red-500">${r.cancelledCount}</td>
+                        <td class="p-3.5 text-right font-mono text-blue-700">${Number(r.deliveryFeeTotal).toLocaleString()} Ks</td>
+                        <td class="p-3.5 text-right font-mono text-amber-600">${r.discountTotal > 0 ? '-' + Number(r.discountTotal).toLocaleString() + ' Ks' : '0 Ks'}</td>
+                        <td class="p-3.5 text-right font-mono font-black text-amber-700 text-sm">${Number(r.revenueTotal).toLocaleString()} Ks</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                tfoot.innerHTML = `
+                    <tr class="bg-stone-100/90 font-black text-stone-900">
+                        <td class="p-3.5">စုစုပေါင်း စာရင်းချုပ် (Total)</td>
+                        <td class="p-3.5 text-stone-500">${rows.length} ${currentReportMode === 'monthly' ? 'Months' : 'Weeks'}</td>
+                        <td class="p-3.5 text-center">${sumOrders}</td>
+                        <td class="p-3.5 text-center text-emerald-700">${sumDelivered}</td>
+                        <td class="p-3.5 text-center text-red-600">${sumCancelled}</td>
+                        <td class="p-3.5 text-right font-mono text-blue-800">${sumFee.toLocaleString()} Ks</td>
+                        <td class="p-3.5 text-right font-mono text-amber-800">${sumDiscount > 0 ? '-' + sumDiscount.toLocaleString() + ' Ks' : '0 Ks'}</td>
+                        <td class="p-3.5 text-right font-mono text-amber-800 text-sm sm:text-base">${sumTotalRev.toLocaleString()} Ks</td>
+                    </tr>
+                `;
+            }
+
+            // Payment Methods breakdown
+            const payMethods = { 'KPay': { rev: 0, count: 0 }, 'WavePay': { rev: 0, count: 0 }, 'COD': { rev: 0, count: 0 } };
+            orders.forEach(o => {
+                if (o.status === 'Cancelled') return;
+                const pm = (o.paymentMethod || '').toLowerCase();
+                let key = 'KPay';
+                if (pm.includes('wave')) key = 'WavePay';
+                else if (pm.includes('cod') || pm.includes('cash') || pm.includes('ငွေချေ')) key = 'COD';
+                else if (pm.includes('kpay') || pm.includes('kbz')) key = 'KPay';
+
+                if (!payMethods[key]) payMethods[key] = { rev: 0, count: 0 };
+                payMethods[key].rev += Number(o.total || 0);
+                payMethods[key].count += 1;
+            });
+
+            const payList = document.getElementById('repPaymentMethodsList');
+            payList.innerHTML = '';
+            Object.keys(payMethods).forEach(k => {
+                const item = payMethods[k];
+                const pct = sumTotalRev > 0 ? Math.round((item.rev / sumTotalRev) * 100) : 0;
+                const div = document.createElement('div');
+                div.className = 'space-y-1';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-stone-800">${k} (${item.count} Orders)</span>
+                        <span class="font-mono font-bold text-stone-900">${item.rev.toLocaleString()} Ks (${pct}%)</span>
+                    </div>
+                    <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+                        <div class="bg-amber-600 h-2 rounded-full" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                payList.appendChild(div);
+            });
+
+            // Top Selling Handbags
+            const prodSales = {};
+            orders.forEach(o => {
+                if (o.status === 'Cancelled') return;
+                let items = [];
+                try {
+                    items = typeof o.itemsJson === 'string' ? JSON.parse(o.itemsJson) : (o.itemsJson || o.items || []);
+                } catch(e) {}
+
+                items.forEach(it => {
+                    const name = it.nameMm || it.name || 'အိတ်ဒီဇိုင်း';
+                    const qty = Number(it.quantity || 1);
+                    const pr = Number(it.price || 0) * qty;
+                    if (!prodSales[name]) prodSales[name] = { qty: 0, rev: 0 };
+                    prodSales[name].qty += qty;
+                    prodSales[name].rev += pr;
+                });
+            });
+
+            const topProducts = Object.entries(prodSales).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+            const topList = document.getElementById('repTopProductsList');
+            topList.innerHTML = '';
+            if (topProducts.length === 0) {
+                topList.innerHTML = `<p class="text-stone-400 py-3 text-center">အရောင်းမှတ်တမ်း မရှိသေးပါ။</p>`;
+            } else {
+                topProducts.forEach(([name, data], idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between p-2.5 rounded-xl bg-stone-50 border border-stone-100';
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">${idx + 1}</span>
+                            <span class="font-bold text-stone-800">${escapeHtml(name)}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-bold text-stone-900 font-mono">${data.qty} လုံး</span>
+                            <span class="text-stone-500 text-[11px] block font-mono">${data.rev.toLocaleString()} Ks</span>
+                        </div>
+                    `;
+                    topList.appendChild(row);
+                });
+            }
+
+            lucide.createIcons();
+        }
+
+        // CSV Export Function
+        function exportReportCSV() {
+            if (!cachedReportRows || cachedReportRows.length === 0) {
+                alert('ထုတ်ယူရန် စာရင်းမှတ်တမ်း မရှိသေးပါ။');
+                return;
+            }
+
+            const modeLabel = currentReportMode === 'monthly' ? 'monthly' : 'weekly';
+            const filename = `pontpont_sales_report_${modeLabel}_${new Date().toISOString().split('T')[0]}.csv`;
+
+            let csv = '\uFEFF'; // UTF-8 BOM for Microsoft Excel
+            csv += 'ကာလ (Period),ရက်စွဲ (Date Range),အော်ဒါအရေအတွက်,ပို့ဆောင်ပြီး,ပယ်ဖျက်,ပို့ခ စုစုပေါင်း (Ks),လျှော့ငွေ (Ks),ရောင်းရငွေ စုစုပေါင်း (Ks)\n';
+
+            cachedReportRows.forEach(r => {
+                csv += `"${r.label}","${r.range}",${r.ordersCount},${r.deliveredCount},${r.cancelledCount},${r.deliveryFeeTotal},${r.discountTotal},${r.revenueTotal}\n`;
+            });
+
+            // Summary row
+            const s = cachedReportSummary;
+            csv += `"စုစုပေါင်း စာရင်းချုပ် (Total)","-",${s.sumOrders},${s.sumDelivered},${s.sumCancelled},${s.sumFee},${s.sumDiscount},${s.sumTotalRev}\n`;
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Print Report Modal Functions
+        function openReportPrintModal() {
+            const s = cachedReportSummary;
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+
+            setTxt('printReportTitleBadge', currentReportMode === 'monthly' ? 'လစဉ် စာရင်းချုပ် (Monthly Report)' : 'အပတ်စဉ် စာရင်းချုပ် (Weekly Report)');
+            setTxt('printReportDateGenerated', 'ထုတ်ယူသည့်ရက်: ' + new Date().toLocaleString());
+            setTxt('printRepRev', (s.sumTotalRev || 0).toLocaleString() + ' Ks');
+            setTxt('printRepOrders', s.sumOrders || 0);
+            setTxt('printRepDelivered', s.sumDelivered || 0);
+            setTxt('printRepDeliveryFee', (s.sumFee || 0).toLocaleString() + ' Ks');
+            setTxt('printThPeriod', currentReportMode === 'monthly' ? 'လ (Month)' : 'ရက်သတ္တပတ် (Week)');
+
+            const tbody = document.getElementById('printRepTableBody');
+            const tfoot = document.getElementById('printRepTableFoot');
+            tbody.innerHTML = '';
+            tfoot.innerHTML = '';
+
+            cachedReportRows.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 font-bold">${escapeHtml(r.label)}</td>
+                    <td class="p-2 text-stone-500 font-mono">${escapeHtml(r.range)}</td>
+                    <td class="p-2 text-center font-bold">${r.ordersCount}</td>
+                    <td class="p-2 text-center font-bold text-emerald-800">${r.deliveredCount}</td>
+                    <td class="p-2 text-right font-mono">${Number(r.deliveryFeeTotal).toLocaleString()} Ks</td>
+                    <td class="p-2 text-right font-mono text-amber-700">${r.discountTotal > 0 ? '-' + Number(r.discountTotal).toLocaleString() + ' Ks' : '0 Ks'}</td>
+                    <td class="p-2 text-right font-mono font-bold">${Number(r.revenueTotal).toLocaleString()} Ks</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            tfoot.innerHTML = `
+                <tr class="bg-stone-100 font-black">
+                    <td class="p-2">စုစုပေါင်း (Total)</td>
+                    <td class="p-2">-</td>
+                    <td class="p-2 text-center">${s.sumOrders}</td>
+                    <td class="p-2 text-center">${s.sumDelivered}</td>
+                    <td class="p-2 text-right font-mono">${(s.sumFee || 0).toLocaleString()} Ks</td>
+                    <td class="p-2 text-right font-mono text-amber-800">${(s.sumDiscount || 0) > 0 ? '-' + (s.sumDiscount || 0).toLocaleString() + ' Ks' : '0 Ks'}</td>
+                    <td class="p-2 text-right font-mono text-amber-900">${(s.sumTotalRev || 0).toLocaleString()} Ks</td>
+                </tr>
+            `;
+
+            document.getElementById('reportPrintModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeReportPrintModal() {
+            document.getElementById('reportPrintModal').classList.add('hidden');
         }
 
         // ===================================================================
