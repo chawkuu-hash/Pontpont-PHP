@@ -1251,7 +1251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ],
                 'generationConfig' => [
                     'temperature' => 0.7,
-                    'maxOutputTokens' => 800
+                    'maxOutputTokens' => 4096
                 ]
             ];
 
@@ -1261,7 +1261,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $res = makeHttpRequest($geminiUrl, 'POST', ['Content-Type' => 'application/json'], $payload, 20);
                 if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
                     $data = json_decode($res['body'], true);
-                    $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                    $parts = $data['candidates'][0]['content']['parts'] ?? [];
+                    $replyParts = [];
+                    foreach ($parts as $part) {
+                        if (empty($part['thought']) && isset($part['text'])) {
+                            $replyParts[] = $part['text'];
+                        }
+                    }
+                    $reply = !empty($replyParts) ? implode('', $replyParts) : null;
                     if ($reply) {
                         if ($tryModel !== $model) {
                             try {
@@ -1290,7 +1297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ['role' => 'user', 'content' => $message],
                 ],
                 'temperature' => 0.7,
-                'max_tokens' => 800
+                'max_tokens' => 2048
             ];
             $headers = [
                 'Content-Type' => 'application/json',
@@ -1325,7 +1332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ['role' => 'user', 'content' => $message],
                 ],
                 'temperature' => 0.7,
-                'max_tokens' => 800
+                'max_tokens' => 2048
             ];
             $res = makeHttpRequest($endpoint, 'POST', $headers, $payload, 25);
             if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
