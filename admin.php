@@ -175,6 +175,13 @@ require_once __DIR__ . '/config/db.php';
                     <i data-lucide="settings" class="w-4 h-4"></i>
                     <span>ဆိုင် ဆက်တင်များ (Settings)</span>
                 </button>
+                <button onclick="switchTab('chatbot')" id="nav-chatbot" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-stone-400 hover:bg-stone-800 hover:text-white">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="bot" class="w-4 h-4 text-emerald-400"></i>
+                        <span>AI Chatbot ဆက်တင်များ</span>
+                    </div>
+                    <span id="badgeChatbotStatus" class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">Active</span>
+                </button>
             </nav>
         </div>
 
@@ -667,6 +674,162 @@ require_once __DIR__ . '/config/db.php';
                     </div>
                 </form>
             </section>
+
+            <!-- ----------------------------------------------------------- -->
+            <!-- 10. AI CHATBOT PANE -->
+            <!-- ----------------------------------------------------------- -->
+            <section id="pane-chatbot" class="pane space-y-6 hidden">
+                <div class="p-5 bg-gradient-to-r from-emerald-50 via-teal-50 to-amber-50 border border-emerald-200 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                    <div>
+                        <h4 class="font-extrabold text-stone-900 text-sm flex items-center gap-2">
+                            <span class="p-1.5 bg-emerald-600 text-white rounded-xl shadow-xs"><i data-lucide="bot" class="w-4 h-4"></i></span>
+                            🤖 AI Chatbot Configuration (ဉာဏ်ရည်တု အကူအညီ စီမံခန့်ခွဲမှု)
+                        </h4>
+                        <p class="text-xs text-stone-600 mt-1">
+                            ဝယ်ယူသူများ မေးမြန်းသမျှကို ၂၄ နာရီ မနားတမ်း ပြန်လည်ဖြေကြားပေးမည့် AI Provider (Gemini / OpenAI / Groq)၊ API Key နှင့် Prompt များကို စီမံနိုင်ပါသည်။
+                        </p>
+                    </div>
+                    <label class="flex items-center gap-2.5 text-xs font-bold text-stone-800 cursor-pointer bg-white/90 px-4 py-2.5 rounded-2xl border border-emerald-200 shadow-xs shrink-0">
+                        <input type="checkbox" id="adminBotEnabled" checked class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                        <span>Chatbot ဖွင့်ထားမည် (Active)</span>
+                    </label>
+                </div>
+
+                <form onsubmit="handleSaveChatbot(event)" class="space-y-6">
+                    <!-- AI Provider & Model -->
+                    <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-4 text-xs">
+                        <h5 class="font-bold text-sm text-stone-900 flex items-center gap-2 border-b pb-3">
+                            <i data-lucide="cpu" class="w-4 h-4 text-emerald-600"></i> AI Provider နှင့် Model ရွေးချယ်ခြင်း
+                        </h5>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700">AI ဝန်ဆောင်မှု ပံ့ပိုးသူ (Provider)</label>
+                                <select id="adminBotProvider" onchange="handleBotProviderChange()" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white font-bold text-stone-800 focus:ring-2 focus:ring-emerald-500">
+                                    <option value="gemini">Google Gemini API (အကြံပြုချက် - မြန်မာစာကျွမ်းကျင်ပြီး အခမဲ့ Key ရရှိနိုင်)</option>
+                                    <option value="openai">OpenAI (GPT-4o-mini / GPT-4o)</option>
+                                    <option value="groq">Groq (Llama 3.3 70B - Ultra Fast အလွန်မြန်ဆန်)</option>
+                                    <option value="mock">Built-in Rule Engine (API Key မလိုပါ - မူလစနစ်)</option>
+                                    <option value="custom">Custom OpenAI-Compatible API (OpenWebUI, Ollama, LM Studio)</option>
+                                </select>
+                                <p id="providerHintText" class="text-[11px] text-stone-500 mt-1.5"></p>
+                            </div>
+
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block font-bold uppercase tracking-wider text-stone-700">Model Name (မော်ဒယ်အမည်)</label>
+                                    <span id="modelStatusBadge" class="text-[11px] text-emerald-700 font-bold hidden"></span>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex gap-2">
+                                        <input type="text" id="adminBotModel" value="gemini-1.5-flash" placeholder="e.g. gemini-1.5-flash, gpt-4o-mini" class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
+                                        <select id="adminBotModelSelect" onchange="document.getElementById('adminBotModel').value = this.value;" class="flex-1 px-3.5 py-2.5 rounded-xl border border-emerald-400 bg-emerald-50 font-mono font-bold hidden">
+                                            <!-- Dynamically populated -->
+                                        </select>
+                                        <button type="button" onclick="fetchAvailableModels()" id="btnFetchModels" class="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded-xl font-bold flex items-center gap-1.5 transition shrink-0">
+                                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="fetchModelsIcon"></i>
+                                            <span id="btnFetchModelsText">Fetch Models</span>
+                                        </button>
+                                    </div>
+                                    <p class="text-[11px] text-stone-400">Gemini: <code>gemini-1.5-flash</code> | OpenAI: <code>gpt-4o-mini</code> | Groq: <code>llama-3.3-70b-versatile</code></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- API Key & Custom URL Containers -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            <div id="adminApiKeyContainer">
+                                <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700 flex items-center justify-between">
+                                    <span>API Key</span>
+                                    <span id="apiKeyStatusBadge" class="text-[11px] font-normal text-stone-500"></span>
+                                </label>
+                                <div class="relative">
+                                    <input type="password" id="adminBotApiKey" placeholder="AI Provider မှ API Key ထည့်ပါ" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800 pr-10">
+                                    <button type="button" onclick="toggleApiKeyVisibility()" class="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700 p-1">
+                                        <i data-lucide="eye" id="apiKeyEyeIcon" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                                <div class="flex items-center justify-between text-[11px] text-stone-500 mt-1.5">
+                                    <span id="apiKeyLinkText"></span>
+                                    <span class="text-stone-400">Database တွင် လုံခြုံစွာ သိမ်းဆည်းပါသည်</span>
+                                </div>
+                            </div>
+
+                            <div id="adminApiUrlContainer" class="hidden">
+                                <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700">Custom API Base URL</label>
+                                <input type="text" id="adminBotApiUrl" placeholder="https://api.example.com/v1" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
+                                <span class="text-[11px] text-stone-400 block mt-1.5">OpenWebUI, Ollama သို့မဟုတ် Local LLM Base URL</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bot Persona & Welcome Message -->
+                    <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-4 text-xs">
+                        <h5 class="font-bold text-sm text-stone-900 flex items-center gap-2 border-b pb-3">
+                            <i data-lucide="message-square" class="w-4 h-4 text-amber-600"></i> Bot အချက်အလက်နှင့် ကြိုဆိုစကား
+                        </h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700">Bot အမည် (Bot Name)</label>
+                                <input type="text" id="adminBotName" value="ပုံ့ပုံ့ AI အကူအညီ" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-bold text-stone-800">
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700">ပထမဆုံး နှုတ်ဆက်မည့် စကား (Welcome Message)</label>
+                                <input type="text" id="adminBotWelcome" value="မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-stone-800">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Prompt Instructions -->
+                    <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-4 text-xs">
+                        <div class="flex items-center justify-between border-b pb-3">
+                            <div>
+                                <h5 class="font-bold text-sm text-stone-900 flex items-center gap-2">
+                                    <i data-lucide="sparkles" class="w-4 h-4 text-purple-600"></i> AI System Prompt (လမ်းညွှန်ချက်များနှင့် ဆိုင်အချက်အလက်)
+                                </h5>
+                                <p class="text-xs text-stone-500 mt-0.5">AI က ဆိုင်အကြောင်း မေးခွန်းများ ဖြေကြားရာတွင် လိုက်နာရမည့် ဆိုင်လိပ်စာ၊ ဖုန်း၊ ပို့ခနှင့် စည်းမျဉ်းများ</p>
+                            </div>
+                            <button type="button" onclick="resetDefaultPrompt()" class="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold flex items-center gap-1.5 transition">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> မူလအတိုင်း ပြန်ထားမည်
+                            </button>
+                        </div>
+                        <textarea id="adminBotSystemPrompt" rows="8" class="w-full p-3.5 rounded-2xl border border-stone-300 font-mono text-xs text-stone-800 leading-relaxed"></textarea>
+                    </div>
+
+                    <!-- Live Test Chat Box -->
+                    <div class="bg-stone-900 text-white p-6 rounded-3xl border border-stone-800 shadow-md space-y-4 text-xs">
+                        <div class="flex items-center justify-between border-b border-stone-800 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <span class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-xl"><i data-lucide="message-circle" class="w-4 h-4"></i></span>
+                                <h5 class="font-black text-sm text-white">AI Chatbot စမ်းသပ်စကားပြောကြည့်ရန် (Live Test Chat)</h5>
+                            </div>
+                            <span class="text-[11px] text-stone-400">ဆက်တင်မသိမ်းမီ သို့မဟုတ် သိမ်းပြီးနောက် စမ်းသပ်နိုင်ပါသည်</span>
+                        </div>
+                        
+                        <div id="adminTestChatOutput" class="min-h-[100px] max-h-[220px] overflow-y-auto p-4 bg-stone-950/70 rounded-2xl border border-stone-800/80 space-y-2.5 text-xs">
+                            <div class="flex items-start gap-2">
+                                <span class="text-emerald-400 font-bold shrink-0">🤖 Bot:</span>
+                                <span class="text-stone-300">မင်္ဂလာပါရှင်! AI Chatbot ချိတ်ဆက်မှု အဆင်ပြေမပြေ စမ်းသပ်မေးမြန်းနိုင်ပါပြီရှင်။ (ဥပမာ- "ဆိုင်လိပ်စာ သိချင်ပါတယ်" သို့မဟုတ် "ပို့ခ ဘယ်လောက်လဲ")</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <input type="text" id="adminTestQuery" placeholder="စမ်းသပ်မေးခွန်း ရိုက်ထည့်ပါ (ဥပမာ- မင်္ဂလာပါ ဆိုင်ဘယ်မှာရှိလဲ)..." onkeydown="if(event.key==='Enter'){event.preventDefault();testAdminChatbot();}" class="flex-1 px-4 py-2.5 rounded-xl bg-stone-800 border border-stone-700 text-white text-xs placeholder:text-stone-500 focus:ring-2 focus:ring-emerald-500">
+                            <button type="button" onclick="testAdminChatbot()" id="btnTestChat" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-1.5 transition shrink-0">
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                <span id="btnTestChatText">စမ်းသပ်မေးမည်</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submit Actions -->
+                    <div class="text-right">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-7 rounded-2xl text-xs transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 ml-auto">
+                            <i data-lucide="save" class="w-4 h-4"></i> 💾 AI Chatbot ဆက်တင်များ သိမ်းဆည်းမည်
+                        </button>
+                    </div>
+                </form>
+            </section>
         </div>
     </main>
 
@@ -981,7 +1144,8 @@ require_once __DIR__ . '/config/db.php';
                 'users': ['အသုံးပြုသူ စာရင်း (Users)', 'အကောင့်ဖွင့်ထားသူများနှင့် Role သတ်မှတ်ခြင်း'],
                 'coupons': ['လျှော့ဈေး ကူပွန်များ (Coupons)', 'ဝယ်ယူသူများ အသုံးပြုနိုင်သော Discount Coupon ကုဒ်များ'],
                 'theme': ['ဆိုင် Theme ဒီဇိုင်း (Store Theme)', 'စတိုးဆိုင်၏ အရောင်နှင့် Layout ဒီဇိုင်း ပြောင်းလဲခြင်း'],
-                'settings': ['ဆိုင် ဆက်တင်များနှင့် အသိပေးစနစ် (Settings)', 'ဆိုင်အချက်အလက်များနှင့် Telegram အော်ဒါအသိပေးစနစ် ပြင်ဆင်ခြင်း']
+                'settings': ['ဆိုင် ဆက်တင်များနှင့် အသိပေးစနစ် (Settings)', 'ဆိုင်အချက်အလက်များနှင့် Telegram အော်ဒါအသိပေးစနစ် ပြင်ဆင်ခြင်း'],
+                'chatbot': ['AI Chatbot ဆက်တင်များ (AI Assistant)', 'ဖောက်သည်များနှင့် ၂၄ နာရီ စကားပြောဆိုမည့် AI Provider (Gemini / OpenAI / Groq) နှင့် Prompt များကို စီမံခြင်း']
             };
             if (titles[tab]) {
                 document.getElementById('pageTitle').innerText = titles[tab][0];
@@ -1001,6 +1165,7 @@ require_once __DIR__ . '/config/db.php';
             renderTheme();
             renderCoupons();
             renderSettings();
+            renderChatbot();
             populateProductCategoryDropdown();
             lucide.createIcons();
         }
@@ -1853,6 +2018,281 @@ require_once __DIR__ . '/config/db.php';
                 alert(data.message || 'Telegram စမ်းသပ်မက်ဆေ့ခ်ျ ပေးပို့ပြီးပါပြီ။ သင်၏ Telegram ကို စစ်ဆေးကြည့်ပါ။');
             } catch (err) {
                 alert('Telegram ချိတ်ဆက်မှု မအောင်မြင်ပါ: ' + err);
+            }
+        }
+
+        // ===================================================================
+        // AI CHATBOT MANAGEMENT
+        // ===================================================================
+        const DEFAULT_PROMPT_TEMPLATE = `You are "Pont Pont AI" (ပုံ့ပုံ့ AI အကူအညီ), the polite, friendly customer assistant for "Pont Pont Handbag Shop" (ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး) based in Mandalay, Myanmar.
+
+Store Information:
+- Owner: Ma Pont Pont (မပုံ့)
+- Main Branch (ပင်မဆိုင်): 65th Street, Between 107th & 108th Streets, Mandalay (၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့)
+- Branch (2): 73rd Street, Between 36th & 37th Streets, Mandalay (၇၃ လမ်း၊ ၃၆×၃၇ လမ်းကြား၊ မန္တလေးမြို့)
+- Branch (3): 78th Street, Near Thakhun Taing Market, Mandalay (၇၈ လမ်း၊ တံခွန်တိုင်ဈေးအနီး)
+- Opening Hours: Daily 8:00 AM – 8:00 PM (နေ့စဉ် မနက် 8:00 မှ ည 8:00 အထိ)
+- Contact Phones / Viber: 09-963000502, 09-750072752, 09-404448881
+- Delivery: Mandalay downtown 2,500 MMK (COD available), Yangon 3,500 MMK, Naypyitaw 3,500 MMK, other cities 4,000 MMK via Bus Gates. Free delivery over 100,000 MMK.
+- Payment Methods: KBZPay (09-963000502), WavePay (09-963000502), Mobile Banking. No extra percentage fee.
+- Wholesale: Minimum 5-10 bags for wholesale discount. Resellers can contact 09-963000502 directly.`;
+
+        function handleBotProviderChange() {
+            const prov = document.getElementById('adminBotProvider').value;
+            const keyBox = document.getElementById('adminApiKeyContainer');
+            const urlBox = document.getElementById('adminApiUrlContainer');
+            const modelInp = document.getElementById('adminBotModel');
+            const hint = document.getElementById('providerHintText');
+            const linkText = document.getElementById('apiKeyLinkText');
+
+            if (prov === 'mock') {
+                keyBox.classList.add('hidden');
+                urlBox.classList.add('hidden');
+                modelInp.value = 'built-in-rules';
+                hint.innerText = '💡 Built-in Engine သည် API Key မလိုဘဲ ဆိုင်အချက်အလက်များကို အလိုအလျောက် ဖြေကြားပေးပါသည်။';
+                linkText.innerHTML = '';
+            } else if (prov === 'custom') {
+                keyBox.classList.remove('hidden');
+                urlBox.classList.remove('hidden');
+                if (!modelInp.value || modelInp.value === 'built-in-rules') modelInp.value = 'gpt-3.5-turbo';
+                hint.innerText = '💡 Local LLM (Ollama, OpenWebUI, LM Studio) သို့မဟုတ် Custom Endpoint ဖြင့် ချိတ်ဆက်နိုင်ပါသည်။';
+                linkText.innerHTML = '';
+            } else {
+                keyBox.classList.remove('hidden');
+                urlBox.classList.add('hidden');
+                if (prov === 'gemini') {
+                    if (!modelInp.value || modelInp.value === 'built-in-rules') modelInp.value = 'gemini-1.5-flash';
+                    hint.innerText = '💡 Google Gemini သည် မြန်မာစာအထူးကျွမ်းကျင်ပြီး အခမဲ့ Rate Limits ကောင်းမွန်ပါသည်။';
+                    linkText.innerHTML = '<a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 Google AI Studio တွင် အခမဲ့ Gemini Key ရယူရန်</a>';
+                } else if (prov === 'openai') {
+                    if (!modelInp.value || modelInp.value === 'built-in-rules') modelInp.value = 'gpt-4o-mini';
+                    hint.innerText = '💡 OpenAI GPT-4o-mini သည် အလွန်တိကျပြီး စကားပြော သဘာဝကျပါသည်။';
+                    linkText.innerHTML = '<a href="https://platform.openai.com/api-keys" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 OpenAI Platform မှ API Key ရယူရန်</a>';
+                } else if (prov === 'groq') {
+                    if (!modelInp.value || modelInp.value === 'built-in-rules') modelInp.value = 'llama-3.3-70b-versatile';
+                    hint.innerText = '💡 Groq သည် LPU chip ဖြင့် အမြန်ဆုံး အမြန်နှုန်းဖြင့် ချက်ချင်း ပြန်ဖြေပေးနိုင်ပါသည်။';
+                    linkText.innerHTML = '<a href="https://console.groq.com/keys" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 Groq Console မှ API Key ရယူရန်</a>';
+                }
+            }
+        }
+
+        function toggleApiKeyVisibility() {
+            const inp = document.getElementById('adminBotApiKey');
+            const icon = document.getElementById('apiKeyEyeIcon');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                inp.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        async function fetchAvailableModels() {
+            const prov = document.getElementById('adminBotProvider').value;
+            const apiKey = document.getElementById('adminBotApiKey').value.trim();
+            const apiUrl = document.getElementById('adminBotApiUrl').value.trim();
+            const btnText = document.getElementById('btnFetchModelsText');
+            const badge = document.getElementById('modelStatusBadge');
+            const select = document.getElementById('adminBotModelSelect');
+            const inp = document.getElementById('adminBotModel');
+
+            if (!apiKey && prov !== 'custom') {
+                const cfg = shopData.chatbotConfig || {};
+                if (!cfg.hasApiKey) {
+                    alert('Models များ ဆွဲယူရန် API Key အရင် ဖြည့်သွင်းပေးပါရှင်။');
+                    return;
+                }
+            }
+
+            btnText.innerText = 'Loading...';
+            badge.innerText = '⚡ Models ဆွဲယူနေပါသည်...';
+            badge.classList.remove('hidden');
+
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'FETCH_AI_MODELS',
+                        provider: prov,
+                        apiKey: apiKey,
+                        apiUrl: apiUrl
+                    })
+                });
+                const data = await res.json();
+                if (data.ok && data.models && data.models.length > 0) {
+                    select.innerHTML = '';
+                    data.models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m;
+                        opt.innerText = m;
+                        if (m === inp.value) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                    select.classList.remove('hidden');
+                    inp.classList.add('hidden');
+                    badge.innerText = `✓ Models (${data.models.length}) ခု အသင့်ရရှိပါသည်`;
+                    badge.className = 'text-[11px] text-emerald-700 font-bold';
+                } else {
+                    badge.innerText = '⚠️ Models မတွေ့ပါ (Input ထဲတွင် တိုက်ရိုက် ရိုက်ထည့်နိုင်ပါသည်)';
+                    badge.className = 'text-[11px] text-amber-700 font-bold';
+                }
+            } catch (err) {
+                badge.innerText = '⚠️ API ချိတ်ဆက်မှု မအောင်မြင်ပါ';
+            } finally {
+                btnText.innerText = 'Fetch Models';
+            }
+        }
+
+        function resetDefaultPrompt() {
+            document.getElementById('adminBotSystemPrompt').value = DEFAULT_PROMPT_TEMPLATE;
+        }
+
+        function renderChatbot() {
+            const cfg = shopData.chatbotConfig || {};
+            const provEl = document.getElementById('adminBotProvider');
+            if (provEl) provEl.value = cfg.provider || 'gemini';
+            
+            const modelEl = document.getElementById('adminBotModel');
+            if (modelEl) modelEl.value = cfg.model || 'gemini-1.5-flash';
+            
+            const urlEl = document.getElementById('adminBotApiUrl');
+            if (urlEl) urlEl.value = cfg.apiUrl || '';
+            
+            const keyEl = document.getElementById('adminBotApiKey');
+            const keyBadge = document.getElementById('apiKeyStatusBadge');
+            if (keyEl) {
+                keyEl.value = cfg.apiKey || '';
+                if (cfg.hasApiKey && !cfg.apiKey) {
+                    keyEl.placeholder = '●●●●●●●● (Database တွင် သိမ်းဆည်းပြီးသား)';
+                    if (keyBadge) keyBadge.innerHTML = '<span class="text-emerald-700 font-bold">✓ Key သိမ်းဆည်းထားပြီး</span>';
+                } else if (cfg.apiKey) {
+                    if (keyBadge) keyBadge.innerHTML = '<span class="text-emerald-700 font-bold">✓ Key ထည့်သွင်းထားသည်</span>';
+                } else {
+                    keyEl.placeholder = 'AI Provider မှ API Key ထည့်ပါ';
+                    if (keyBadge) keyBadge.innerHTML = '<span class="text-amber-700">Key မထည့်ရသေးပါ</span>';
+                }
+            }
+
+            const nameEl = document.getElementById('adminBotName');
+            if (nameEl) nameEl.value = cfg.botName || 'ပုံ့ပုံ့ AI အကူအညီ';
+
+            const welcomeEl = document.getElementById('adminBotWelcome');
+            if (welcomeEl) welcomeEl.value = cfg.welcomeMessageMm || 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။';
+
+            const promptEl = document.getElementById('adminBotSystemPrompt');
+            if (promptEl) promptEl.value = cfg.systemPrompt || DEFAULT_PROMPT_TEMPLATE;
+
+            const enabledEl = document.getElementById('adminBotEnabled');
+            const isEnabled = (cfg.enabled !== false && cfg.enabled != 0);
+            if (enabledEl) enabledEl.checked = isEnabled;
+
+            // Update badge on sidebar nav
+            const badgeEl = document.getElementById('badgeChatbotStatus');
+            if (badgeEl) {
+                if (isEnabled) {
+                    badgeEl.innerText = 'Active';
+                    badgeEl.className = 'bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold';
+                } else {
+                    badgeEl.innerText = 'Disabled';
+                    badgeEl.className = 'bg-stone-800 text-stone-400 border border-stone-700 text-[10px] px-2 py-0.5 rounded-full font-bold';
+                }
+            }
+
+            handleBotProviderChange();
+        }
+
+        async function handleSaveChatbot(e) {
+            e.preventDefault();
+            const provider = document.getElementById('adminBotProvider').value;
+            const model = document.getElementById('adminBotModel').value.trim();
+            const apiUrl = document.getElementById('adminBotApiUrl').value.trim();
+            const apiKey = document.getElementById('adminBotApiKey').value.trim();
+            const botName = document.getElementById('adminBotName').value.trim();
+            const welcomeMessageMm = document.getElementById('adminBotWelcome').value.trim();
+            const systemPrompt = document.getElementById('adminBotSystemPrompt').value.trim();
+            const enabled = document.getElementById('adminBotEnabled').checked;
+
+            const payload = {
+                action: 'UPDATE_CHATBOT_CONFIG',
+                chatbotConfig: {
+                    provider,
+                    model,
+                    apiUrl,
+                    apiKey,
+                    botName,
+                    welcomeMessageMm,
+                    welcomeMessageEn: 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.',
+                    systemPrompt,
+                    enabled
+                }
+            };
+
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    alert('AI Chatbot ဆက်တင်များ အားလုံး အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ! ✅');
+                    loadData();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to update chatbot config'));
+                }
+            } catch (err) {
+                alert('Chatbot ဆက်တင် သိမ်းဆည်းမှု မအောင်မြင်ပါ: ' + err);
+            }
+        }
+
+        async function testAdminChatbot() {
+            const queryInp = document.getElementById('adminTestQuery');
+            const q = queryInp.value.trim();
+            if (!q) return;
+
+            const output = document.getElementById('adminTestChatOutput');
+            const btn = document.getElementById('btnTestChat');
+            const btnText = document.getElementById('btnTestChatText');
+
+            // Append User Question
+            const userMsg = document.createElement('div');
+            userMsg.className = 'flex items-start gap-2 justify-end';
+            userMsg.innerHTML = `<span class="bg-amber-600/30 text-amber-200 px-3 py-1.5 rounded-xl border border-amber-600/40">${escapeHtml(q)}</span><span class="text-amber-400 font-bold shrink-0">👤 Admin:</span>`;
+            output.appendChild(userMsg);
+            queryInp.value = '';
+            output.scrollTop = output.scrollHeight;
+
+            btn.disabled = true;
+            btnText.innerText = 'ဖြေကြားနေသည်...';
+
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'CHAT_MESSAGE', message: q })
+                });
+                const data = await res.json();
+                let reply = data.reply;
+                if (!reply) {
+                    reply = 'မင်္ဂလာပါရှင် ပုံ့ပုံ့ အိတ်ဆိုင်မှ ကြိုဆိုပါတယ်။ ဆိုင်ခွဲများမှာ ၆၅ လမ်း (၁၀၇×၁၀၈ ကြား) နှင့် ၇၃ လမ်း (၃၆×၃၇ ကြား) မန္တလေးမြို့တွင် ရှိပြီး ဖုန်း 09-963000502 သို့ ဆက်သွယ်မှာယူနိုင်ပါသည်ရှင်။';
+                }
+
+                const botMsg = document.createElement('div');
+                botMsg.className = 'flex items-start gap-2';
+                botMsg.innerHTML = `<span class="text-emerald-400 font-bold shrink-0">🤖 Bot:</span><span class="bg-stone-800/90 text-stone-200 px-3 py-1.5 rounded-xl border border-stone-700/80 leading-relaxed">${escapeHtml(reply)}</span>`;
+                output.appendChild(botMsg);
+                output.scrollTop = output.scrollHeight;
+            } catch (err) {
+                const errMsg = document.createElement('div');
+                errMsg.className = 'text-red-400 text-xs';
+                errMsg.innerText = '⚠️ ချိတ်ဆက်မှု အမှားဖြစ်ပေါ်ပါသည်: ' + err;
+                output.appendChild(errMsg);
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = 'စမ်းသပ်မေးမည်';
             }
         }
     </script>
