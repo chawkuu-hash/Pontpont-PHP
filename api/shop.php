@@ -275,6 +275,76 @@ function handleSecureImageUpload($fileOrBase64, $subDir, $prefix = 'img') {
     return ['ok' => false, 'error' => 'ပုံဖိုင် မတွေ့ရှိပါ'];
 }
 
+// Helper: Make resilient HTTP requests using cURL or stream context
+function makeHttpRequest($url, $method = 'GET', $headers = [], $postData = null, $timeout = 20) {
+    if (function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
+        $headerList = [];
+        foreach ($headers as $k => $v) {
+            $headerList[] = is_numeric($k) ? $v : "$k: $v";
+        }
+        if (!empty($headerList)) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headerList);
+        }
+
+        if (strtoupper($method) === 'POST') {
+            curl_setopt($ch, CURLOPT_POST, true);
+            if ($postData !== null) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, is_array($postData) ? json_encode($postData) : $postData);
+            }
+        }
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return [
+            'status' => $httpCode,
+            'body'   => $response !== false ? $response : null
+        ];
+    } else {
+        $formattedHeaders = '';
+        foreach ($headers as $k => $v) {
+            $formattedHeaders .= (is_numeric($k) ? $v : "$k: $v") . "\r\n";
+        }
+        $options = [
+            'http' => [
+                'method' => strtoupper($method),
+                'header' => $formattedHeaders,
+                'timeout' => $timeout,
+                'ignore_errors' => true,
+            ],
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+            ]
+        ];
+        if (strtoupper($method) === 'POST' && $postData !== null) {
+            $options['http']['content'] = is_array($postData) ? json_encode($postData) : $postData;
+        }
+        $context = stream_context_create($options);
+        $response = @file_get_contents($url, false, $context);
+        $httpCode = 200;
+        if (isset($http_response_header)) {
+            foreach ($http_response_header as $hdr) {
+                if (preg_match('#HTTP/[0-9\.]+\s+([0-9]+)#', $hdr, $m)) {
+                    $httpCode = (int)$m[1];
+                    break;
+                }
+            }
+        }
+        return [
+            'status' => $httpCode,
+            'body'   => $response !== false ? $response : null
+        ];
+    }
+}
 // Helper: Build complete scoped database response
 function buildScopedResponse($pdo, $sessionUser) {
     // 1. Categories
@@ -394,6 +464,58 @@ function buildScopedResponse($pdo, $sessionUser) {
 
     $theme = $settings['theme'] ?? 'luxury-gold';
 
+    // 7. Chatbot Config
+    $chatbotConfig = null;
+    try {
+        $botStmt = $pdo->query("SELECT * FROM chatbot_config WHERE id = 1 LIMIT 1");
+        $botRow = $botStmt->fetch();
+        if ($botRow) {
+            if ($isAdmin) {
+                $chatbotConfig = [
+                    'provider'         => (string)$botRow['provider'],
+                    'apiUrl'           => (string)($botRow['apiUrl'] ?? ''),
+                    'apiKey'           => (string)($botRow['apiKey'] ?? ''),
+                    'model'            => (string)$botRow['model'],
+                    'systemPrompt'     => (string)$botRow['systemPrompt'],
+                    'botName'          => (string)$botRow['botName'],
+                    'welcomeMessageMm' => (string)$botRow['welcomeMessageMm'],
+                    'welcomeMessageEn' => (string)$botRow['welcomeMessageEn'],
+                    'enabled'          => (bool)$botRow['enabled'],
+                    'hasApiKey'        => !empty($botRow['apiKey']),
+                ];
+            } else {
+                $chatbotConfig = [
+                    'provider'         => (string)$botRow['provider'],
+                    'model'            => (string)$botRow['model'],
+                    'botName'          => (string)$botRow['botName'],
+                    'welcomeMessageMm' => (string)$botRow['welcomeMessageMm'],
+                    'welcomeMessageEn' => (string)$botRow['welcomeMessageEn'],
+                    'enabled'          => (bool)$botRow['enabled'],
+                    'hasApiKey'        => !empty($botRow['apiKey']),
+                ];
+            }
+        }
+    } catch (Exception $e) {
+        // Table may not exist yet
+    }
+
+    if (!$chatbotConfig) {
+        $chatbotConfig = [
+            'provider'         => 'mock',
+            'model'            => 'gemini-1.5-flash',
+            'botName'          => 'ပုံ့ပုံ့ AI အကူအညီ',
+            'welcomeMessageMm' => 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။',
+            'welcomeMessageEn' => 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.',
+            'enabled'          => true,
+            'hasApiKey'        => false,
+        ];
+        if ($isAdmin) {
+            $chatbotConfig['apiUrl'] = '';
+            $chatbotConfig['apiKey'] = '';
+            $chatbotConfig['systemPrompt'] = 'You are "Pont Pont AI" (ပုံ့ပုံ့ AI အကူအညီ), the polite, friendly customer assistant for "Pont Pont Handbag Shop" (ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး) based in Mandalay, Myanmar.';
+        }
+    }
+
     return [
         'products'      => $products,
         'categories'    => $categories,
@@ -405,6 +527,7 @@ function buildScopedResponse($pdo, $sessionUser) {
         'settings'      => $settings,
         'currentUser'   => sanitizeUser($sessionUser),
         'theme'         => $theme,
+        'chatbotConfig' => $chatbotConfig,
     ];
 }
 
@@ -909,6 +1032,192 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // 5.1. CHAT_MESSAGE (Customer Chatbot Query)
+    if ($action === 'CHAT_MESSAGE') {
+        $message = trim($body['message'] ?? '');
+        if (!$message) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Message cannot be empty.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // Get bot config from database
+        $cfg = null;
+        try {
+            $cfgStmt = $pdo->query("SELECT * FROM chatbot_config WHERE id = 1 LIMIT 1");
+            $cfg = $cfgStmt->fetch();
+        } catch (Exception $e) {}
+
+        if (!$cfg || empty($cfg['enabled'])) {
+            echo json_encode([
+                'ok' => true,
+                'reply' => 'Chatbot ဝန်ဆောင်မှု ခေတ္တပိတ်ထားပါသည်ရှင်။'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $provider = $cfg['provider'] ?? 'mock';
+        $apiKey = trim($cfg['apiKey'] ?? '');
+        $apiUrl = trim($cfg['apiUrl'] ?? '');
+        $model = trim($cfg['model'] ?? 'gemini-1.5-flash');
+        $systemPrompt = $cfg['systemPrompt'] ?? '';
+
+        // Gemini AI Provider
+        if ($provider === 'gemini' && $apiKey) {
+            $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            $payload = [
+                'contents' => [
+                    [
+                        'role' => 'user',
+                        'parts' => [
+                            ['text' => "System Prompt Instructions:\n" . $systemPrompt . "\n\nCustomer Message: " . $message]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.7,
+                    'maxOutputTokens' => 800
+                ]
+            ];
+            $res = makeHttpRequest($geminiUrl, 'POST', ['Content-Type' => 'application/json'], $payload, 20);
+            if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
+                $data = json_decode($res['body'], true);
+                $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                if ($reply) {
+                    echo json_encode(['ok' => true, 'reply' => $reply], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            }
+        }
+
+        // OpenAI or Groq AI Provider
+        if (($provider === 'openai' || $provider === 'groq') && $apiKey) {
+            $endpoint = ($provider === 'groq')
+                ? 'https://api.groq.com/openai/v1/chat/completions'
+                : 'https://api.openai.com/v1/chat/completions';
+
+            $defaultModel = ($provider === 'groq') ? 'llama-3.3-70b-versatile' : 'gpt-4o-mini';
+            $payload = [
+                'model' => $model ?: $defaultModel,
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $message],
+                ],
+                'temperature' => 0.7,
+                'max_tokens' => 800
+            ];
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Authorization' => "Bearer {$apiKey}"
+            ];
+            $res = makeHttpRequest($endpoint, 'POST', $headers, $payload, 20);
+            if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
+                $data = json_decode($res['body'], true);
+                $reply = $data['choices'][0]['message']['content'] ?? null;
+                if ($reply) {
+                    echo json_encode(['ok' => true, 'reply' => $reply], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            }
+        }
+
+        // Custom OpenAI-Compatible Provider (OpenWebUI, Ollama, LM Studio, etc.)
+        if ($provider === 'custom' && $apiUrl) {
+            $endpoint = (substr($apiUrl, -17) === '/chat/completions')
+                ? $apiUrl
+                : rtrim($apiUrl, '/') . '/chat/completions';
+
+            $headers = ['Content-Type' => 'application/json'];
+            if ($apiKey) {
+                $headers['Authorization'] = "Bearer {$apiKey}";
+            }
+
+            $payload = [
+                'model' => $model ?: 'gpt-3.5-turbo',
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $message],
+                ],
+                'temperature' => 0.7,
+                'max_tokens' => 800
+            ];
+            $res = makeHttpRequest($endpoint, 'POST', $headers, $payload, 25);
+            if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
+                $data = json_decode($res['body'], true);
+                $reply = $data['choices'][0]['message']['content'] ?? null;
+                if ($reply) {
+                    echo json_encode(['ok' => true, 'reply' => $reply], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            }
+        }
+
+        // Fallback: Signal frontend to use intelligent Burmese knowledgebase
+        echo json_encode(['ok' => true, 'reply' => null], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 5.2. FETCH_AI_MODELS (Auto-discover AI Models from Provider or Custom API)
+    if ($action === 'FETCH_AI_MODELS') {
+        $provider = trim($body['provider'] ?? '');
+        $apiKey = trim($body['apiKey'] ?? '');
+        $apiUrl = trim($body['apiUrl'] ?? '');
+        $models = [];
+
+        try {
+            if ($provider === 'gemini' || (!$provider && strpos($apiKey, 'AIzaSy') === 0)) {
+                $url = $apiUrl ?: "https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}";
+                if (strpos($url, 'key=') === false) {
+                    $url .= (strpos($url, '?') === false ? '?' : '&') . "key={$apiKey}";
+                }
+                $res = makeHttpRequest($url, 'GET', [], null, 15);
+                if ($res['status'] === 200 && $res['body']) {
+                    $data = json_decode($res['body'], true);
+                    if (isset($data['models']) && is_array($data['models'])) {
+                        foreach ($data['models'] as $m) {
+                            $methods = $m['supportedGenerationMethods'] ?? [];
+                            $name = $m['name'] ?? '';
+                            if (in_array('generateContent', $methods) || strpos($name, 'gemini') !== false) {
+                                $cleanName = str_replace('models/', '', $name);
+                                if ($cleanName) $models[] = $cleanName;
+                            }
+                        }
+                    }
+                }
+            } else {
+                $url = $apiUrl;
+                if (!$url) {
+                    $url = ($provider === 'groq') ? 'https://api.groq.com/openai/v1/models' : 'https://api.openai.com/v1/models';
+                } else {
+                    if (substr($url, -7) !== '/models') {
+                        $url = rtrim($url, '/') . '/models';
+                    }
+                }
+                $headers = [];
+                if ($apiKey) {
+                    $headers['Authorization'] = "Bearer {$apiKey}";
+                }
+                $res = makeHttpRequest($url, 'GET', $headers, null, 15);
+                if ($res['status'] === 200 && $res['body']) {
+                    $data = json_decode($res['body'], true);
+                    if (isset($data['data']) && is_array($data['data'])) {
+                        foreach ($data['data'] as $m) {
+                            if (!empty($m['id'])) $models[] = $m['id'];
+                        }
+                    } elseif (isset($data['models']) && is_array($data['models'])) {
+                        foreach ($data['models'] as $m) {
+                            if (!empty($m['id'])) $models[] = $m['id'];
+                            elseif (!empty($m['name'])) $models[] = $m['name'];
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {}
+
+        echo json_encode(['ok' => true, 'models' => array_values(array_unique($models))], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // --------------------------------------------------------------------------
     // ALL REMAINING ACTIONS REQUIRE ADMIN PRIVILEGES
     // --------------------------------------------------------------------------
@@ -1223,7 +1532,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 21. TEST_TELEGRAM (Send test message to verify Telegram Bot)
+    // 21. UPDATE_CHATBOT_CONFIG (Admin Update AI Chatbot Settings)
+    if ($action === 'UPDATE_CHATBOT_CONFIG') {
+        $cfg = $body['chatbotConfig'] ?? [];
+        $provider = in_array($cfg['provider'] ?? '', ['mock', 'gemini', 'openai', 'groq', 'custom']) ? $cfg['provider'] : 'mock';
+        $apiUrl = trim($cfg['apiUrl'] ?? '');
+        $apiKey = trim($cfg['apiKey'] ?? '');
+        $model = trim($cfg['model'] ?? 'gemini-1.5-flash');
+        $systemPrompt = trim($cfg['systemPrompt'] ?? '');
+        $botName = trim($cfg['botName'] ?? 'ပုံ့ပုံ့ AI အကူအညီ');
+        $welcomeMm = trim($cfg['welcomeMessageMm'] ?? 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။');
+        $welcomeEn = trim($cfg['welcomeMessageEn'] ?? 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.');
+        $enabled = !empty($cfg['enabled']) ? 1 : 0;
+        $updatedAt = gmdate('Y-m-d\TH:i:s\Z');
+
+        // Check if table exists, create if not
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `chatbot_config` (
+          `id` INT NOT NULL PRIMARY KEY DEFAULT 1,
+          `provider` VARCHAR(50) NOT NULL DEFAULT 'mock',
+          `apiUrl` TEXT DEFAULT NULL,
+          `apiKey` TEXT DEFAULT NULL,
+          `model` VARCHAR(100) NOT NULL DEFAULT 'gemini-1.5-flash',
+          `systemPrompt` TEXT NOT NULL,
+          `botName` VARCHAR(100) NOT NULL DEFAULT 'ပုံ့ပုံ့ AI အကူအညီ',
+          `welcomeMessageMm` TEXT NOT NULL,
+          `welcomeMessageEn` TEXT NOT NULL,
+          `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+          `updatedAt` VARCHAR(50) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // If existing apiKey was not provided (empty string submitted), keep old apiKey
+        if (empty($apiKey)) {
+            $oldStmt = $pdo->query("SELECT apiKey FROM chatbot_config WHERE id = 1 LIMIT 1");
+            $oldRow = $oldStmt->fetch();
+            if ($oldRow && !empty($oldRow['apiKey'])) {
+                $apiKey = $oldRow['apiKey'];
+            }
+        }
+
+        $upsert = $pdo->prepare("INSERT INTO chatbot_config (id, provider, apiUrl, apiKey, model, systemPrompt, botName, welcomeMessageMm, welcomeMessageEn, enabled, updatedAt) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE provider=VALUES(provider), apiUrl=VALUES(apiUrl), apiKey=VALUES(apiKey), model=VALUES(model), systemPrompt=VALUES(systemPrompt), botName=VALUES(botName), welcomeMessageMm=VALUES(welcomeMessageMm), welcomeMessageEn=VALUES(welcomeMessageEn), enabled=VALUES(enabled), updatedAt=VALUES(updatedAt)");
+        $upsert->execute([
+            $provider,
+            $apiUrl,
+            $apiKey,
+            $model,
+            $systemPrompt,
+            $botName,
+            $welcomeMm,
+            $welcomeEn,
+            $enabled,
+            $updatedAt
+        ]);
+
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 22. TEST_TELEGRAM (Send test message to verify Telegram Bot)
     if ($action === 'TEST_TELEGRAM') {
         $testOrder = [
             'id' => 'TEST-' . rand(100, 999),
@@ -1244,7 +1612,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['ok' => true, 'message' => 'Telegram စမ်းသပ်အကြောင်းကြားချက် ပေးပို့ပြီးပါပြီ']);
         exit;
     }
-
     http_response_code(400);
     echo json_encode(['error' => 'Unknown action: ' . $action], JSON_UNESCAPED_UNICODE);
     exit;

@@ -272,12 +272,12 @@ try {
                     <h4 class="text-sm font-bold text-white uppercase tracking-wider">မန္တလေး ဆိုင်ခွဲ (၃) ဆိုင်</h4>
                     <ul class="text-xs space-y-2.5 text-stone-400">
                         <li>
-                            <strong class="text-stone-200 block">ဆိုင်ခွဲ (၁) - ပင်မဆိုင်</strong>
-                            ၇၃ လမ်း၊ ၃၆ လမ်းနှင့် ၃၇ လမ်းကြား၊ မန္တလေးမြို့။
+                            <strong class="text-stone-200 block">ပင်မဆိုင် - ၆၅ လမ်း</strong>
+                            ၆၅ လမ်း၊ ၁၀၇ လမ်းနှင့် ၁၀၈ လမ်းကြား၊ မန္တလေးမြို့။
                         </li>
                         <li>
-                            <strong class="text-stone-200 block">ဆိုင်ခွဲ (၂)</strong>
-                            ၆၅ လမ်း၊ ၁၀၇ လမ်းနှင့် ၁၀၈ လမ်းကြား၊ မန္တလေးမြို့။
+                            <strong class="text-stone-200 block">ဆိုင်ခွဲ (၂) - ၇၃ လမ်း</strong>
+                            ၇၃ လမ်း၊ ၃၆ လမ်းနှင့် ၃၇ လမ်းကြား၊ မန္တလေးမြို့။
                         </li>
                         <li>
                             <strong class="text-stone-200 block">ဆိုင်ခွဲ (၃) - တံခွန်တိုင်</strong>
@@ -735,9 +735,11 @@ try {
                 <button onclick="switchAdminTab('overview')" id="adminTaboverview" class="admin-tab-btn px-4 py-2 rounded-xl bg-amber-600 text-white">ခြုံငုံသုံးသပ်ချက် (Overview)</button>
                 <button onclick="switchAdminTab('orders')" id="adminTaborders" class="admin-tab-btn px-4 py-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200">အော်ဒါများ (Orders)</button>
                 <button onclick="switchAdminTab('products')" id="adminTabproducts" class="admin-tab-btn px-4 py-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200">ပစ္စည်းများ (Products)</button>
+                <button onclick="switchAdminTab('categories')" id="adminTabcategories" class="admin-tab-btn px-4 py-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200">🏷️ ကဏ္ဍများ (Categories)</button>
                 <button onclick="switchAdminTab('announcements')" id="adminTabannouncements" class="admin-tab-btn px-4 py-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200">ကြေညာချက်များ (News)</button>
                 <button onclick="switchAdminTab('users')" id="adminTabusers" class="admin-tab-btn px-4 py-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200">အသုံးပြုသူများ (Users)</button>
                 <button onclick="switchAdminTab('theme')" id="adminTabtheme" class="admin-tab-btn px-4 py-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200">ဒီဇိုင်း Theme</button>
+                <button onclick="switchAdminTab('chatbot')" id="adminTabchatbot" class="admin-tab-btn px-4 py-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200">🤖 AI Chatbot ဆက်တင်</button>
             </div>
 
             <!-- Content Area -->
@@ -858,6 +860,44 @@ try {
                     </div>
                 </div>
 
+                <!-- Categories Pane -->
+                <div id="adminPanecategories" class="admin-pane space-y-4 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <!-- Add Category Form -->
+                        <div class="md:col-span-5 bg-stone-50 p-5 rounded-2xl border border-stone-200 space-y-3 h-fit">
+                            <h4 class="font-bold text-stone-900 text-sm flex items-center gap-2">
+                                <i data-lucide="tag" class="w-4 h-4 text-amber-700"></i>
+                                Category အသစ်ထည့်ရန်
+                            </h4>
+                            <form onsubmit="handleAddCategory(event)" class="space-y-3 text-xs">
+                                <div>
+                                    <label class="block font-bold mb-1">Category အမည် (English Label) *</label>
+                                    <input type="text" id="catLabelEn" required placeholder="e.g. Travel & Luggage, Luxury Clutches" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-1">Category Code / Tag (Optional)</label>
+                                    <input type="text" id="catId" placeholder="e.g. Travel, Clutch (အလွတ်ထားပါက အလိုအလျောက် သတ်မှတ်မည်)" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white">
+                                </div>
+                                <button type="submit" class="w-full bg-stone-900 hover:bg-black text-white font-bold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                    <span>Category ထည့်သွင်းမည်</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Active Categories List -->
+                        <div class="md:col-span-7 bg-white p-5 rounded-2xl border border-stone-200 space-y-3">
+                            <div class="flex items-center justify-between border-b border-stone-200 pb-2">
+                                <h4 class="font-bold text-stone-900 text-sm">လက်ရှိ Category စာရင်းများ</h4>
+                                <span class="text-[11px] text-stone-500">ဆိုင်မျက်နှာစာတွင် အသုံးပြုနေသော ကဏ္ဍများ</span>
+                            </div>
+                            <div id="adminCategoriesList" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Announcements Pane -->
                 <div id="adminPaneannouncements" class="admin-pane space-y-4 hidden">
                     <div class="flex justify-between items-center">
@@ -927,6 +967,97 @@ try {
                         </div>
                     </div>
                 </div>
+
+                <!-- Chatbot Configuration Pane -->
+                <div id="adminPanechatbot" class="admin-pane space-y-5 hidden">
+                    <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <h4 class="font-extrabold text-stone-900 text-sm flex items-center gap-2">
+                                🤖 AI Chatbot Configuration (ဆက်တင်များ)
+                            </h4>
+                            <p class="text-xs text-stone-600 mt-0.5">
+                                AI Provider (Gemini / OpenAI / Groq)၊ API Key နှင့် မေးခွန်းများဖြေကြားမည့် System Prompt များကို ပြင်ဆင်နိုင်ပါသည်။
+                            </p>
+                        </div>
+                        <label class="flex items-center gap-2 text-xs font-bold text-stone-800 cursor-pointer">
+                            <input type="checkbox" id="adminBotEnabled" checked class="w-4 h-4 text-amber-600 rounded">
+                            <span>Chatbot ဖွင့်ထားမည်</span>
+                        </label>
+                    </div>
+
+                    <form id="adminChatbotForm" onsubmit="saveChatbotConfig(event)" class="space-y-4 text-xs">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold text-stone-700 mb-1.5 uppercase">AI Provider (ဝန်ဆောင်မှု ရွေးချယ်ရန်)</label>
+                                <select id="adminBotProvider" onchange="handleBotProviderChange()" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white font-bold">
+                                    <option value="mock">Built-in Rule Engine (API Key မလိုပါ - မူလစနစ်)</option>
+                                    <option value="gemini">Google Gemini API (အကြံပြုချက် - မြန်မာစာကျွမ်းကျင်)</option>
+                                    <option value="openai">OpenAI (GPT-4o-mini / GPT-4o)</option>
+                                    <option value="groq">Groq (Llama 3.3 / Ultra-fast)</option>
+                                    <option value="custom">Custom OpenAI-Compatible API (OpenWebUI, Ollama, LM Studio)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block font-bold text-stone-700 uppercase">Model Name (မော်ဒယ်အမည်)</label>
+                                    <span id="modelStatusBadge" class="text-[10px] text-amber-700 font-bold hidden"></span>
+                                </div>
+                                <div id="modelInputContainer">
+                                    <input type="text" id="adminBotModel" value="gemini-1.5-flash" placeholder="e.g. gemini-1.5-flash, gpt-4o-mini" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono">
+                                    <select id="adminBotModelSelect" onchange="document.getElementById('adminBotModel').value = this.value;" class="w-full px-3 py-2 rounded-xl border border-emerald-400 bg-emerald-50/60 font-mono font-bold hidden">
+                                        <!-- Populated from Fetch Models -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom API URL (shown for custom provider) -->
+                        <div id="adminApiUrlContainer" class="p-3.5 bg-blue-50/50 rounded-2xl border border-blue-200 space-y-1.5 hidden">
+                            <label class="block font-bold text-blue-900 uppercase">Custom API URL (Endpoint)</label>
+                            <input type="text" id="adminBotApiUrl" placeholder="e.g. http://localhost:11434/v1 or https://my-open-webui.com/api" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-white font-mono text-xs">
+                            <p class="text-[11px] text-blue-700">OpenAI-compatible chat completions endpoint (စနစ်မှ /chat/completions ကို လိုအပ်ပါက အလိုအလျောက် ပေါင်းထည့်ပေးပါမည်)။</p>
+                        </div>
+
+                        <!-- API Key & Fetch Models -->
+                        <div id="adminApiKeyContainer" class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2 hidden">
+                            <label class="block font-bold text-stone-800 uppercase">AI API Key</label>
+                            <div class="flex gap-2">
+                                <input type="password" id="adminBotApiKey" placeholder="AIzaSy... သို့မဟုတ် sk-..." class="flex-1 px-3 py-2 rounded-xl border border-stone-300 bg-white font-mono text-xs">
+                                <button type="button" id="btnFetchModels" onclick="fetchAvailableModels()" class="px-3.5 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-xs">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                    <span id="btnFetchModelsText">Fetch Models</span>
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-stone-500">🔒 API Key သည် Bluehost MySQL Database ထဲတွင် လုံခြုံစွာ သိမ်းဆည်းထားပြီး ဧည့်သည်များထံ ပေါက်ကြားခြင်း မရှိပါ။</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold text-stone-700 mb-1.5 uppercase">Chatbot အမည်</label>
+                                <input type="text" id="adminBotName" value="Pont Pont AI Assistant" class="w-full px-3 py-2 rounded-xl border border-stone-300">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-stone-700 mb-1.5 uppercase">စတင်နှုတ်ဆက်စာ (Welcome Message)</label>
+                                <input type="text" id="adminBotWelcome" value="မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။" class="w-full px-3 py-2 rounded-xl border border-stone-300">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block font-bold text-stone-700 uppercase">AI System Prompt (ဆိုင်အချက်အလက်များနှင့် လမ်းညွှန်ချက်များ)</label>
+                                <button type="button" onclick="resetDefaultPrompt()" class="text-[11px] text-amber-700 underline font-bold">Default Prompt ပြန်ထားမည်</button>
+                            </div>
+                            <textarea id="adminBotSystemPrompt" rows="8" class="w-full p-3 rounded-2xl border border-stone-300 font-mono leading-relaxed bg-stone-50 text-[11px]"></textarea>
+                            <p class="text-[11px] text-stone-500 mt-1">ပင်မဆိုင် (၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့)၊ ပို့ဆောင်ခနှုန်းထားများနှင့် ဆက်သွယ်ရမည့် ဖုန်းနံပါတ် 09-963000502 များကို ဤ System Prompt တွင် ထည့်သွင်းထားပါသည်။</p>
+                        </div>
+
+                        <div class="pt-2 flex justify-end">
+                            <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md transition">
+                                💾 Chatbot ဆက်တင်များ သိမ်းဆည်းမည်
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -987,6 +1118,23 @@ try {
                 renderAnnouncements();
                 renderProducts();
                 updateUserUI();
+
+                if (data.chatbotConfig) {
+                    if (data.chatbotConfig.botName) {
+                        const botTitleEl = document.getElementById('chatbotTitle');
+                        if (botTitleEl) botTitleEl.innerText = data.chatbotConfig.botName;
+                    }
+                    if (data.chatbotConfig.welcomeMessageMm) {
+                        const botWelcomeEl = document.getElementById('chatbotWelcomeMsg');
+                        if (botWelcomeEl) botWelcomeEl.innerText = data.chatbotConfig.welcomeMessageMm;
+                    }
+                    const botBtn = document.getElementById('chatbotToggleBtn');
+                    if (botBtn && data.chatbotConfig.enabled === false) {
+                        botBtn.classList.add('hidden');
+                    } else if (botBtn && !chatbotOpen) {
+                        botBtn.classList.remove('hidden');
+                    }
+                }
             } catch (err) {
                 console.error("Failed loading shop data:", err);
             }
@@ -1809,6 +1957,7 @@ try {
             updateAdminStats();
             renderAdminOrders();
             renderAdminProducts();
+            renderAdminCategories();
             renderAdminAnnouncements();
             renderAdminUsers();
             lucide.createIcons();
@@ -1820,12 +1969,256 @@ try {
 
         function switchAdminTab(tab) {
             document.querySelectorAll('.admin-pane').forEach(el => el.classList.add('hidden'));
-            document.getElementById('adminPane' + tab).classList.remove('hidden');
+            const targetPane = document.getElementById('adminPane' + tab);
+            if (targetPane) targetPane.classList.remove('hidden');
 
             document.querySelectorAll('.admin-tab-btn').forEach(btn => {
                 btn.className = 'admin-tab-btn px-4 py-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200';
             });
-            document.getElementById('adminTab' + tab).className = 'admin-tab-btn px-4 py-2 rounded-xl bg-amber-600 text-white';
+            const activeBtn = document.getElementById('adminTab' + tab);
+            if (activeBtn) activeBtn.className = 'admin-tab-btn px-4 py-2 rounded-xl bg-amber-600 text-white';
+
+            if (tab === 'categories') {
+                renderAdminCategories();
+            } else if (tab === 'chatbot') {
+                loadChatbotSettingsIntoForm();
+            }
+            lucide.createIcons();
+        }
+
+        // Categories Management
+        function renderAdminCategories() {
+            const container = document.getElementById('adminCategoriesList');
+            if (!container) return;
+            container.innerHTML = '';
+            const cats = (shopData.categories || []).filter(c => c.id !== 'All');
+
+            cats.forEach(cat => {
+                const count = (shopData.products || []).filter(p => p.category.toLowerCase() === cat.id.toLowerCase()).length;
+                const div = document.createElement('div');
+                div.className = 'p-3.5 rounded-2xl border border-stone-200 bg-stone-50 flex items-center justify-between text-xs';
+                div.innerHTML = `
+                    <div>
+                        <span class="text-[10px] font-bold uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">${cat.id}</span>
+                        <h5 class="font-bold text-stone-900 mt-1">${cat.labelEn}</h5>
+                        <p class="text-[11px] text-stone-500">${count} items</p>
+                    </div>
+                    <div>
+                        <button onclick="handleDeleteCategory('${cat.id}')" class="px-2.5 py-1 text-red-600 hover:bg-red-50 rounded-lg text-xs font-bold transition">Delete</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        async function handleAddCategory(e) {
+            e.preventDefault();
+            const label = document.getElementById('catLabelEn').value.trim();
+            let catId = document.getElementById('catId').value.trim();
+            if (!label) return;
+            if (!catId) catId = label.replace(/[^a-zA-Z0-9]/g, '');
+
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'ADD_CATEGORY',
+                        category: { id: catId, labelEn: label }
+                    })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    document.getElementById('catLabelEn').value = '';
+                    document.getElementById('catId').value = '';
+                    await loadShopData();
+                    renderAdminCategories();
+                    alert('Category အသစ် အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ။');
+                } else {
+                    alert('Error: ' + (data.error || 'Server error'));
+                }
+            } catch (err) {
+                alert(err);
+            }
+        }
+
+        async function handleDeleteCategory(catId) {
+            if (!confirm(`"${catId}" category အား ဖျက်ရန် သေချာပါသလား?`)) return;
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'DELETE_CATEGORY', categoryId: catId })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    await loadShopData();
+                    renderAdminCategories();
+                } else {
+                    alert('Error: ' + (data.error || 'Server error'));
+                }
+            } catch (err) {
+                alert(err);
+            }
+        }
+
+        const DEFAULT_PROMPT_TEMPLATE = `You are "Pont Pont AI" (ပုံ့ပုံ့ AI အကူအညီ), the polite, friendly customer assistant for "Pont Pont Handbag Shop" (ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး) based in Mandalay, Myanmar.
+
+Store Information:
+- Owner: Ma Pont Pont (မပုံ့)
+- Main Branch (ပင်မဆိုင်): 65th Street, Between 107th & 108th Streets, Mandalay (၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့)
+- Branch (2): 73rd Street, Between 36th & 37th Streets, Mandalay (၇၃ လမ်း၊ ၃၆×၃၇ လမ်းကြား၊ မန္တလေးမြို့)
+- Branch (3): 78th Street, Near Thakhun Taing Market, Mandalay (၇၈ လမ်း၊ တံခွန်တိုင်ဈေးအနီး)
+- Opening Hours: Daily 8:00 AM – 8:00 PM (နေ့စဉ် မနက် 8:00 မှ ည 8:00 အထိ)
+- Contact Phones / Viber: 09-963000502, 09-750072752, 09-404448881
+- Delivery: Mandalay downtown 2,500 MMK (COD available), Yangon 3,500 MMK, Naypyitaw 3,500 MMK, other cities 4,000 MMK via Bus Gates. Free delivery over 100,000 MMK.
+- Payment Methods: KBZPay (09-963000502), WavePay (09-963000502), Mobile Banking. No extra percentage fee.
+- Wholesale: Minimum 5-10 bags for wholesale discount. Resellers can contact 09-963000502 directly.`;
+
+        function handleBotProviderChange() {
+            const prov = document.getElementById('adminBotProvider').value;
+            const keyBox = document.getElementById('adminApiKeyContainer');
+            const urlBox = document.getElementById('adminApiUrlContainer');
+            const modelInp = document.getElementById('adminBotModel');
+
+            if (prov === 'mock') {
+                keyBox.classList.add('hidden');
+                urlBox.classList.add('hidden');
+                modelInp.value = 'built-in';
+            } else if (prov === 'custom') {
+                keyBox.classList.remove('hidden');
+                urlBox.classList.remove('hidden');
+                if (!modelInp.value || modelInp.value === 'built-in') modelInp.value = 'gpt-3.5-turbo';
+            } else {
+                keyBox.classList.remove('hidden');
+                urlBox.classList.add('hidden');
+                if (prov === 'gemini') modelInp.value = 'gemini-1.5-flash';
+                else if (prov === 'openai') modelInp.value = 'gpt-4o-mini';
+                else if (prov === 'groq') modelInp.value = 'llama-3.3-70b-versatile';
+            }
+        }
+
+        async function fetchAvailableModels() {
+            const prov = document.getElementById('adminBotProvider').value;
+            const apiKey = document.getElementById('adminBotApiKey').value.trim();
+            const apiUrl = document.getElementById('adminBotApiUrl').value.trim();
+            const btnText = document.getElementById('btnFetchModelsText');
+            const badge = document.getElementById('modelStatusBadge');
+            const select = document.getElementById('adminBotModelSelect');
+            const inp = document.getElementById('adminBotModel');
+
+            if (!apiKey && prov !== 'custom') {
+                alert('Models များ ဆွဲယူရန် API Key အရင် ဖြည့်သွင်းပေးပါရှင်။');
+                return;
+            }
+
+            btnText.innerText = 'Loading...';
+            badge.innerText = '⚡ Models ဆွဲယူနေပါသည်...';
+            badge.classList.remove('hidden');
+
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'FETCH_AI_MODELS',
+                        provider: prov,
+                        apiKey: apiKey,
+                        apiUrl: apiUrl
+                    })
+                });
+                const data = await res.json();
+                if (data.ok && Array.isArray(data.models) && data.models.length > 0) {
+                    select.innerHTML = '';
+                    data.models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m;
+                        opt.innerText = m;
+                        if (m === inp.value) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                    select.classList.remove('hidden');
+                    inp.classList.add('hidden');
+                    inp.value = select.value;
+                    badge.innerText = `✓ Models (${data.models.length}) ခု အသင့်ရရှိပါသည်`;
+                    badge.className = 'text-[10px] text-emerald-700 font-bold';
+                } else {
+                    badge.innerText = '⚠️ Models မတွေ့ပါ (Input ထဲတွင် တိုက်ရိုက် ရိုက်ထည့်နိုင်ပါသည်)';
+                    badge.className = 'text-[10px] text-amber-700 font-bold';
+                }
+            } catch (err) {
+                badge.innerText = '⚠️ API ချိတ်ဆက်မှု မအောင်မြင်ပါ';
+            } finally {
+                btnText.innerText = 'Fetch Models';
+            }
+        }
+
+        function resetDefaultPrompt() {
+            document.getElementById('adminBotSystemPrompt').value = DEFAULT_PROMPT_TEMPLATE;
+        }
+
+        function loadChatbotSettingsIntoForm() {
+            const cfg = shopData.chatbotConfig || {};
+
+            document.getElementById('adminBotProvider').value = cfg.provider || 'mock';
+            document.getElementById('adminBotModel').value = cfg.model || 'gemini-1.5-flash';
+            document.getElementById('adminBotApiUrl').value = cfg.apiUrl || '';
+            document.getElementById('adminBotApiKey').value = cfg.apiKey || '';
+            if (cfg.hasApiKey && !cfg.apiKey) {
+                document.getElementById('adminBotApiKey').placeholder = '●●●●●●●● (Database တွင် သိမ်းဆည်းပြီးသား)';
+            }
+            document.getElementById('adminBotName').value = cfg.botName || 'ပုံ့ပုံ့ AI အကူအညီ';
+            document.getElementById('adminBotWelcome').value = cfg.welcomeMessageMm || 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။';
+            document.getElementById('adminBotSystemPrompt').value = cfg.systemPrompt || DEFAULT_PROMPT_TEMPLATE;
+            document.getElementById('adminBotEnabled').checked = cfg.enabled !== false;
+            handleBotProviderChange();
+        }
+
+        async function saveChatbotConfig(e) {
+            e.preventDefault();
+            const provider = document.getElementById('adminBotProvider').value;
+            const model = document.getElementById('adminBotModel').value.trim();
+            const apiUrl = document.getElementById('adminBotApiUrl').value.trim();
+            const apiKey = document.getElementById('adminBotApiKey').value.trim();
+            const botName = document.getElementById('adminBotName').value.trim();
+            const welcomeMessageMm = document.getElementById('adminBotWelcome').value.trim();
+            const systemPrompt = document.getElementById('adminBotSystemPrompt').value.trim();
+            const enabled = document.getElementById('adminBotEnabled').checked;
+
+            const payload = {
+                action: 'UPDATE_CHATBOT_CONFIG',
+                chatbotConfig: {
+                    provider,
+                    model,
+                    apiUrl,
+                    apiKey,
+                    botName,
+                    welcomeMessageMm,
+                    welcomeMessageEn: 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.',
+                    systemPrompt,
+                    enabled
+                }
+            };
+
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    if (data.db && data.db.chatbotConfig) {
+                        shopData.chatbotConfig = data.db.chatbotConfig;
+                    }
+                    alert('AI Chatbot ဆက်တင်များကို Bluehost MySQL Database ထဲသို့ အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီရှင်။');
+                } else {
+                    alert('Error: ' + (data.error || 'Server error'));
+                }
+            } catch (err) {
+                alert('သိမ်းဆည်းမှု မအောင်မြင်ပါ: ' + err);
+            }
         }
 
         function updateAdminStats() {
@@ -2108,6 +2501,233 @@ try {
                 alert(err);
             }
         }
+
+        // ==================== AI CHATBOT ====================
+        let chatbotOpen = false;
+        function toggleChatbot() {
+            chatbotOpen = !chatbotOpen;
+            const win = document.getElementById('chatbotWindow');
+            const btn = document.getElementById('chatbotToggleBtn');
+            if (chatbotOpen) {
+                win.classList.remove('hidden');
+                win.classList.add('flex');
+                btn.classList.add('hidden');
+                scrollChatToBottom();
+            } else {
+                win.classList.add('hidden');
+                win.classList.remove('flex');
+                btn.classList.remove('hidden');
+            }
+        }
+
+        function scrollChatToBottom() {
+            const body = document.getElementById('chatMessages');
+            if (body) body.scrollTop = body.scrollHeight;
+        }
+
+        function sendChatPrompt(promptText) {
+            const inp = document.getElementById('chatInput');
+            inp.value = promptText;
+            handleChatSubmit(new Event('submit'));
+        }
+
+        async function handleChatSubmit(e) {
+            if (e) e.preventDefault();
+            const inp = document.getElementById('chatInput');
+            const query = inp.value.trim();
+            if (!query) return;
+
+            // Append user message
+            appendChatMessage('user', query);
+            inp.value = '';
+
+            // Show typing indicator
+            const typingId = 'typing-' + Date.now();
+            const body = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = typingId;
+            typingDiv.className = 'flex items-center gap-2 text-stone-500 text-xs bg-white px-3 py-2 rounded-2xl border border-stone-200 w-fit';
+            typingDiv.innerHTML = `<span>✨ ပုံ့ပုံ့ AI ဖြေကြားနေပါသည်...</span>`;
+            body.appendChild(typingDiv);
+            scrollChatToBottom();
+
+            try {
+                // If chatbot is configured with AI, query the server REST API
+                const botCfg = shopData.chatbotConfig;
+                let gotAiReply = false;
+
+                if (botCfg && botCfg.enabled !== false && botCfg.provider !== 'mock') {
+                    const res = await fetch('api/shop.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'CHAT_MESSAGE', message: query })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.reply) {
+                            const el = document.getElementById(typingId);
+                            if (el) el.remove();
+                            appendChatMessage('bot', data.reply);
+                            gotAiReply = true;
+                        }
+                    }
+                }
+
+                if (!gotAiReply) {
+                    const el = document.getElementById(typingId);
+                    if (el) el.remove();
+                    const reply = generateChatbotReply(query);
+                    appendChatMessage('bot', reply.text, reply.action);
+                }
+            } catch (err) {
+                const el = document.getElementById(typingId);
+                if (el) el.remove();
+                const reply = generateChatbotReply(query);
+                appendChatMessage('bot', reply.text, reply.action);
+            }
+        }
+
+        function appendChatMessage(sender, text, action) {
+            const body = document.getElementById('chatMessages');
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex gap-2 ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            let actionHtml = '';
+            if (action) {
+                actionHtml = `
+                    <div class="mt-2">
+                        <button onclick="${action.onClick}" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold rounded-xl border border-amber-300 transition">
+                            ${action.label}
+                        </button>
+                    </div>
+                `;
+            }
+
+            if (sender === 'user') {
+                msgDiv.innerHTML = `
+                    <div class="max-w-[80%] bg-amber-600 text-white rounded-2xl rounded-br-none px-3.5 py-2.5 shadow-sm text-xs">
+                        <p class="whitespace-pre-line">${text}</p>
+                        <span class="block text-[10px] text-amber-200 text-right mt-1">${time}</span>
+                    </div>
+                `;
+            } else {
+                msgDiv.innerHTML = `
+                    <div class="w-7 h-7 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">🤖</div>
+                    <div class="max-w-[80%] bg-white border border-stone-200 text-stone-800 rounded-2xl rounded-bl-none px-3.5 py-2.5 shadow-sm text-xs">
+                        <p class="whitespace-pre-line">${text}</p>
+                        ${actionHtml}
+                        <span class="block text-[10px] text-stone-400 mt-1">${time}</span>
+                    </div>
+                `;
+            }
+            body.appendChild(msgDiv);
+            scrollChatToBottom();
+        }
+
+        function generateChatbotReply(query) {
+            const q = query.toLowerCase();
+
+            // Branches / Address
+            if (q.includes('လိပ်စာ') || q.includes('ဆိုင်') || q.includes('ပင်မ') || q.includes('address') || q.includes('branch')) {
+                return {
+                    text: "🏪 မန္တလေးမြို့ ဆိုင်ခွဲ (၃) ဆိုင် လိပ်စာများ:\n\n• ပင်မဆိုင်: ၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့\n• ဆိုင်ခွဲ (၂): ၇၃ လမ်း၊ ၃၆×၃၇ လမ်းကြား၊ မန္တလေးမြို့\n• ဆိုင်ခွဲ (၃): ၇၈ လမ်း (ရန်ကုန်-မန္တလေးလမ်း)၊ တံခွန်တိုင်ဈေးအနီး\n\n⏰ ဆိုင်ဖွင့်ချိန်: နေ့စဉ် မနက် 8:00 AM မှ ည 8:00 PM အထိ",
+                    action: { label: "📍 ဆိုင်ခွဲလိပ်စာများ ကြည့်မည်", onClick: "window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'}); toggleChatbot();" }
+                };
+            }
+
+            // Phone / Contact
+            if (q.includes('ဖုန်း') || q.includes('ဆက်သွယ်') || q.includes('phone') || q.includes('call') || q.includes('viber')) {
+                return {
+                    text: "📞 ဆက်သွယ်ရန် ဖုန်းနံပါတ်များ:\n• 09-963000502 (ပင်မဖုန်း / Viber)\n• 09-750072752\n• 09-404448881\n\nနေ့စဉ် မနက် 8:00 မှ ည 8:00 ထိ စုံစမ်းမေးမြန်းနိုင်ပါတယ်ရှင်။",
+                    action: { label: "📞 09-963000502 သို့ ဖုန်းခေါ်မည်", onClick: "window.open('tel:09963000502');" }
+                };
+            }
+
+            // Delivery
+            if (q.includes('ပို့') || q.includes('delivery') || q.includes('ကားဂိတ်') || q.includes('deli')) {
+                return {
+                    text: "🚚 ပို့ဆောင်ခနှုန်းထားများ:\n• မန္တလေးမြို့တွင်း: ၂,၅၀၀ ကျပ် (အိမ်အရောက်ငွေချေစနစ် ရပါသည်)\n• ရန်ကုန်မြို့တွင်း: ၃,၅၀၀ ကျပ်\n• နေပြည်တော်: ၃,၅၀၀ ကျပ်\n• နယ်ဝေးမြို့များ: ၄,၀၀၀ ကျပ် (ကားဂိတ်တင် စနစ်)\n\n⚡ အမြန်ဆုံး ၁-၃ ရက်အတွင်း ပို့ဆောင်ပေးပါသည်ရှင်။"
+                };
+            }
+
+            // Payment
+            if (q.includes('ငွေ') || q.includes('kpay') || q.includes('wave') || q.includes('pay') || q.includes('ဘဏ်')) {
+                return {
+                    text: "💰 ငွေပေးချေမှု နည်းလမ်းများ:\n• KBZPay (09-963000502 - Ma Pont Pont)\n• WavePay (09-963000502 - Ma Pont Pont)\n• မန္တလေးမြို့တွင်း အိမ်အရောက်ငွေချေ (COD)\n• Mobile Banking (KBZ, CB, AYA)\n\n% ထပ်ဆောင်းပေးရန် မလိုပါရှင်။"
+                };
+            }
+
+            // Wholesale
+            if (q.includes('ကား') || q.includes('လက်ကား') || q.includes('wholesale')) {
+                return {
+                    text: "📦 လက်ကား မှာယူမှုများ:\nဆိုင်ရှင်များနှင့် ပြန်လည်ရောင်းချသူများအတွက် အထူးလက်ကားဈေးနှုန်း သီးသန့်ရှိပါသည် (အနည်းဆုံး ၅ လုံးမှ ၁၀ လုံးအထက်)။ လက်ကားကတ်တလောက်နှင့် ဈေးနှုန်းညှိနှိုင်းရန် ဖုန်း 09-963000502 သို့ ဆက်သွယ်ပေးပါရှင်။",
+                    action: { label: "📞 လက်ကားဌာန သို့ ခေါ်ဆိုရန်", onClick: "window.open('tel:09963000502');" }
+                };
+            }
+
+            // Default
+            return {
+                text: "မင်္ဂလာပါရှင် 🙏 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) ပင်မဆိုင် (၆၅ လမ်း၊ ၁၀၇×၁၀၈ ကြား) မှ ကြိုဆိုပါတယ်။ အိတ်ဒီဇိုင်းများ၊ ဈေးနှုန်း၊ ပို့ဆောင်ခနှင့် ပတ်သက်၍ အသေးစိတ် မေးမြန်းနိုင်ပါသည်ရှင်။",
+                action: { label: "👜 အိတ်အားလုံး ကြည့်ရှုမည်", onClick: "window.scrollTo({top: 500, behavior: 'smooth'}); toggleChatbot();" }
+            };
+        }
     </script>
+
+    <!-- Floating Chatbot Toggle Button -->
+    <button id="chatbotToggleBtn" onclick="toggleChatbot()" class="fixed bottom-6 right-5 z-50 group flex items-center gap-2.5 bg-gradient-to-r from-amber-600 via-rose-600 to-amber-700 text-white px-4 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border border-amber-300/40">
+        <span class="text-lg">🤖</span>
+        <span class="text-xs font-bold tracking-wide">အိတ်ဆိုင် Chatbot</span>
+        <span class="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-extrabold uppercase">AI</span>
+    </button>
+
+    <!-- Chatbot Window -->
+    <div id="chatbotWindow" class="hidden fixed bottom-6 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-h-[85vh] h-[520px] bg-white rounded-3xl shadow-2xl border border-stone-200 flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 text-white px-4 py-3.5 flex items-center justify-between shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-600/30 border border-amber-400/40 flex items-center justify-center text-xl shadow-inner">
+                    🤖
+                </div>
+                <div>
+                    <h3 id="chatbotTitle" class="font-bold text-sm tracking-tight flex items-center gap-1.5">
+                        ပုံ့ပုံ့ AI အကူအညီ ✨
+                    </h3>
+                    <p class="text-[11px] text-amber-300 font-medium">
+                        ပုံ့ပုံ့ အိတ်ဆိုင် အကူအညီ • အသင့်ရှိပါသည်
+                    </p>
+                </div>
+            </div>
+            <button onclick="toggleChatbot()" class="p-1.5 rounded-full hover:bg-white/10 text-stone-300 hover:text-white transition">
+                ✕
+            </button>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-stone-50/70 text-xs">
+            <div class="flex gap-2 justify-start">
+                <div class="w-7 h-7 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">🤖</div>
+                <div class="max-w-[80%] bg-white border border-stone-200 text-stone-800 rounded-2xl rounded-bl-none px-3.5 py-2.5 shadow-sm text-xs">
+                    <p id="chatbotWelcomeMsg">မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ အိတ်ဒီဇိုင်းများ၊ ဈေးနှုန်း၊ ပို့ဆောင်ခ၊ ဆိုင်လိပ်စာနှင့် ဖုန်းနံပါတ်များ စိတ်ကြိုက်မေးမြန်းနိုင်ပါတယ်ရှင်။</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Prompts -->
+        <div class="px-3 py-2 bg-stone-100 border-t border-stone-200 overflow-x-auto flex gap-1.5 no-scrollbar">
+            <button onclick="sendChatPrompt('📍 ပင်မဆိုင်လိပ်စာ')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">📍 ပင်မဆိုင်လိပ်စာ</button>
+            <button onclick="sendChatPrompt('👜 ရောင်းအားအကောင်းဆုံးအိတ်များ')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">👜 အိတ်ဒီဇိုင်းများ</button>
+            <button onclick="sendChatPrompt('🚚 ပို့ဆောင်ခနှင့် ကားဂိတ်')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">🚚 ပို့ဆောင်ခ</button>
+            <button onclick="sendChatPrompt('📞 ဆက်သွယ်ရန်ဖုန်း')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">📞 ဖုန်းနံပါတ်</button>
+        </div>
+
+        <!-- Input Box -->
+        <form onsubmit="handleChatSubmit(event)" class="p-3 bg-white border-t border-stone-200 flex items-center gap-2">
+            <input type="text" id="chatInput" placeholder="အိတ်များ၊ ဆိုင်လိပ်စာ၊ ပို့ဆောင်ခ မေးပါ..." class="flex-1 bg-stone-100 text-stone-900 text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition" />
+            <button type="submit" class="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+                Send
+            </button>
+        </form>
+    </div>
 </body>
 </html>
