@@ -145,6 +145,26 @@ CREATE TABLE `chatbot_config` (
   `updatedAt` VARCHAR(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+-- Table structure for `payment_methods`
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `payment_methods`;
+CREATE TABLE `payment_methods` (
+  `id` VARCHAR(50) NOT NULL PRIMARY KEY,
+  `code` VARCHAR(50) NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `nameMm` VARCHAR(100) NOT NULL,
+  `type` VARCHAR(30) NOT NULL DEFAULT 'transfer',
+  `accountName` VARCHAR(100) DEFAULT NULL,
+  `accountNumber` VARCHAR(100) DEFAULT NULL,
+  `instructions` TEXT DEFAULT NULL,
+  `qrCodeUrl` VARCHAR(255) DEFAULT NULL,
+  `requiresSlip` TINYINT(1) NOT NULL DEFAULT 1,
+  `isActive` TINYINT(1) NOT NULL DEFAULT 1,
+  `sortOrder` INT NOT NULL DEFAULT 0,
+  `createdAt` VARCHAR(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================
 -- Dumping Data for Tables
 -- ============================================================
@@ -199,6 +219,13 @@ INSERT INTO `coupons` (`id`, `code`, `discountType`, `discountValue`, `minOrderA
 ('cpn-01', 'PONTPONT10', 'percent', 10, 0, 0, 0, NULL, 1, '2026-11-23T00:00:00Z'),
 ('cpn-02', 'PONTWELCOME', 'fixed', 5000, 30000, 100, 0, NULL, 1, '2026-11-23T00:00:00Z'),
 ('cpn-03', 'VIPLUXURY', 'percent', 15, 100000, 50, 0, NULL, 1, '2026-11-23T00:00:00Z');
+
+-- Dumping data for table `payment_methods`
+INSERT INTO `payment_methods` (`id`, `code`, `name`, `nameMm`, `type`, `accountName`, `accountNumber`, `instructions`, `qrCodeUrl`, `requiresSlip`, `isActive`, `sortOrder`, `createdAt`) VALUES
+('pm-kpay', 'KPay', 'KBZPay', 'KBZPay (ငွေလွှဲ)', 'transfer', 'Ma Pont Pont (မပုံ့)', '09963000502', 'KBZPay ဖြင့် ငွေလွှဲပြီးပါက ပြေစာ Screenshot တင်ပေးပါရန်', NULL, 1, 1, 1, '2026-11-23T00:00:00Z'),
+('pm-wave', 'WavePay', 'WavePay', 'WavePay (ငွေလွှဲ)', 'transfer', 'Ma Pont Pont (မပုံ့)', '09963000502', 'WavePay ဖြင့် ငွေလွှဲပြီးပါက ပြေစာ Screenshot တင်ပေးပါရန်', NULL, 1, 1, 2, '2026-11-23T00:00:00Z'),
+('pm-cod', 'COD', 'Cash on Delivery', 'အိမ်အရောက်ငွေချေ (COD)', 'cod', '', '', 'မန္တလေးမြို့တွင်း ပစ္စည်းရောက်မှ ငွေချေစနစ် ဖြစ်ပါသည်', NULL, 0, 1, 3, '2026-11-23T00:00:00Z'),
+('pm-aya', 'AYAPay', 'AYA Pay / Banking', 'AYA Pay / ဘဏ်ငွေလွှဲ', 'banking', 'Daw Pont Pont', '09963000502', 'AYA Pay သို့မဟုတ် AYA Bank ဖြင့် လွှဲပေးနိုင်ပါသည်', NULL, 1, 1, 4, '2026-11-23T00:00:00Z');
 
 -- --------------------------------------------------------
 -- Table structure for `login_attempts` (Rate Limiting)

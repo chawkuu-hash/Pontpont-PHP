@@ -487,8 +487,8 @@ try {
                         <!-- Payment Method Selection -->
                         <div class="pt-2">
                             <label class="block font-bold text-stone-700 mb-1.5">ငွေပေးချေမှု နည်းလမ်း ရွေးချယ်ပါ *</label>
-                            <div class="grid grid-cols-3 gap-2">
-                                <label class="payment-card border border-stone-200 rounded-xl p-2.5 text-center cursor-pointer hover:border-amber-500 transition">
+                            <div id="checkoutPaymentMethodsContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <label class="payment-card border border-amber-500 bg-amber-50/30 rounded-xl p-2.5 text-center cursor-pointer hover:border-amber-500 transition">
                                     <input type="radio" name="paymentMethod" value="KPay" checked onchange="togglePaymentDetails()" class="hidden">
                                     <div class="font-bold text-blue-700">KBZPay</div>
                                     <div class="text-[10px] text-stone-500">ငွေလွှဲ</div>
@@ -506,23 +506,34 @@ try {
                             </div>
                         </div>
 
-                        <!-- KPay / WavePay Info Box -->
+                        <!-- Dynamic Transfer / Payment Info Box -->
                         <div id="transferInfoBox" class="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-xs space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="font-bold text-blue-900" id="transferTitle">KPay အကောင့်နံပါတ်</span>
-                                <button type="button" onclick="copyAccountNo()" class="bg-white border border-blue-200 px-2.5 py-1 rounded-lg text-[11px] font-bold text-blue-800 hover:bg-blue-100 transition">
+                                <button type="button" id="btnCopyAccount" onclick="copyAccountNo()" class="bg-white border border-blue-200 px-2.5 py-1 rounded-lg text-[11px] font-bold text-blue-800 hover:bg-blue-100 transition">
                                     📋 Copy နံပါတ်
                                 </button>
                             </div>
-                            <p class="font-extrabold text-stone-900 text-sm" id="transferPhoneDisplay">09-963000502 / 09-750072752</p>
-                            <p class="text-[11px] text-stone-600">Account Name: <strong id="transferNameDisplay">Ma Pont Pont (ပုံ့ပုံ့ အိတ်ဆိုင် - မန္တလေး)</strong></p>
-                            <div>
-                                <label class="block font-bold text-blue-950 mt-2 mb-1">ငွေလွှဲပြေစာ နောက်ဆုံး (၆) လုံး (Transaction Ref) *</label>
+                            <p class="font-extrabold text-stone-900 text-sm" id="transferPhoneDisplay">09-963000502</p>
+                            <p class="text-[11px] text-stone-600" id="transferNameRow">Account Name: <strong id="transferNameDisplay">Ma Pont Pont (မပုံ့)</strong></p>
+                            <p id="transferInstructions" class="text-[11px] text-stone-600 bg-white/70 p-2 rounded-xl border border-blue-100 leading-relaxed hidden"></p>
+                            
+                            <!-- QR Code Preview if configured -->
+                            <div id="transferQrBox" class="p-2 bg-white rounded-xl border border-blue-200 flex items-center gap-3 hidden">
+                                <img id="transferQrImg" src="" alt="QR" class="w-16 h-16 object-contain rounded-lg border border-stone-200">
+                                <div class="text-[11px] text-stone-600 space-y-0.5">
+                                    <span class="font-bold text-stone-900 block">QR Code Scan ၍ ပေးချေနိုင်ပါသည်</span>
+                                    <a id="transferQrLink" href="" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold underline">ပုံကြီးကြည့်ရန် ↗</a>
+                                </div>
+                            </div>
+
+                            <div id="transferTxRefRow">
+                                <label class="block font-bold text-blue-950 mt-2 mb-1" id="labelTxRef">ငွေလွှဲပြေစာ နောက်ဆုံး (၆) လုံး (Transaction Ref) *</label>
                                 <input type="text" id="orderTxRef" placeholder="ဥပမာ: 849201" class="w-full px-3 py-1.5 rounded-xl border border-blue-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             </div>
                             <!-- Payment Slip Upload -->
-                            <div class="pt-2 border-t border-blue-200/60">
-                                <label class="block font-bold text-blue-950 mb-1">ငွေလွှဲပြေစာ Screenshot ပုံတင်ရန် (Payment Slip - Optional)</label>
+                            <div class="pt-2 border-t border-blue-200/60" id="transferSlipRow">
+                                <label class="block font-bold text-blue-950 mb-1" id="labelSlipUpload">ငွေလွှဲပြေစာ Screenshot ပုံတင်ရန် (Payment Slip)</label>
                                 <input type="file" id="orderSlipInput" accept="image/*" onchange="handleSlipFileSelect(event)" class="w-full text-xs text-stone-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
                                 <div id="slipPreviewContainer" class="mt-2 relative inline-block hidden">
                                     <img id="slipPreviewImg" class="w-20 h-24 object-cover rounded-lg border border-blue-300 shadow-sm" src="" alt="Slip Preview">
@@ -1117,6 +1128,7 @@ try {
                 renderCategories();
                 renderAnnouncements();
                 renderProducts();
+                renderCheckoutPaymentMethods();
                 updateUserUI();
 
                 if (data.chatbotConfig) {
@@ -1618,6 +1630,7 @@ try {
                     document.getElementById('orderPhone').value = shopData.currentUser.phone || '';
                     document.getElementById('orderAddress').value = shopData.currentUser.address || '';
                 }
+                renderCheckoutPaymentMethods();
             } else if (step === 'items') {
                 document.getElementById('cartDrawerTitle').innerText = 'ဝယ်ယူမည့် ခြင်းတောင်း';
             }
@@ -1628,20 +1641,149 @@ try {
             switchCartStep('checkout');
         }
 
+        let activeCheckoutAccountNumber = '09963000502';
+
+        function renderCheckoutPaymentMethods() {
+            const container = document.getElementById('checkoutPaymentMethodsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const methods = (shopData.paymentMethods && shopData.paymentMethods.length > 0)
+                ? shopData.paymentMethods.filter(m => m.isActive)
+                : [
+                    { id: 'pm-kpay', code: 'KPay', name: 'KBZPay', nameMm: 'KBZPay (ငွေလွှဲ)', type: 'transfer', accountNumber: '09963000502', accountName: 'Ma Pont Pont (မပုံ့)', instructions: 'KBZPay ဖြင့် ငွေလွှဲပြီးပါက ပြေစာ Screenshot တင်ပေးပါရန်', requiresSlip: true },
+                    { id: 'pm-wave', code: 'WavePay', name: 'WavePay', nameMm: 'WavePay (ငွေလွှဲ)', type: 'transfer', accountNumber: '09963000502', accountName: 'Ma Pont Pont (မပုံ့)', instructions: 'WavePay ဖြင့် ငွေလွှဲပြီးပါက ပြေစာ Screenshot တင်ပေးပါရန်', requiresSlip: true },
+                    { id: 'pm-cod', code: 'COD', name: 'Cash on Delivery', nameMm: 'အိမ်အရောက်ငွေချေ (COD)', type: 'cod', accountNumber: '', accountName: '', instructions: 'မန္တလေးမြို့တွင်း ပစ္စည်းရောက်မှ ငွေချေစနစ် ဖြစ်ပါသည်', requiresSlip: false }
+                ];
+
+            methods.forEach((pm, idx) => {
+                const label = document.createElement('label');
+                const isFirst = (idx === 0);
+                label.className = `payment-card border border-stone-200 rounded-xl p-2.5 text-center cursor-pointer hover:border-amber-500 transition relative flex flex-col items-center justify-center text-xs ${isFirst ? 'border-amber-500 bg-amber-50/30' : ''}`;
+                
+                let textColor = 'text-stone-800';
+                const codeUpper = (pm.code || '').toUpperCase();
+                if (codeUpper.includes('KPAY') || codeUpper.includes('KBZ')) textColor = 'text-blue-700';
+                else if (codeUpper.includes('WAVE')) textColor = 'text-amber-600';
+                else if (codeUpper.includes('AYA')) textColor = 'text-red-700';
+                else if (codeUpper.includes('CB')) textColor = 'text-sky-700';
+
+                let subText = 'ငွေလွှဲ';
+                if (pm.type === 'cod') subText = 'အိမ်ရောက်ချေ';
+                else if (pm.type === 'banking') subText = 'ဘဏ်ချေ';
+
+                label.innerHTML = `
+                    <input type="radio" name="paymentMethod" value="${escapeHtml(pm.code)}" data-pm-id="${escapeHtml(pm.id)}" ${isFirst ? 'checked' : ''} onchange="togglePaymentDetails()" class="hidden">
+                    <div class="font-bold ${textColor}">${escapeHtml(pm.name || pm.code)}</div>
+                    <div class="text-[10px] text-stone-500">${escapeHtml(subText)}</div>
+                `;
+                container.appendChild(label);
+            });
+
+            togglePaymentDetails();
+        }
+
         function togglePaymentDetails() {
-            const selected = document.querySelector('input[name="paymentMethod"]:checked').value;
+            const checkedRadio = document.querySelector('input[name="paymentMethod"]:checked');
+            if (!checkedRadio) return;
+            const selectedCode = checkedRadio.value;
+            const pmId = checkedRadio.getAttribute('data-pm-id');
+
+            // Update card styling
+            document.querySelectorAll('#checkoutPaymentMethodsContainer .payment-card').forEach(card => {
+                const radio = card.querySelector('input[type="radio"]');
+                if (radio && radio.checked) {
+                    card.classList.add('border-amber-500', 'bg-amber-50/30');
+                    card.classList.remove('border-stone-200');
+                } else {
+                    card.classList.remove('border-amber-500', 'bg-amber-50/30');
+                    card.classList.add('border-stone-200');
+                }
+            });
+
+            // Find payment method object
+            const methods = shopData.paymentMethods || [];
+            const pm = methods.find(m => m.id === pmId || m.code === selectedCode) || {
+                code: selectedCode,
+                name: selectedCode,
+                type: selectedCode === 'COD' ? 'cod' : 'transfer',
+                accountNumber: '09963000502',
+                accountName: 'Ma Pont Pont (ပုံ့ပုံ့ အိတ်ဆိုင် - မန္တလေး)',
+                instructions: '',
+                requiresSlip: selectedCode !== 'COD'
+            };
+
             const box = document.getElementById('transferInfoBox');
-            if (selected === 'COD') {
-                box.classList.add('hidden');
+            if (!box) return;
+
+            if (pm.type === 'cod') {
+                box.classList.remove('bg-blue-50', 'border-blue-200');
+                box.classList.add('bg-stone-50', 'border-stone-200');
+                document.getElementById('transferTitle').innerText = 'COD အိမ်ရောက်ငွေချေ စနစ်';
+                document.getElementById('transferPhoneDisplay').innerText = 'ပစ္စည်းရောက်မှ ငွေချေပေးပါရှင်';
+                document.getElementById('btnCopyAccount').classList.add('hidden');
+                document.getElementById('transferNameRow').classList.add('hidden');
+                document.getElementById('transferTxRefRow').classList.add('hidden');
+                document.getElementById('transferSlipRow').classList.add('hidden');
+                document.getElementById('transferQrBox').classList.add('hidden');
+                if (pm.instructions) {
+                    document.getElementById('transferInstructions').innerText = pm.instructions;
+                    document.getElementById('transferInstructions').classList.remove('hidden');
+                } else {
+                    document.getElementById('transferInstructions').classList.add('hidden');
+                }
             } else {
-                box.classList.remove('hidden');
-                document.getElementById('transferTitle').innerText = (selected === 'KPay' ? 'KPay အကောင့်နံပါတ်' : 'WavePay အကောင့်နံပါတ်');
+                box.classList.add('bg-blue-50', 'border-blue-200');
+                box.classList.remove('bg-stone-50', 'border-stone-200');
+                document.getElementById('transferTitle').innerText = (pm.nameMm || pm.name || pm.code) + ' အကောင့်နံပါတ်';
+                activeCheckoutAccountNumber = pm.accountNumber || '';
+                document.getElementById('transferPhoneDisplay').innerText = pm.accountNumber || '09-963000502';
+                
+                if (pm.accountNumber) {
+                    document.getElementById('btnCopyAccount').classList.remove('hidden');
+                } else {
+                    document.getElementById('btnCopyAccount').classList.add('hidden');
+                }
+
+                if (pm.accountName) {
+                    document.getElementById('transferNameDisplay').innerText = pm.accountName;
+                    document.getElementById('transferNameRow').classList.remove('hidden');
+                } else {
+                    document.getElementById('transferNameRow').classList.add('hidden');
+                }
+
+                if (pm.instructions) {
+                    document.getElementById('transferInstructions').innerText = pm.instructions;
+                    document.getElementById('transferInstructions').classList.remove('hidden');
+                } else {
+                    document.getElementById('transferInstructions').classList.add('hidden');
+                }
+
+                // QR Code
+                if (pm.qrCodeUrl) {
+                    document.getElementById('transferQrImg').src = pm.qrCodeUrl;
+                    document.getElementById('transferQrLink').href = pm.qrCodeUrl;
+                    document.getElementById('transferQrBox').classList.remove('hidden');
+                } else {
+                    document.getElementById('transferQrBox').classList.add('hidden');
+                }
+
+                document.getElementById('transferTxRefRow').classList.remove('hidden');
+                document.getElementById('transferSlipRow').classList.remove('hidden');
+
+                const labelTx = document.getElementById('labelTxRef');
+                if (labelTx) {
+                    labelTx.innerText = pm.requiresSlip
+                        ? 'ငွေလွှဲပြေစာ နောက်ဆုံး (၆) လုံး (Transaction Ref) *'
+                        : 'ငွေလွှဲပြေစာ နောက်ဆုံး (၆) လုံး (Transaction Ref - Optional)';
+                }
             }
         }
 
         function copyAccountNo() {
-            navigator.clipboard.writeText('09963000502');
-            alert('အကောင့်နံပါတ် 09963000502 ကို ကူးယူပြီးပါပြီ။');
+            const acc = activeCheckoutAccountNumber || '09963000502';
+            navigator.clipboard.writeText(acc);
+            alert('အကောင့်နံပါတ် ' + acc + ' ကို ကူးယူပြီးပါပြီ။');
         }
 
         // Submit Order to API
@@ -1651,7 +1793,9 @@ try {
             const city = document.getElementById('orderCity').value;
             const address = document.getElementById('orderAddress').value.trim();
             const note = document.getElementById('orderNote').value.trim();
-            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+            const checkedPaymentRadio = document.querySelector('input[name="paymentMethod"]:checked');
+            const paymentMethod = checkedPaymentRadio ? checkedPaymentRadio.value : 'KPay';
+            const pmId = checkedPaymentRadio ? checkedPaymentRadio.getAttribute('data-pm-id') : null;
             const txRef = document.getElementById('orderTxRef').value.trim();
 
             if (!name || !phone || !address) {
@@ -1659,9 +1803,18 @@ try {
                 return;
             }
 
-            if ((paymentMethod === 'KPay' || paymentMethod === 'WavePay') && txRef.length < 4) {
-                alert('ငွေလွှဲပြေစာ နောက်ဆုံး ၆ လုံး (Transaction Ref) ထည့်သွင်းပေးပါ။');
-                return;
+            // Find current payment method config
+            const methods = shopData.paymentMethods || [];
+            const currentPm = methods.find(m => m.id === pmId || m.code === paymentMethod) || {
+                type: paymentMethod === 'COD' ? 'cod' : 'transfer',
+                requiresSlip: paymentMethod !== 'COD'
+            };
+
+            if (currentPm.type !== 'cod' && currentPm.requiresSlip) {
+                if (txRef.length < 4 && !selectedSlipBase64) {
+                    alert('ငွေလွှဲပြေစာ နောက်ဆုံး ၆ လုံး (Transaction Ref) သို့မဟုတ် ပြေစာ Screenshot တင်ပေးပါရန်။');
+                    return;
+                }
             }
 
             // Upload slip if selected

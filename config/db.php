@@ -116,6 +116,32 @@ function ensureSchemaUpdated($pdo) {
             ('app_version', '1.2.0'),
             ('app_min_version', '1.0.0'),
             ('app_download_url', 'https://pontpont.com/download')");
+
+        // 5. Ensure payment_methods table exists
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `payment_methods` (
+          `id` VARCHAR(50) NOT NULL PRIMARY KEY,
+          `code` VARCHAR(50) NOT NULL,
+          `name` VARCHAR(100) NOT NULL,
+          `nameMm` VARCHAR(100) NOT NULL,
+          `type` VARCHAR(30) NOT NULL DEFAULT 'transfer',
+          `accountName` VARCHAR(100) DEFAULT NULL,
+          `accountNumber` VARCHAR(100) DEFAULT NULL,
+          `instructions` TEXT DEFAULT NULL,
+          `qrCodeUrl` VARCHAR(255) DEFAULT NULL,
+          `requiresSlip` TINYINT(1) NOT NULL DEFAULT 1,
+          `isActive` TINYINT(1) NOT NULL DEFAULT 1,
+          `sortOrder` INT NOT NULL DEFAULT 0,
+          `createdAt` VARCHAR(50) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        $cntPay = $pdo->query("SELECT COUNT(*) as c FROM payment_methods")->fetch();
+        if ($cntPay && (int)$cntPay['c'] === 0) {
+            $pdo->exec("INSERT INTO `payment_methods` (`id`, `code`, `name`, `nameMm`, `type`, `accountName`, `accountNumber`, `instructions`, `qrCodeUrl`, `requiresSlip`, `isActive`, `sortOrder`, `createdAt`) VALUES
+            ('pm-kpay', 'KPay', 'KBZPay', 'KBZPay (ငွေလွှဲ)', 'transfer', 'Ma Pont Pont (မပုံ့)', '09963000502', 'KBZPay ဖြင့် ငွေလွှဲပြီးပါက ပြေစာ Screenshot တင်ပေးပါရန်', NULL, 1, 1, 1, '2026-11-23T00:00:00Z'),
+            ('pm-wave', 'WavePay', 'WavePay', 'WavePay (ငွေလွှဲ)', 'transfer', 'Ma Pont Pont (မပုံ့)', '09963000502', 'WavePay ဖြင့် ငွေလွှဲပြီးပါက ပြေစာ Screenshot တင်ပေးပါရန်', NULL, 1, 1, 2, '2026-11-23T00:00:00Z'),
+            ('pm-cod', 'COD', 'Cash on Delivery', 'အိမ်အရောက်ငွေချေ (COD)', 'cod', '', '', 'မန္တလေးမြို့တွင်း ပစ္စည်းရောက်မှ ငွေချေစနစ် ဖြစ်ပါသည်', NULL, 0, 1, 3, '2026-11-23T00:00:00Z'),
+            ('pm-aya', 'AYAPay', 'AYA Pay / Banking', 'AYA Pay / ဘဏ်ငွေလွှဲ', 'banking', 'Daw Pont Pont', '09963000502', 'AYA Pay သို့မဟုတ် AYA Bank ဖြင့် လွှဲပေးနိုင်ပါသည်', NULL, 1, 1, 4, '2026-11-23T00:00:00Z')");
+        }
     } catch (\Throwable $e) {
         // Silently skip if database or tables do not exist yet (e.g. before install)
     }

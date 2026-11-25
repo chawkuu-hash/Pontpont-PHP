@@ -572,6 +572,34 @@ function buildScopedResponse($pdo, $sessionUser) {
         'currentUser'   => sanitizeUser($sessionUser),
         'theme'         => $theme,
         'chatbotConfig' => $chatbotConfig,
+        'paymentMethods' => (function() use ($pdo, $isAdmin) {
+            $methods = [];
+            try {
+                if ($isAdmin) {
+                    $stmt = $pdo->query("SELECT * FROM payment_methods ORDER BY sortOrder ASC, createdAt ASC");
+                } else {
+                    $stmt = $pdo->query("SELECT * FROM payment_methods WHERE isActive = 1 ORDER BY sortOrder ASC, createdAt ASC");
+                }
+                while ($pm = $stmt->fetch()) {
+                    $methods[] = [
+                        'id'            => (string)$pm['id'],
+                        'code'          => (string)$pm['code'],
+                        'name'          => (string)$pm['name'],
+                        'nameMm'        => (string)$pm['nameMm'],
+                        'type'          => (string)$pm['type'],
+                        'accountName'   => $pm['accountName'] ? (string)$pm['accountName'] : '',
+                        'accountNumber' => $pm['accountNumber'] ? (string)$pm['accountNumber'] : '',
+                        'instructions'  => $pm['instructions'] ? (string)$pm['instructions'] : '',
+                        'qrCodeUrl'     => $pm['qrCodeUrl'] ? (string)$pm['qrCodeUrl'] : null,
+                        'requiresSlip'  => (bool)$pm['requiresSlip'],
+                        'isActive'      => (bool)$pm['isActive'],
+                        'sortOrder'     => (int)$pm['sortOrder'],
+                        'createdAt'     => (string)$pm['createdAt'],
+                    ];
+                }
+            } catch (\Throwable $e) {}
+            return $methods;
+        })(),
     ];
 }
 
@@ -1670,7 +1698,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 22. TEST_TELEGRAM (Send test message to verify Telegram Bot)
+    // 22. SAVE_PAYMENT_METHOD (Admin Create or Update Payment Method)
+    if ($action === 'SAVE_PAYMENT_METHOD') {
+        $pm = $body['paymentMethod'] ?? [];
+        $id = !empty($pm['id']) ? trim($pm['id']) : ('pm-' . time());
+        $code = trim($pm['code'] ?? 'KPay');
+        $name = trim($pm['name'] ?? $code);
+        $nameMm = trim($pm['nameMm'] ?? $name);
+        $type = trim($pm['type'] ?? 'transfer');
+        $accountName = trim($pm['accountName'] ?? '');
+        $accountNumber = trim($pm['accountNumber'] ?? '');
+        $instructions = trim($pm['instructions'] ?? '');
+        $qrCodeUrl = !empty($pm['qrCodeUrl']) ? trim($pm['qrCodeUrl']) : null;
+        $requiresSlip = isset($pm['requiresSlip']) ? ($pm['requiresSlip'] ? 1 : 0) : 1;
+        $isActive = isset($pm['isActive']) ? ($pm['isActive'] ? 1 : 0) : 1;
+        $sortOrder = isset($pm['sortOrder']) ? (int)$pm['sortOrder'] : 0;
+        $createdAt = !empty($pm['createdAt']) ? $pm['createdAt'] : gmdate('Y-m-d\TH:i:s\Z');
+
+        $stmt = $pdo->prepare("INSERT INTO payment_methods (id, code, name, nameMm, type, accountName, accountNumber, instructions, qrCodeUrl, requiresSlip, isActive, sortOrder, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            code=VALUES(code), name=VALUES(name), nameMm=VALUES(nameMm), type=VALUES(type),
+            accountName=VALUES(accountName), accountNumber=VALUES(accountNumber),
+            instructions=VALUES(instructions), qrCodeUrl=VALUES(qrCodeUrl),
+            requiresSlip=VALUES(requiresSlip), isActive=VALUES(isActive), sortOrder=VALUES(sortOrder)");
+        $stmt->execute([
+            $id, $code, $name, $nameMm, $type, $accountName, $accountNumber,
+            $instructions, $qrCodeUrl, $requiresSlip, $isActive, $sortOrder, $createdAt
+        ]);
+
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 23. DELETE_PAYMENT_METHOD
+    if ($action === 'DELETE_PAYMENT_METHOD') {
+        $id = trim($body['paymentMethodId'] ?? '');
+        if ($id) {
+            $stmt = $pdo->prepare("DELETE FROM payment_methods WHERE id = ?");
+            $stmt->execute([$id]);
+        }
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 24. TOGGLE_PAYMENT_METHOD
+    if ($action === 'TOGGLE_PAYMENT_METHOD') {
+        $id = trim($body['paymentMethodId'] ?? '');
+        if ($id) {
+            $stmt = $pdo->prepare("UPDATE payment_methods SET isActive = NOT isActive WHERE id = ?");
+            $stmt->execute([$id]);
+        }
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 25. TEST_TELEGRAM (Send test message to verify Telegram Bot)
     if ($action === 'TEST_TELEGRAM') {
         $testOrder = [
             'id' => 'TEST-' . rand(100, 999),

@@ -175,6 +175,13 @@ require_once __DIR__ . '/config/db.php';
                     </div>
                     <span id="badgeCouponsCount" class="bg-stone-800 text-stone-300 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
                 </button>
+                <button onclick="switchTab('payments')" id="nav-payments" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-stone-400 hover:bg-stone-800 hover:text-white">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="credit-card" class="w-4 h-4 text-amber-400"></i>
+                        <span>ငွေပေးချေမှု နည်းလမ်းများ</span>
+                    </div>
+                    <span id="badgePaymentsCount" class="bg-stone-800 text-stone-300 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+                </button>
                 <button onclick="switchTab('theme')" id="nav-theme" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-stone-400 hover:bg-stone-800 hover:text-white">
                     <i data-lucide="palette" class="w-4 h-4"></i>
                     <span>ဆိုင် Theme ဒီဇိုင်း</span>
@@ -808,6 +815,66 @@ require_once __DIR__ . '/config/db.php';
             </section>
 
             <!-- ----------------------------------------------------------- -->
+            <!-- 7.5. PAYMENT METHODS PANE (ငွေပေးချေမှု နည်းလမ်းများ စီမံခြင်း) -->
+            <!-- ----------------------------------------------------------- -->
+            <section id="pane-payments" class="pane space-y-4 hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-extrabold text-stone-900 text-sm">ငွေပေးချေမှု နည်းလမ်းများ (Payment Methods)</h4>
+                        <p class="text-xs text-stone-500">KPay, WavePay, ဘဏ်အကောင့်၊ COD စသည့် ငွေချေစနစ်များကို ကိုယ်တိုင် ထည့်သွင်းပြင်ဆင်ခြင်း</p>
+                    </div>
+                    <button onclick="openPaymentModal()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-amber-600/20 self-start sm:self-auto">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> ငွေချေနည်းလမ်း အသစ်ထည့်မည်
+                    </button>
+                </div>
+
+                <!-- Payment Methods Info / Stats Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div class="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                            <i data-lucide="credit-card" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-stone-400 font-bold uppercase">စုစုပေါင်း နည်းလမ်း</p>
+                            <p id="statPmTotal" class="text-base font-black text-stone-900">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-stone-400 font-bold uppercase">လက်ရှိ အသုံးပြုနေသည်</p>
+                            <p id="statPmActive" class="text-base font-black text-emerald-600">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                            <i data-lucide="smartphone" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-stone-400 font-bold uppercase">မိုဘိုင်း / ငွေလွှဲ</p>
+                            <p id="statPmTransfer" class="text-base font-black text-blue-600">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-stone-100 text-stone-700 flex items-center justify-center font-bold">
+                            <i data-lucide="truck" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-stone-400 font-bold uppercase">အိမ်ရောက်ငွေချေ (COD)</p>
+                            <p id="statPmCod" class="text-base font-black text-stone-800">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Methods Grid / Cards -->
+                <div id="paymentMethodsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Populated dynamically via renderPaymentMethods() -->
+                </div>
+            </section>
+
+            <!-- ----------------------------------------------------------- -->
             <!-- 8. SETTINGS PANE -->
             <!-- ----------------------------------------------------------- -->
             <section id="pane-settings" class="pane space-y-6 hidden">
@@ -1301,6 +1368,105 @@ require_once __DIR__ . '/config/db.php';
         </div>
     </div>
 
+    <!-- Add/Edit Payment Method Modal -->
+    <div id="paymentModal" class="fixed inset-0 z-50 bg-stone-900/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white max-w-lg w-full rounded-3xl p-6 shadow-2xl border border-stone-200 space-y-4 text-xs max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h5 id="paymentModalTitle" class="font-black text-sm text-stone-900">ငွေချေနည်းလမ်း အသစ်ထည့်သွင်းခြင်း</h5>
+                <button type="button" onclick="closePaymentModal()" class="text-stone-400 hover:text-stone-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="handleSavePaymentMethod(event)" class="space-y-3.5">
+                <input type="hidden" id="pmId">
+                <input type="hidden" id="pmQrCodeUrl">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold mb-1 text-stone-700">ကုဒ် (Code / Identifier) *</label>
+                        <input type="text" id="pmCode" placeholder="ဥပမာ: KPay, Wave, CBPay" required class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-stone-700">အမျိုးအစား (Type) *</label>
+                        <select id="pmType" onchange="handlePaymentTypeChange()" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white font-medium">
+                            <option value="transfer">မိုဘိုင်းပိုက်ဆံအိတ် / ငွေလွှဲ (KPay, Wave)</option>
+                            <option value="banking">ဘဏ်ငွေလွှဲ (CB, AYA, KBZ Bank)</option>
+                            <option value="cod">အိမ်အရောက်ငွေချေ (Cash on Delivery)</option>
+                            <option value="other">အခြားနည်းလမ်း (Other)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold mb-1 text-stone-700">နည်းလမ်းအမည် (မြန်မာ) *</label>
+                        <input type="text" id="pmNameMm" placeholder="ဥပမာ: KBZPay (ငွေလွှဲ)" required class="w-full px-3 py-2 rounded-xl border border-stone-300">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-stone-700">နည်းလမ်းအမည် (English) *</label>
+                        <input type="text" id="pmName" placeholder="ဥပမာ: KBZPay / WavePay" required class="w-full px-3 py-2 rounded-xl border border-stone-300">
+                    </div>
+                </div>
+
+                <div id="pmAccountFields" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold mb-1 text-stone-700">အကောင့်ပိုင်ရှင်အမည် (Account Name)</label>
+                        <input type="text" id="pmAccountName" placeholder="ဥပမာ: Ma Pont Pont (မပုံ့)" class="w-full px-3 py-2 rounded-xl border border-stone-300">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-stone-700">အကောင့် / ဖုန်းနံပါတ် (Account / Phone)</label>
+                        <input type="text" id="pmAccountNumber" placeholder="ဥပမာ: 09963000502" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-1 text-stone-700">ငွေပေးချေရန် လမ်းညွှန်ချက် (Instructions)</label>
+                    <textarea id="pmInstructions" rows="2" placeholder="ဥပမာ: KBZPay ဖြင့် ငွေလွှဲပြီးပါက ပြေစာ Screenshot တင်ပေးပါရန်" class="w-full px-3 py-2 rounded-xl border border-stone-300"></textarea>
+                </div>
+
+                <div id="pmQrSection" class="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+                    <label class="block font-bold text-stone-700">ငွေလွှဲ QR Code ပုံ (QR Code Image - Optional)</label>
+                    <div class="flex items-center gap-3">
+                        <div id="pmQrPreviewWrapper" class="w-16 h-16 bg-white border border-stone-300 rounded-xl flex items-center justify-center overflow-hidden shrink-0 relative">
+                            <img id="pmQrPreviewImg" src="" alt="QR" class="w-full h-full object-contain hidden">
+                            <i id="pmQrPreviewPlaceholder" data-lucide="qr-code" class="w-8 h-8 text-stone-400"></i>
+                        </div>
+                        <div class="flex-1 space-y-1">
+                            <input type="file" id="pmQrFileInput" accept="image/*" onchange="handleQrFileSelect(event)" class="text-[11px] text-stone-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer">
+                            <div class="flex gap-2">
+                                <button type="button" id="btnRemoveQr" onclick="removePmQr()" class="text-[11px] text-red-600 font-bold hover:underline hidden">QR ဖျက်မည်</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                        <label class="block font-bold mb-1 text-stone-700">ဦးစားပေး အစဉ်လိုက် (Sort Order)</label>
+                        <input type="number" id="pmSortOrder" value="1" min="0" class="w-full px-3 py-2 rounded-xl border border-stone-300">
+                    </div>
+                    <div class="space-y-2 pt-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="pmRequiresSlip" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+                            <span class="font-bold text-stone-800">ပြေစာ Slip တင်ရန် လိုအပ်သည်</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="pmIsActive" checked class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+                            <span class="font-bold text-emerald-700">ဖွင့်ထားမည် (Active)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="closePaymentModal()" class="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 font-bold text-stone-700">မလုပ်တော့ပါ</button>
+                    <button type="submit" id="btnSavePm" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-md shadow-amber-600/20 flex items-center gap-1.5">
+                        <i data-lucide="save" class="w-4 h-4"></i> သိမ်းဆည်းမည်
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- =================================================================== -->
     <!-- JAVASCRIPT LOGIC -->
     <!-- =================================================================== -->
@@ -1443,6 +1609,7 @@ require_once __DIR__ . '/config/db.php';
                 'announcements': ['သတင်းနှင့် ပရိုးမိုးရှင်းများ (News)', 'စတိုးဆိုင် ကြေညာချက်များနှင့် Discount ကူပွန်များ'],
                 'users': ['အသုံးပြုသူ စာရင်း (Users)', 'အကောင့်ဖွင့်ထားသူများနှင့် Role သတ်မှတ်ခြင်း'],
                 'coupons': ['လျှော့ဈေး ကူပွန်များ (Coupons)', 'ဝယ်ယူသူများ အသုံးပြုနိုင်သော Discount Coupon ကုဒ်များ'],
+                'payments': ['ငွေပေးချေမှု နည်းလမ်းများ (Payment Methods)', 'ဝယ်ယူသူများ အသုံးပြုနိုင်သော ဘဏ်အကောင့်၊ KPay နှင့် ငွေချေနည်းလမ်းများ စီမံခြင်း'],
                 'theme': ['ဆိုင် Theme ဒီဇိုင်း (Store Theme)', 'စတိုးဆိုင်၏ အရောင်နှင့် Layout ဒီဇိုင်း ပြောင်းလဲခြင်း'],
                 'settings': ['ဆိုင် ဆက်တင်များနှင့် အသိပေးစနစ် (Settings)', 'ဆိုင်အချက်အလက်များနှင့် Telegram အော်ဒါအသိပေးစနစ် ပြင်ဆင်ခြင်း'],
                 'reports': ['အရောင်း စာရင်းချုပ် (Sales Reports)', 'အပတ်စဉ်နှင့် လစဉ် အရောင်းစာရင်း၊ ဘဏ္ဍာရေး အစီရင်ခံစာနှင့် စာရင်းချုပ် ထုတ်ယူခြင်း'],
@@ -1466,6 +1633,7 @@ require_once __DIR__ . '/config/db.php';
             renderUsers();
             renderTheme();
             renderCoupons();
+            renderPaymentMethods();
             renderSettings();
             renderChatbot();
             populateProductCategoryDropdown();
@@ -2306,6 +2474,358 @@ require_once __DIR__ . '/config/db.php';
                 loadData();
             } catch (err) {
                 alert('ကူပွန်ဖျက်ပစ်မှု မအောင်မြင်ပါ: ' + err);
+            }
+        }
+
+        // ===================================================================
+        // PAYMENT METHODS MANAGEMENT (ငွေပေးချေမှု နည်းလမ်းများ စီမံခြင်း)
+        // ===================================================================
+        let selectedQrBase64 = null;
+
+        function renderPaymentMethods() {
+            const grid = document.getElementById('paymentMethodsGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const methods = shopData.paymentMethods || [];
+
+            // Update stats & badge
+            const total = methods.length;
+            const active = methods.filter(m => m.isActive).length;
+            const transfer = methods.filter(m => m.type === 'transfer' || m.type === 'banking').length;
+            const cod = methods.filter(m => m.type === 'cod').length;
+
+            const badge = document.getElementById('badgePaymentsCount');
+            if (badge) badge.innerText = total;
+
+            const stTotal = document.getElementById('statPmTotal');
+            if (stTotal) stTotal.innerText = total;
+            const stActive = document.getElementById('statPmActive');
+            if (stActive) stActive.innerText = active;
+            const stTrans = document.getElementById('statPmTransfer');
+            if (stTrans) stTrans.innerText = transfer;
+            const stCod = document.getElementById('statPmCod');
+            if (stCod) stCod.innerText = cod;
+
+            if (methods.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white p-8 rounded-3xl border border-stone-200 text-center space-y-3">
+                        <i data-lucide="credit-card" class="w-10 h-10 text-stone-300 mx-auto"></i>
+                        <p class="text-sm font-bold text-stone-600">ငွေပေးချေမှု နည်းလမ်းများ မရှိသေးပါ။</p>
+                        <button onclick="openPaymentModal()" class="px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-xs hover:bg-amber-700 transition">
+                            + ပထမဆုံး နည်းလမ်း အသစ်ထည့်မည်
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            methods.forEach(pm => {
+                const card = document.createElement('div');
+                const isActive = !!pm.isActive;
+                const requiresSlip = !!pm.requiresSlip;
+
+                // Type label & icon
+                let typeBadge = '<span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-[10px] font-bold">ငွေလွှဲ / Wallet</span>';
+                let typeIcon = 'smartphone';
+                if (pm.type === 'banking') {
+                    typeBadge = '<span class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full text-[10px] font-bold">ဘဏ်ငွေလွှဲ</span>';
+                    typeIcon = 'building-2';
+                } else if (pm.type === 'cod') {
+                    typeBadge = '<span class="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] font-bold">COD အိမ်ရောက်ချေ</span>';
+                    typeIcon = 'truck';
+                } else if (pm.type === 'other') {
+                    typeBadge = '<span class="bg-stone-100 text-stone-700 border border-stone-200 px-2 py-0.5 rounded-full text-[10px] font-bold">အခြား</span>';
+                    typeIcon = 'credit-card';
+                }
+
+                const slipBadge = requiresSlip
+                    ? '<span class="bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full text-[10px] font-bold">Slip လိုအပ်</span>'
+                    : '<span class="bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full text-[10px]">Slip မလိုပါ</span>';
+
+                const statusBadge = isActive
+                    ? `<span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[11px] font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> အသုံးပြုနေသည် (Active)
+                       </span>`
+                    : `<span class="inline-flex items-center gap-1 bg-stone-100 text-stone-500 border border-stone-200 px-2.5 py-1 rounded-full text-[11px] font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span> ပိတ်ထားသည် (Inactive)
+                       </span>`;
+
+                card.className = `bg-white rounded-3xl border ${isActive ? 'border-stone-200' : 'border-stone-200/60 opacity-80'} p-5 shadow-sm space-y-3.5 relative overflow-hidden transition hover:shadow-md`;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-2xl ${isActive ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-stone-100 text-stone-400 border border-stone-200'} flex items-center justify-center font-bold shrink-0">
+                                <i data-lucide="${typeIcon}" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h5 class="font-extrabold text-stone-900 text-sm">${escapeHtml(pm.nameMm || pm.name)}</h5>
+                                    <span class="font-mono text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">${escapeHtml(pm.code)}</span>
+                                </div>
+                                <p class="text-[11px] text-stone-500">${escapeHtml(pm.name)}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-stone-400 font-mono">#${pm.sortOrder || 0}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-1.5">
+                        ${typeBadge}
+                        ${slipBadge}
+                    </div>
+
+                    <!-- Details Box -->
+                    <div class="bg-stone-50 rounded-2xl p-3 border border-stone-100 space-y-1.5 text-xs">
+                        ${pm.accountNumber ? `
+                            <div class="flex items-center justify-between">
+                                <span class="text-stone-500 text-[11px]">အကောင့် / ဖုန်း:</span>
+                                <span class="font-mono font-bold text-amber-800 bg-amber-50/80 px-2 py-0.5 rounded border border-amber-200/50">${escapeHtml(pm.accountNumber)}</span>
+                            </div>
+                        ` : ''}
+                        ${pm.accountName ? `
+                            <div class="flex items-center justify-between">
+                                <span class="text-stone-500 text-[11px]">အကောင့်ပိုင်ရှင်:</span>
+                                <span class="font-bold text-stone-800">${escapeHtml(pm.accountName)}</span>
+                            </div>
+                        ` : ''}
+                        ${pm.instructions ? `
+                            <div class="pt-1 text-[11px] text-stone-600 border-t border-stone-200/60 leading-relaxed">
+                                <i data-lucide="info" class="w-3.5 h-3.5 inline text-amber-600 mr-1"></i>${escapeHtml(pm.instructions)}
+                            </div>
+                        ` : ''}
+                        ${pm.qrCodeUrl ? `
+                            <div class="pt-2 flex items-center gap-2 border-t border-stone-200/60">
+                                <a href="${escapeHtml(pm.qrCodeUrl)}" target="_blank" class="flex items-center gap-1.5 text-[11px] text-blue-600 hover:text-blue-800 font-bold">
+                                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> QR Code ပုံကြည့်ရန်
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Status & Actions -->
+                    <div class="pt-1 flex items-center justify-between border-t border-stone-100">
+                        <div>
+                            ${statusBadge}
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="togglePaymentMethod('${escapeHtml(pm.id)}')" title="${isActive ? 'ပိတ်မည်' : 'ဖွင့်မည်'}" class="p-1.5 rounded-lg border text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition">
+                                <i data-lucide="${isActive ? 'power-off' : 'power'}" class="w-4 h-4 ${isActive ? 'text-stone-400 hover:text-rose-600' : 'text-emerald-600'}"></i>
+                            </button>
+                            <button onclick="openPaymentModal('${escapeHtml(pm.id)}')" title="ပြင်ဆင်မည်" class="p-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deletePaymentMethod('${escapeHtml(pm.id)}')" title="ဖျက်မည်" class="p-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        function handlePaymentTypeChange() {
+            const type = document.getElementById('pmType').value;
+            const reqSlip = document.getElementById('pmRequiresSlip');
+            const accFields = document.getElementById('pmAccountFields');
+            const qrSec = document.getElementById('pmQrSection');
+            if (type === 'cod') {
+                reqSlip.checked = false;
+                if (accFields) accFields.classList.add('opacity-50');
+                if (qrSec) qrSec.classList.add('hidden');
+            } else {
+                if (accFields) accFields.classList.remove('opacity-50');
+                if (qrSec) qrSec.classList.remove('hidden');
+            }
+        }
+
+        function handleQrFileSelect(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert('QR Code ပုံအရွယ်အစား 5MB ထက် မကျော်ရပါ');
+                e.target.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                selectedQrBase64 = evt.target.result;
+                document.getElementById('pmQrPreviewImg').src = selectedQrBase64;
+                document.getElementById('pmQrPreviewImg').classList.remove('hidden');
+                document.getElementById('pmQrPreviewPlaceholder').classList.add('hidden');
+                document.getElementById('btnRemoveQr').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removePmQr() {
+            selectedQrBase64 = null;
+            document.getElementById('pmQrCodeUrl').value = '';
+            document.getElementById('pmQrFileInput').value = '';
+            document.getElementById('pmQrPreviewImg').src = '';
+            document.getElementById('pmQrPreviewImg').classList.add('hidden');
+            document.getElementById('pmQrPreviewPlaceholder').classList.remove('hidden');
+            document.getElementById('btnRemoveQr').classList.add('hidden');
+        }
+
+        function openPaymentModal(pmId = null) {
+            selectedQrBase64 = null;
+            document.getElementById('pmQrFileInput').value = '';
+
+            if (pmId) {
+                const pm = (shopData.paymentMethods || []).find(m => m.id === pmId);
+                if (!pm) return;
+                document.getElementById('paymentModalTitle').innerText = 'ငွေချေနည်းလမ်း ပြင်ဆင်ခြင်း';
+                document.getElementById('pmId').value = pm.id;
+                document.getElementById('pmCode').value = pm.code || '';
+                document.getElementById('pmType').value = pm.type || 'transfer';
+                document.getElementById('pmName').value = pm.name || '';
+                document.getElementById('pmNameMm').value = pm.nameMm || '';
+                document.getElementById('pmAccountName').value = pm.accountName || '';
+                document.getElementById('pmAccountNumber').value = pm.accountNumber || '';
+                document.getElementById('pmInstructions').value = pm.instructions || '';
+                document.getElementById('pmQrCodeUrl').value = pm.qrCodeUrl || '';
+                document.getElementById('pmRequiresSlip').checked = !!pm.requiresSlip;
+                document.getElementById('pmIsActive').checked = !!pm.isActive;
+                document.getElementById('pmSortOrder').value = pm.sortOrder || 1;
+
+                if (pm.qrCodeUrl) {
+                    document.getElementById('pmQrPreviewImg').src = pm.qrCodeUrl;
+                    document.getElementById('pmQrPreviewImg').classList.remove('hidden');
+                    document.getElementById('pmQrPreviewPlaceholder').classList.add('hidden');
+                    document.getElementById('btnRemoveQr').classList.remove('hidden');
+                } else {
+                    document.getElementById('pmQrPreviewImg').src = '';
+                    document.getElementById('pmQrPreviewImg').classList.add('hidden');
+                    document.getElementById('pmQrPreviewPlaceholder').classList.remove('hidden');
+                    document.getElementById('btnRemoveQr').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('paymentModalTitle').innerText = 'ငွေချေနည်းလမ်း အသစ်ထည့်သွင်းခြင်း';
+                document.getElementById('pmId').value = '';
+                document.getElementById('pmCode').value = '';
+                document.getElementById('pmType').value = 'transfer';
+                document.getElementById('pmName').value = '';
+                document.getElementById('pmNameMm').value = '';
+                document.getElementById('pmAccountName').value = '';
+                document.getElementById('pmAccountNumber').value = '';
+                document.getElementById('pmInstructions').value = 'ငွေလွှဲပြီးပါက ပြေစာ Screenshot တင်ပေးပါရန်';
+                document.getElementById('pmQrCodeUrl').value = '';
+                document.getElementById('pmRequiresSlip').checked = true;
+                document.getElementById('pmIsActive').checked = true;
+                const nextSort = ((shopData.paymentMethods || []).length) + 1;
+                document.getElementById('pmSortOrder').value = nextSort;
+
+                document.getElementById('pmQrPreviewImg').src = '';
+                document.getElementById('pmQrPreviewImg').classList.add('hidden');
+                document.getElementById('pmQrPreviewPlaceholder').classList.remove('hidden');
+                document.getElementById('btnRemoveQr').classList.add('hidden');
+            }
+
+            handlePaymentTypeChange();
+            document.getElementById('paymentModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+        }
+
+        async function handleSavePaymentMethod(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSavePm');
+            btn.disabled = true;
+            btn.innerHTML = `<span>သိမ်းဆည်းနေပါသည်...</span>`;
+
+            try {
+                let qrUrl = document.getElementById('pmQrCodeUrl').value || null;
+
+                // If user selected a new QR image file, upload it first
+                if (selectedQrBase64) {
+                    const upRes = await fetch('api/shop.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'UPLOAD_IMAGE', image_data: selectedQrBase64 })
+                    });
+                    const upData = await upRes.json();
+                    if (upData.ok && upData.url) {
+                        qrUrl = upData.url;
+                    }
+                }
+
+                const paymentMethod = {
+                    id: document.getElementById('pmId').value.trim() || null,
+                    code: document.getElementById('pmCode').value.trim(),
+                    type: document.getElementById('pmType').value,
+                    name: document.getElementById('pmName').value.trim(),
+                    nameMm: document.getElementById('pmNameMm').value.trim(),
+                    accountName: document.getElementById('pmAccountName').value.trim(),
+                    accountNumber: document.getElementById('pmAccountNumber').value.trim(),
+                    instructions: document.getElementById('pmInstructions').value.trim(),
+                    qrCodeUrl: qrUrl,
+                    requiresSlip: document.getElementById('pmRequiresSlip').checked ? 1 : 0,
+                    isActive: document.getElementById('pmIsActive').checked ? 1 : 0,
+                    sortOrder: parseInt(document.getElementById('pmSortOrder').value) || 0
+                };
+
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'SAVE_PAYMENT_METHOD', paymentMethod })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    closePaymentModal();
+                    loadData();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to save payment method'));
+                }
+            } catch (err) {
+                alert('ငွေချေနည်းလမ်း သိမ်းဆည်းမှု မအောင်မြင်ပါ: ' + err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> သိမ်းဆည်းမည်`;
+                lucide.createIcons();
+            }
+        }
+
+        async function togglePaymentMethod(pmId) {
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'TOGGLE_PAYMENT_METHOD', paymentMethodId: pmId })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    loadData();
+                }
+            } catch (err) {
+                alert('အခြေအနေ ပြောင်းလဲမှု မအောင်မြင်ပါ: ' + err);
+            }
+        }
+
+        async function deletePaymentMethod(pmId) {
+            if (!confirm('ဤငွေပေးချေမှု နည်းလမ်းအား ဖျက်ပစ်ရန် သေချာပါသလား?')) return;
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'DELETE_PAYMENT_METHOD', paymentMethodId: pmId })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    loadData();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to delete payment method'));
+                }
+            } catch (err) {
+                alert('ငွေချေနည်းလမ်း ဖျက်ပစ်မှု မအောင်မြင်ပါ: ' + err);
             }
         }
 
