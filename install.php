@@ -9,6 +9,30 @@ ini_set('display_errors', 1);
 
 $configFile = __DIR__ . '/config/db.php';
 $sqlFile = __DIR__ . '/database/pontpont_db.sql';
+$lockFile = __DIR__ . '/database/install.lock';
+
+// Security check: Lock installer if already installed
+if (file_exists($lockFile)) {
+    die("<!DOCTYPE html>
+    <html lang='my'>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Installer Locked - Pont Pont Handbag Shop</title>
+        <script src='https://cdn.tailwindcss.com'></script>
+    </head>
+    <body class='bg-stone-50 min-h-screen flex items-center justify-center p-4'>
+        <div class='bg-white max-w-md w-full rounded-2xl shadow-xl border border-stone-200 p-6 text-center'>
+            <div class='w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4'>
+                <svg class='w-8 h-8' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'></path></svg>
+            </div>
+            <h2 class='text-xl font-bold text-stone-900 mb-2'>Installer is Locked 🔒</h2>
+            <p class='text-stone-600 text-sm mb-6 leading-relaxed'>စနစ်ကို တပ်ဆင်ပြီးဖြစ်သဖြင့် လုံခြုံရေးအရ ပိတ်ထားပါသည်။ ပြန်လည် install လုပ်လိုပါက <code>database/install.lock</code> ဖိုင်အား ဖျက်ပေးပါ။</p>
+            <a href='index.php' class='inline-block w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition'>🛍️ စတိုးဆိုင်သို့ သွားမည်</a>
+        </div>
+    </body>
+    </html>");
+}
 
 $step = 'form';
 $error = '';
@@ -40,6 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($inName) || empty($inUser)) {
         $error = 'Database Name နှင့် Username အား ဖြည့်သွင်းပေးရန် လိုအပ်ပါသည်။';
+    } elseif (!preg_match('/^[a-zA-Z0-9_\-]+$/', $inName)) {
+        $error = 'Database Name တွင် အင်္ဂလိပ်စာလုံး၊ နံပါတ်နှင့် underscore (_) သာ အသုံးပြုနိုင်ပါသည်။';
     } else {
         try {
             $dsn = "mysql:host={$inHost};port={$inPort};charset=utf8mb4";
@@ -48,9 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
             ]);
 
-            // Ensure database exists or create it
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$inName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            $pdo->exec("USE `{$inName}`");
+            // Ensure database exists or create it safely
+            $cleanDbName = str_replace('`', '``', $inName);
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$cleanDbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $pdo->exec("USE `{$cleanDbName}`");
 
             if ($action === 'install') {
                 if (!file_exists($sqlFile)) {
@@ -61,7 +88,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Execute SQL script
                 $pdo->exec($sqlContent);
 
-                // Update config/db.php
+                // Generate random secret key for HMAC
+                $generatedSecret = bin2hex(random_bytes(32));
+
+                $expHost   = var_export($inHost, true);
+                $expPort   = var_export($inPort, true);
+                $expName   = var_export($inName, true);
+                $expUser   = var_export($inUser, true);
+                $expPass   = var_export($inPass, true);
+                $expSecret = var_export($generatedSecret, true);
+
+                // Update config/db.php safely without PHP string interpolation vulnerabilities
                 $newConfig = "<?php
 /**
  * Pont Pont Handbag Shop (ပုံ့ပုံ့ အိတ်ဆိုင် - မန္တလေး)
@@ -76,17 +113,70 @@ define('PONTPONT_DB_CONFIG_LOADED', true);
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_lifetime', 604800);
     ini_set('session.gc_maxlifetime', 604800);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_httponly', 1);
+
+    \$isHttps = (!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off')
+               || (isset(\$_SERVER['SERVER_PORT']) && (int)\$_SERVER['SERVER_PORT'] === 443)
+               || (!empty(\$_SERVER['HTTP_X_FORWARDED_PROTO']) && \$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    if (\$isHttps) {
+        ini_set('session.cookie_secure', 1);
+    }
+    ini_set('session.cookie_samesite', 'Lax');
+
     session_start();
 }
 
-define('DB_HOST', getenv('DB_HOST') ?: '{$inHost}');
-define('DB_PORT', getenv('DB_PORT') ?: '{$inPort}');
-define('DB_NAME', getenv('DB_NAME') ?: '{$inName}');
-define('DB_USER', getenv('DB_USER') ?: '{$inUser}');
-define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '{$inPass}');
+define('DB_HOST', getenv('DB_HOST') ?: {$expHost});
+define('DB_PORT', getenv('DB_PORT') ?: {$expPort});
+define('DB_NAME', getenv('DB_NAME') ?: {$expName});
+define('DB_USER', getenv('DB_USER') ?: {$expUser});
+define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : {$expPass});
 define('DB_CHARSET', 'utf8mb4');
 
-define('APP_SECRET_KEY', getenv('APP_SECRET_KEY') ?: 'pontpont-luxury-handbag-shop-secret-key-2026');
+define('APP_SECRET_KEY', getenv('APP_SECRET_KEY') ?: {$expSecret});
+
+function ensureSchemaUpdated(\$pdo) {
+    static \$checked = false;
+    if (\$checked) return;
+    \$checked = true;
+    try {
+        \$colStmt = \$pdo->query(\"SHOW COLUMNS FROM `orders` LIKE 'paymentSlip'\");
+        if (!\$colStmt->fetch()) {
+            \$pdo->exec(\"ALTER TABLE `orders` ADD COLUMN `paymentSlip` VARCHAR(255) DEFAULT NULL AFTER `transactionRef`\");
+        }
+        \$colStmt2 = \$pdo->query(\"SHOW COLUMNS FROM `orders` LIKE 'couponCode'\");
+        if (!\$colStmt2->fetch()) {
+            \$pdo->exec(\"ALTER TABLE `orders` ADD COLUMN `couponCode` VARCHAR(50) DEFAULT NULL AFTER `paymentSlip`\");
+        }
+        \$pdo->exec(\"CREATE TABLE IF NOT EXISTS `coupons` (
+            `id` VARCHAR(50) NOT NULL PRIMARY KEY,
+            `code` VARCHAR(50) NOT NULL UNIQUE,
+            `discountType` VARCHAR(20) NOT NULL DEFAULT 'percent',
+            `discountValue` INT NOT NULL,
+            `minOrderAmount` INT NOT NULL DEFAULT 0,
+            `usageLimit` INT NOT NULL DEFAULT 0,
+            `usedCount` INT NOT NULL DEFAULT 0,
+            `expiresAt` VARCHAR(50) DEFAULT NULL,
+            `isActive` TINYINT(1) NOT NULL DEFAULT 1,
+            `createdAt` VARCHAR(50) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci\");
+        \$cnt = \$pdo->query(\"SELECT COUNT(*) as c FROM coupons\")->fetch();
+        if (\$cnt && (int)\$cnt['c'] === 0) {
+            \$pdo->exec(\"INSERT INTO `coupons` (`id`, `code`, `discountType`, `discountValue`, `minOrderAmount`, `usageLimit`, `usedCount`, `expiresAt`, `isActive`, `createdAt`) VALUES
+            ('cpn-01', 'PONTPONT10', 'percent', 10, 0, 0, 0, NULL, 1, '2026-11-23T00:00:00Z'),
+            ('cpn-02', 'PONTWELCOME', 'fixed', 5000, 30000, 100, 0, NULL, 1, '2026-11-23T00:00:00Z'),
+            ('cpn-03', 'VIPLUXURY', 'percent', 15, 100000, 50, 0, NULL, 1, '2026-11-23T00:00:00Z')\");
+        }
+        \$pdo->exec(\"INSERT IGNORE INTO `settings` (`key`, `value`) VALUES 
+            ('telegram_bot_token', ''),
+            ('telegram_chat_id', ''),
+            ('telegram_enabled', '0'),
+            ('app_version', '1.2.0'),
+            ('app_min_version', '1.0.0'),
+            ('app_download_url', 'https://pontpont.com/download')\");
+    } catch (\\Throwable \$e) {}
+}
 
 function getDb() {
     static \$pdo = null;
@@ -102,21 +192,27 @@ function getDb() {
 
     try {
         \$pdo = new PDO(\$dsn, DB_USER, DB_PASS, \$options);
+        ensureSchemaUpdated(\$pdo);
         return \$pdo;
     } catch (PDOException \$e) {
+        error_log('Database connection error: ' . \$e->getMessage());
         \$isApi = (isset(\$_SERVER['REQUEST_URI']) && strpos(\$_SERVER['REQUEST_URI'], '/api/') !== false)
                  || (isset(\$_SERVER['HTTP_ACCEPT']) && strpos(\$_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
         if (\$isApi) {
             header('Content-Type: application/json; charset=utf-8');
             http_response_code(500);
-            echo json_encode(['ok' => false, 'error' => 'Database connection failed: ' . \$e->getMessage()]);
+            echo json_encode(['ok' => false, 'error' => 'Database connection failed. Please check server logs.']);
             exit;
         }
-        die(\"<div style='font-family:sans-serif;padding:20px;color:#c00;'><h2>Database Connection Error</h2><p>\" . htmlspecialchars(\$e->getMessage()) . \"</p></div>\");
+        die(\"<div style='font-family:sans-serif;padding:20px;color:#c00;'><h2>Database Connection Error</h2><p>Please check your database configuration in config/db.php.</p></div>\");
     }
 }
 ";
                 file_put_contents($configFile, $newConfig);
+
+                // Create installation lock file
+                file_put_contents($lockFile, date('c'));
+
                 $step = 'success';
                 $success = "Database Setup အောင်မြင်စွာ ပြီးမြောက်ပါပြီ။ စတိုးဆိုင်ကို အသုံးပြုနိုင်ပါပြီ။";
             } else {
@@ -185,7 +281,7 @@ function getDb() {
                     <a href="index.php" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition shadow-md shadow-amber-600/20 text-center">
                         🛍️ စတိုးဆိုင် ကြည့်မည်
                     </a>
-                    <a href="index.php?admin=1" class="bg-stone-900 hover:bg-black text-white font-bold py-3 px-4 rounded-xl text-sm transition text-center">
+                    <a href="admin.php" class="bg-stone-900 hover:bg-black text-white font-bold py-3 px-4 rounded-xl text-sm transition text-center">
                         ⚙️ Admin Dashboard
                     </a>
                 </div>

@@ -9,10 +9,23 @@ AddDefaultCharset UTF-8
 Options -Indexes
 
 # 3. Protect Sensitive Files & Directories
-<FilesMatch "^(pontpont_db\.sql|\.env|\.git|composer\.(json|lock))$">
+<FilesMatch "\.(sql|zip|tar|gz|bak|log|lock|env|git|sh|md)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
+
+<FilesMatch "^(\.env|\.git|composer\.(json|lock)|pontpont_db\.sql|install\.lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 4. Modern HTTP Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -21,15 +34,17 @@ Options -Indexes
     # Route /api/shop to /api/shop.php
     RewriteRule ^api/shop/?$ api/shop.php [L,QSA]
 
+    # Clean URL for admin
+    RewriteRule ^admin/?$ admin.php [L,QSA]
+
     # Clean URL for install
     RewriteRule ^install/?$ install.php [L,QSA]
 </IfModule>
 
-# 4. CORS Headers for Mobile Flutter App & External Clients
+# 5. Fallback CORS Headers for Mobile Flutter App & External Clients
 <IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
     Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-User-Id, Cookie"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, Cookie"
 </IfModule>
 
 # 5. Enable GZIP Compression for Fast Loading on Bluehost

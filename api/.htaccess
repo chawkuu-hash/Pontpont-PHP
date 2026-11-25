@@ -4,9 +4,3 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^shop/?$ shop.php [L,QSA]
 </IfModule>
-
-<IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
-    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-User-Id, Cookie"
-</IfModule>

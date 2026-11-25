@@ -9,10 +9,15 @@ error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
 ini_set('display_errors', 0);
 
 // Setup CORS and JSON headers
-header('Access-Control-Allow-Origin: *');
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (!empty($origin)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Credentials: true');
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-User-Id, Cookie');
-header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, Cookie');
 header('Content-Type: application/json; charset=utf-8');
 
 // Handle preflight OPTIONS request
@@ -24,6 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../config/db.php';
 
 $SESSION_COOKIE_NAME = 'pontpont_session';
+
+// Helper: Determine if current connection is HTTPS
+function isHttpsRequest() {
+    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+}
 
 // Supported cities with delivery fees
 $CITIES = [
@@ -44,12 +56,20 @@ function createSessionToken($userId) {
     return $payload . '.' . $sig;
 }
 
-// Helper: Verify session token
+// Helper: Verify session token (with expiration check)
 function verifySessionToken($token) {
     if (!$token || !is_string($token)) return null;
     $parts = explode('.', $token);
     if (count($parts) !== 3) return null;
     list($userId, $timestamp, $sig) = $parts;
+
+    // Enforce token validity: 7 days (604800 seconds)
+    $time = (int)$timestamp;
+    $now = time();
+    if ($now - $time > 604800 || $time > $now + 300) {
+        return null;
+    }
+
     $payload = $userId . '.' . $timestamp;
     $expectedSig = hash_hmac('sha256', $payload, APP_SECRET_KEY);
     if (hash_equals($expectedSig, $sig)) {
@@ -78,11 +98,6 @@ function getAuthenticatedUser($pdo) {
 
     $userId = verifySessionToken($token);
 
-    // Fallback: X-User-Id header (for internal/testing or direct API client)
-    if (!$userId && !empty($_SERVER['HTTP_X_USER_ID'])) {
-        $userId = trim($_SERVER['HTTP_X_USER_ID']);
-    }
-
     if ($userId) {
         $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
         $stmt->execute([$userId]);
@@ -103,10 +118,167 @@ function sanitizeUser($user) {
     return $safe;
 }
 
+// Helper: Send Telegram Order Notification Alert
+function sendTelegramOrderAlert($pdo, $order) {
+    try {
+        $stmt = $pdo->prepare("SELECT `key`, `value` FROM settings WHERE `key` IN ('telegram_bot_token', 'telegram_chat_id', 'telegram_enabled')");
+        $stmt->execute();
+        $settings = [];
+        while ($row = $stmt->fetch()) {
+            $settings[$row['key']] = $row['value'];
+        }
+
+        if (empty($settings['telegram_enabled']) || $settings['telegram_enabled'] !== '1') {
+            return;
+        }
+
+        $botToken = trim($settings['telegram_bot_token'] ?? '');
+        $chatId = trim($settings['telegram_chat_id'] ?? '');
+
+        if (!$botToken || !$chatId) {
+            return;
+        }
+
+        $itemsText = "";
+        if (!empty($order['items']) && is_array($order['items'])) {
+            foreach ($order['items'] as $idx => $it) {
+                $num = $idx + 1;
+                $name = !empty($it['nameMm']) ? $it['nameMm'] : (!empty($it['nameEn']) ? $it['nameEn'] : 'Handbag');
+                $color = !empty($it['selectedColor']) ? " ({$it['selectedColor']})" : "";
+                $qty = $it['quantity'] ?? 1;
+                $price = number_format($it['price'] ?? 0);
+                $itemsText .= "  {$num}. {$name}{$color} x {$qty} = {$price} Ks\n";
+            }
+        }
+
+        $msg = "🛍️ <b>အော်ဒါအသစ် ရောက်ရှိပါသည်! (New Order)</b>\n\n";
+        $msg .= "🆔 <b>Order ID:</b> <code>{$order['id']}</code>\n";
+        $msg .= "👤 <b>ဝယ်သူအမည်:</b> " . htmlspecialchars($order['customerName'] ?? '') . "\n";
+        $msg .= "📞 <b>ဖုန်းနံပါတ်:</b> " . htmlspecialchars($order['phone'] ?? '') . "\n";
+        $msg .= "📍 <b>မြို့နယ်:</b> " . htmlspecialchars($order['city'] ?? '') . "\n";
+        $msg .= "🏠 <b>လိပ်စာ:</b> " . htmlspecialchars($order['address'] ?? '') . "\n";
+        if (!empty($order['note'])) {
+            $msg .= "📝 <b>မှတ်ချက်:</b> " . htmlspecialchars($order['note']) . "\n";
+        }
+        $msg .= "💳 <b>ငွေချေစနစ်:</b> " . ($order['paymentMethod'] ?? 'COD') . "\n";
+        if (!empty($order['transactionRef'])) {
+            $msg .= "🔢 <b>Transaction Ref:</b> <code>" . htmlspecialchars($order['transactionRef']) . "</code>\n";
+        }
+        if (!empty($order['couponCode'])) {
+            $msg .= "🏷️ <b>ကူပွန်:</b> <code>" . htmlspecialchars($order['couponCode']) . "</code>\n";
+        }
+        if (!empty($order['paymentSlip'])) {
+            $msg .= "🖼️ <b>ငွေလွှဲပြေစာ:</b> ပါရှိပါသည်\n";
+        }
+        $msg .= "\n📦 <b>မှာယူထားသော ပစ္စည်းများ:</b>\n{$itemsText}\n";
+        $msg .= "💰 <b>စုစုပေါင်း ကျသင့်ငွေ:</b> <b>" . number_format($order['total'] ?? 0) . " Ks</b>\n";
+        $msg .= "📅 <b>အချိန်:</b> " . gmdate('Y-m-d H:i:s') . " UTC\n";
+
+        $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
+        $postData = http_build_query([
+            'chat_id' => $chatId,
+            'text' => $msg,
+            'parse_mode' => 'HTML'
+        ]);
+
+        $opts = [
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+                'content' => $postData,
+                'timeout' => 5
+            ]
+        ];
+        $context = stream_context_create($opts);
+        @file_get_contents($url, false, $context);
+    } catch (\Throwable $t) {
+        error_log('Telegram alert error: ' . $t->getMessage());
+    }
+}
+
+// Helper: Handle secure image uploads (file or base64 data)
+function handleSecureImageUpload($fileOrBase64, $subDir, $prefix = 'img') {
+    $uploadDir = __DIR__ . '/../assets/uploads/' . $subDir . '/';
+    if (!is_dir($uploadDir)) {
+        @mkdir($uploadDir, 0775, true);
+    }
+
+    $allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    // Case 1: Standard $_FILES upload
+    if (is_array($fileOrBase64) && isset($fileOrBase64['tmp_name'])) {
+        if ($fileOrBase64['error'] !== UPLOAD_ERR_OK) {
+            return ['ok' => false, 'error' => 'Upload error code: ' . $fileOrBase64['error']];
+        }
+        if ($fileOrBase64['size'] > 5 * 1024 * 1024) {
+            return ['ok' => false, 'error' => 'ပုံအရွယ်အစားသည် 5MB ထက် မကျော်ရပါ'];
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $fileOrBase64['tmp_name']);
+        finfo_close($finfo);
+
+        if (!in_array($mime, $allowedMimes)) {
+            return ['ok' => false, 'error' => 'လက်ခံသော ပုံအမျိုးအစားများမှာ JPG, PNG, WEBP သာ ဖြစ်ပါသည်'];
+        }
+
+        $ext = strtolower(pathinfo($fileOrBase64['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowedExts)) {
+            $ext = ($mime === 'image/png') ? 'png' : (($mime === 'image/webp') ? 'webp' : 'jpg');
+        }
+
+        $filename = $prefix . '_' . bin2hex(random_bytes(8)) . '_' . time() . '.' . $ext;
+        $destPath = $uploadDir . $filename;
+
+        if (move_uploaded_file($fileOrBase64['tmp_name'], $destPath)) {
+            chmod($destPath, 0664);
+            return ['ok' => true, 'url' => 'assets/uploads/' . $subDir . '/' . $filename];
+        }
+        return ['ok' => false, 'error' => 'ဖိုင်သိမ်းဆည်းမှု မအောင်မြင်ပါ'];
+    }
+
+    // Case 2: Base64 data string (data:image/png;base64,...)
+    if (is_string($fileOrBase64) && !empty($fileOrBase64)) {
+        if (preg_match('/^data:image\/(\w+);base64,(.+)$/', $fileOrBase64, $matches)) {
+            $ext = strtolower($matches[1]);
+            $base64Data = $matches[2];
+        } else {
+            $ext = 'jpg';
+            $base64Data = $fileOrBase64;
+        }
+
+        if ($ext === 'jpeg') $ext = 'jpg';
+        if (!in_array($ext, $allowedExts)) {
+            $ext = 'jpg';
+        }
+
+        $decoded = base64_decode($base64Data);
+        if ($decoded === false) {
+            return ['ok' => false, 'error' => 'Invalid image data'];
+        }
+
+        if (strlen($decoded) > 5 * 1024 * 1024) {
+            return ['ok' => false, 'error' => 'ပုံအရွယ်အစားသည် 5MB ထက် မကျော်ရပါ'];
+        }
+
+        $filename = $prefix . '_' . bin2hex(random_bytes(8)) . '_' . time() . '.' . $ext;
+        $destPath = $uploadDir . $filename;
+
+        if (file_put_contents($destPath, $decoded)) {
+            chmod($destPath, 0664);
+            return ['ok' => true, 'url' => 'assets/uploads/' . $subDir . '/' . $filename];
+        }
+        return ['ok' => false, 'error' => 'ဖိုင်သိမ်းဆည်းမှု မအောင်မြင်ပါ'];
+    }
+
+    return ['ok' => false, 'error' => 'ပုံဖိုင် မတွေ့ရှိပါ'];
+}
+
 // Helper: Build complete scoped database response
 function buildScopedResponse($pdo, $sessionUser) {
     // 1. Categories
-    $catStmt = $pdo->query("SELECT id, labelEn FROM categories ORDER BY sortOrder ASC");
+    $catStmt = $pdo->query("SELECT id, labelEn, labelMm, sortOrder FROM categories ORDER BY sortOrder ASC");
     $categories = $catStmt->fetchAll();
 
     // 2. Products
@@ -170,6 +342,8 @@ function buildScopedResponse($pdo, $sessionUser) {
             'note'           => $o['note'] ?: null,
             'paymentMethod'  => (string)$o['paymentMethod'],
             'transactionRef' => $o['transactionRef'] ?: null,
+            'paymentSlip'    => !empty($o['paymentSlip']) ? (string)$o['paymentSlip'] : null,
+            'couponCode'     => !empty($o['couponCode']) ? (string)$o['couponCode'] : null,
             'items'          => $items,
             'subtotal'       => (int)$o['subtotal'],
             'discount'       => (int)$o['discount'],
@@ -194,11 +368,31 @@ function buildScopedResponse($pdo, $sessionUser) {
         }
     }
 
-    // 6. Theme
-    $themeStmt = $pdo->prepare("SELECT value FROM settings WHERE `key` = 'theme' LIMIT 1");
-    $themeStmt->execute();
-    $themeRow = $themeStmt->fetch();
-    $theme = $themeRow ? $themeRow['value'] : 'luxury-gold';
+    // 6. Coupons
+    $coupons = [];
+    try {
+        if ($isAdmin) {
+            $cpnStmt = $pdo->query("SELECT * FROM coupons ORDER BY createdAt DESC");
+            $coupons = $cpnStmt->fetchAll();
+        } else {
+            $cpnStmt = $pdo->query("SELECT id, code, discountType, discountValue, minOrderAmount FROM coupons WHERE isActive = 1 ORDER BY createdAt DESC");
+            $coupons = $cpnStmt->fetchAll();
+        }
+    } catch (\Throwable $e) {}
+
+    // 7. Settings
+    $settings = [];
+    try {
+        $setStmt = $pdo->query("SELECT `key`, `value` FROM settings");
+        while ($sRow = $setStmt->fetch()) {
+            if (!$isAdmin && in_array($sRow['key'], ['telegram_bot_token', 'telegram_chat_id'])) {
+                continue;
+            }
+            $settings[$sRow['key']] = $sRow['value'];
+        }
+    } catch (\Throwable $e) {}
+
+    $theme = $settings['theme'] ?? 'luxury-gold';
 
     return [
         'products'      => $products,
@@ -207,6 +401,8 @@ function buildScopedResponse($pdo, $sessionUser) {
         'orders'        => $orders,
         'users'         => $users,
         'usersCount'    => $usersCount,
+        'coupons'       => $coupons,
+        'settings'      => $settings,
         'currentUser'   => sanitizeUser($sessionUser),
         'theme'         => $theme,
     ];
@@ -228,6 +424,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 // --------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rawInput = file_get_contents('php://input');
+    if (empty($rawInput) && php_sapi_name() === 'cli') {
+        $rawInput = file_get_contents('php://stdin');
+    }
     $body = json_decode($rawInput, true);
     if (!is_array($body)) {
         $body = $_POST;
@@ -242,6 +441,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'expires'  => time() - 3600,
             'path'     => '/',
             'httponly' => true,
+            'secure'   => isHttpsRequest(),
             'samesite' => 'Lax'
         ]);
         echo json_encode([
@@ -319,6 +519,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'expires'  => time() + (86400 * 7),
             'path'     => '/',
             'httponly' => true,
+            'secure'   => isHttpsRequest(),
             'samesite' => 'Lax'
         ]);
 
@@ -336,16 +537,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = strtolower(trim($body['email'] ?? ''));
         $password = (string)($body['password'] ?? '');
 
-        // Rate limiting check using session
+        // Database-backed rate limiting per IP to prevent session-clearing bypass
         $clientIp = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-        $rateKey = 'login_rate_' . md5($clientIp);
-        $attempts = $_SESSION[$rateKey] ?? ['count' => 0, 'resetAt' => time() + 300];
+        $now = time();
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS login_attempts (
+                ip VARCHAR(45) NOT NULL PRIMARY KEY,
+                attempts INT NOT NULL DEFAULT 1,
+                lastAttempt INT NOT NULL
+            ) ENGINE=InnoDB");
 
-        if (time() < $attempts['resetAt'] && $attempts['count'] >= 10) {
-            http_response_code(429);
-            echo json_encode(['error' => 'စကားဝှက် မှားယွင်းမှု များနေပါသဖြင့် ၅ မိနစ်ခန့် စောင့်ဆိုင်းပြီးမှ ပြန်လည်ကြိုးစားပါ။'], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
+            $rateStmt = $pdo->prepare("SELECT attempts, lastAttempt FROM login_attempts WHERE ip = ?");
+            $rateStmt->execute([$clientIp]);
+            $rateRow = $rateStmt->fetch();
+
+            if ($rateRow) {
+                if (($now - (int)$rateRow['lastAttempt'] < 300) && (int)$rateRow['attempts'] >= 10) {
+                    http_response_code(429);
+                    echo json_encode(['error' => 'စကားဝှက် မှားယွင်းမှု များနေပါသဖြင့် ၅ မိနစ်ခန့် စောင့်ဆိုင်းပြီးမှ ပြန်လည်ကြိုးစားပါ။'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            }
+        } catch (Exception $e) {}
 
         $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ? LIMIT 1");
         $stmt->execute([$email]);
@@ -365,24 +578,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$foundUser || !$valid) {
-            $currentCount = (time() < $attempts['resetAt']) ? $attempts['count'] + 1 : 1;
-            $_SESSION[$rateKey] = [
-                'count' => $currentCount,
-                'resetAt' => (time() < $attempts['resetAt']) ? $attempts['resetAt'] : time() + 300
-            ];
+            try {
+                $updRate = $pdo->prepare("INSERT INTO login_attempts (ip, attempts, lastAttempt) VALUES (?, 1, ?)
+                    ON DUPLICATE KEY UPDATE attempts = IF(? - lastAttempt > 300, 1, attempts + 1), lastAttempt = ?");
+                $updRate->execute([$clientIp, $now, $now, $now]);
+            } catch (Exception $e) {}
 
             http_response_code(401);
             echo json_encode(['error' => 'အီးမေးလ် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်။ အကောင့်မရှိသေးပါက Sign Up လုပ်ပေးပါ။'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
-        unset($_SESSION[$rateKey]);
+        try {
+            $clrRate = $pdo->prepare("DELETE FROM login_attempts WHERE ip = ?");
+            $clrRate->execute([$clientIp]);
+        } catch (Exception $e) {}
 
         $token = createSessionToken($foundUser['id']);
         setcookie($SESSION_COOKIE_NAME, $token, [
             'expires'  => time() + (86400 * 7),
             'path'     => '/',
             'httponly' => true,
+            'secure'   => isHttpsRequest(),
             'samesite' => 'Lax'
         ]);
 
@@ -446,112 +663,248 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // Server-side calculation to prevent price tampering
-        $calculatedSubtotal = 0;
-        $verifiedItems = [];
+        try {
+            $pdo->beginTransaction();
 
-        foreach ($incoming['items'] as $item) {
-            $qty = max(1, min(99, (int)($item['quantity'] ?? 1)));
-            $productId = $item['productId'] ?? '';
+            // Server-side calculation to prevent price tampering
+            $calculatedSubtotal = 0;
+            $verifiedItems = [];
 
-            $pStmt = $pdo->prepare("SELECT * FROM products WHERE id = ? LIMIT 1");
-            $pStmt->execute([$productId]);
-            $product = $pStmt->fetch();
+            foreach ($incoming['items'] as $item) {
+                $qty = max(1, min(99, (int)($item['quantity'] ?? 1)));
+                $productId = $item['productId'] ?? '';
 
-            $unitPrice = $product ? (int)$product['price'] : max(0, (int)($item['price'] ?? 0));
-            $calculatedSubtotal += $unitPrice * $qty;
+                $pStmt = $pdo->prepare("SELECT * FROM products WHERE id = ? LIMIT 1");
+                $pStmt->execute([$productId]);
+                $product = $pStmt->fetch();
 
-            // Decrement stock if product exists
-            if ($product) {
-                $dec = $pdo->prepare("UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?");
-                $dec->execute([$qty, $productId]);
+                $unitPrice = $product ? (int)$product['price'] : max(0, (int)($item['price'] ?? 0));
+                $calculatedSubtotal += $unitPrice * $qty;
+
+                // Decrement stock if product exists
+                if ($product) {
+                    $dec = $pdo->prepare("UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?");
+                    $dec->execute([$qty, $productId]);
+                }
+
+                $verifiedItems[] = [
+                    'productId'     => $productId,
+                    'nameEn'        => $product ? $product['nameEn'] : (string)($item['nameEn'] ?? ''),
+                    'nameMm'        => $product ? $product['nameMm'] : (string)($item['nameMm'] ?? ''),
+                    'price'         => $unitPrice,
+                    'quantity'      => $qty,
+                    'selectedColor' => mb_substr((string)($item['selectedColor'] ?? 'Default'), 0, 40),
+                    'image'         => $product ? $product['image'] : (string)($item['image'] ?? ''),
+                ];
             }
 
-            $verifiedItems[] = [
-                'productId'     => $productId,
-                'nameEn'        => $product ? $product['nameEn'] : (string)($item['nameEn'] ?? ''),
-                'nameMm'        => $product ? $product['nameMm'] : (string)($item['nameMm'] ?? ''),
-                'price'         => $unitPrice,
-                'quantity'      => $qty,
-                'selectedColor' => mb_substr((string)($item['selectedColor'] ?? 'Default'), 0, 40),
-                'image'         => $product ? $product['image'] : (string)($item['image'] ?? ''),
+            // Coupon calculation
+            $couponCode = !empty($incoming['couponCode']) ? strtoupper(trim($incoming['couponCode'])) : null;
+            $discount = 0;
+            if ($couponCode) {
+                $cpnStmt = $pdo->prepare("SELECT * FROM coupons WHERE UPPER(code) = ? AND isActive = 1 LIMIT 1");
+                $cpnStmt->execute([$couponCode]);
+                $coupon = $cpnStmt->fetch();
+                if ($coupon) {
+                    $isExpired = !empty($coupon['expiresAt']) && strtotime($coupon['expiresAt']) < time();
+                    $isLimitReached = ($coupon['usageLimit'] > 0) && ($coupon['usedCount'] >= $coupon['usageLimit']);
+                    $isAmountMet = $calculatedSubtotal >= (int)$coupon['minOrderAmount'];
+
+                    if (!$isExpired && !$isLimitReached && $isAmountMet) {
+                        if ($coupon['discountType'] === 'percent') {
+                            $discount = (int)round($calculatedSubtotal * ((int)$coupon['discountValue'] / 100));
+                        } else {
+                            $discount = min($calculatedSubtotal, (int)$coupon['discountValue']);
+                        }
+                        // Increment used count
+                        $incCpn = $pdo->prepare("UPDATE coupons SET usedCount = usedCount + 1 WHERE id = ?");
+                        $incCpn->execute([$coupon['id']]);
+                    }
+                }
+            } elseif (!empty($incoming['discount']) && (int)$incoming['discount'] > 0) {
+                // Fallback for promo
+                $discount = (int)round($calculatedSubtotal * 0.1);
+            }
+
+            // Delivery fee calculation
+            $cityName = $incoming['city'] ?? $CITIES[0]['name'];
+            $fee = $CITIES[0]['fee'];
+            foreach ($CITIES as $c) {
+                if ($c['name'] === $cityName) {
+                    $fee = $c['fee'];
+                    break;
+                }
+            }
+
+            $deliveryFee = ($calculatedSubtotal - $discount >= 100000) ? 0 : $fee;
+            $calculatedTotal = max(0, $calculatedSubtotal - $discount + $deliveryFee);
+
+            $orderId = 'PP-2026-' . rand(1000, 9999);
+            $createdAt = gmdate('Y-m-d\TH:i:s\Z');
+            $customerName = mb_substr(trim($incoming['customerName'] ?? ''), 0, 80);
+            $phone = mb_substr(trim($incoming['phone'] ?? ''), 0, 30);
+            $address = mb_substr(trim($incoming['address'] ?? ''), 0, 250);
+            $note = !empty($incoming['note']) ? mb_substr(trim($incoming['note']), 0, 200) : null;
+            $paymentMethod = in_array($incoming['paymentMethod'] ?? '', ['KPay', 'WavePay', 'COD'])
+                ? $incoming['paymentMethod']
+                : 'COD';
+            $transactionRef = !empty($incoming['transactionRef'])
+                ? mb_substr(trim($incoming['transactionRef']), 0, 50)
+                : null;
+            $paymentSlip = !empty($incoming['paymentSlip'])
+                ? mb_substr(trim($incoming['paymentSlip']), 0, 250)
+                : null;
+            $userEmail = $sessionUser ? $sessionUser['email'] : ($incoming['userEmail'] ?? null);
+
+            $insOrder = $pdo->prepare("INSERT INTO orders (id, customerName, phone, city, address, note, paymentMethod, transactionRef, paymentSlip, couponCode, itemsJson, subtotal, discount, deliveryFee, total, status, createdAt, userEmail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insOrder->execute([
+                $orderId,
+                $customerName,
+                $phone,
+                $cityName,
+                $address,
+                $note,
+                $paymentMethod,
+                $transactionRef,
+                $paymentSlip,
+                $couponCode,
+                json_encode($verifiedItems, JSON_UNESCAPED_UNICODE),
+                $calculatedSubtotal,
+                $discount,
+                $deliveryFee,
+                $calculatedTotal,
+                'Pending',
+                $createdAt,
+                $userEmail
+            ]);
+
+            $pdo->commit();
+
+            $safeOrder = [
+                'id'             => $orderId,
+                'customerName'   => $customerName,
+                'phone'          => $phone,
+                'city'           => $cityName,
+                'address'        => $address,
+                'note'           => $note,
+                'paymentMethod'  => $paymentMethod,
+                'transactionRef' => $transactionRef,
+                'paymentSlip'    => $paymentSlip,
+                'couponCode'     => $couponCode,
+                'items'          => $verifiedItems,
+                'subtotal'       => $calculatedSubtotal,
+                'discount'       => $discount,
+                'deliveryFee'    => $deliveryFee,
+                'total'          => $calculatedTotal,
+                'status'         => 'Pending',
+                'createdAt'      => $createdAt,
+                'userEmail'      => $userEmail,
             ];
-        }
 
-        $discount = (!empty($incoming['discount']) && (int)$incoming['discount'] > 0)
-            ? (int)round($calculatedSubtotal * 0.1)
-            : 0;
+            // Send Telegram alert if configured
+            sendTelegramOrderAlert($pdo, $safeOrder);
 
-        // Delivery fee calculation
-        $cityName = $incoming['city'] ?? $CITIES[0]['name'];
-        $fee = $CITIES[0]['fee'];
-        foreach ($CITIES as $c) {
-            if ($c['name'] === $cityName) {
-                $fee = $c['fee'];
-                break;
+            echo json_encode([
+                'ok' => true,
+                'order' => $safeOrder,
+                'db' => buildScopedResponse($pdo, $sessionUser)
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
             }
+            error_log('Order creation error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'အော်ဒါတင်ခြင်း မအောင်မြင်ပါ: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
+    // 5.1 VALIDATE_COUPON (Public / Customer)
+    if ($action === 'VALIDATE_COUPON') {
+        $code = strtoupper(trim($body['code'] ?? ''));
+        $subtotal = max(0, (int)($body['subtotal'] ?? 0));
+
+        if (!$code) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'ကျေးဇူးပြု၍ ကူပွန်ကုဒ် ရိုက်ထည့်ပါ'], JSON_UNESCAPED_UNICODE);
+            exit;
         }
 
-        $deliveryFee = ($calculatedSubtotal - $discount >= 100000) ? 0 : $fee;
-        $calculatedTotal = $calculatedSubtotal - $discount + $deliveryFee;
+        $stmt = $pdo->prepare("SELECT * FROM coupons WHERE UPPER(code) = ? LIMIT 1");
+        $stmt->execute([$code]);
+        $cpn = $stmt->fetch();
 
-        $orderId = 'PP-2026-' . rand(1000, 9999);
-        $createdAt = gmdate('Y-m-d\TH:i:s\Z');
-        $customerName = mb_substr(trim($incoming['customerName'] ?? ''), 0, 80);
-        $phone = mb_substr(trim($incoming['phone'] ?? ''), 0, 30);
-        $address = mb_substr(trim($incoming['address'] ?? ''), 0, 250);
-        $note = !empty($incoming['note']) ? mb_substr(trim($incoming['note']), 0, 200) : null;
-        $paymentMethod = in_array($incoming['paymentMethod'] ?? '', ['KPay', 'WavePay', 'COD'])
-            ? $incoming['paymentMethod']
-            : 'COD';
-        $transactionRef = !empty($incoming['transactionRef'])
-            ? mb_substr(trim($incoming['transactionRef']), 0, 20)
-            : null;
-        $userEmail = $sessionUser ? $sessionUser['email'] : ($incoming['userEmail'] ?? null);
+        if (!$cpn || (int)$cpn['isActive'] !== 1) {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'ကူပွန်ကုဒ် မမှန်ကန်ပါ သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
 
-        $insOrder = $pdo->prepare("INSERT INTO orders (id, customerName, phone, city, address, note, paymentMethod, transactionRef, itemsJson, subtotal, discount, deliveryFee, total, status, createdAt, userEmail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $insOrder->execute([
-            $orderId,
-            $customerName,
-            $phone,
-            $cityName,
-            $address,
-            $note,
-            $paymentMethod,
-            $transactionRef,
-            json_encode($verifiedItems, JSON_UNESCAPED_UNICODE),
-            $calculatedSubtotal,
-            $discount,
-            $deliveryFee,
-            $calculatedTotal,
-            'Pending',
-            $createdAt,
-            $userEmail
-        ]);
+        if (!empty($cpn['expiresAt']) && strtotime($cpn['expiresAt']) < time()) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'ဤကူပွန်သည် သက်တမ်းကုန်ဆုံးသွားပါပြီ'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
 
-        $safeOrder = [
-            'id'             => $orderId,
-            'customerName'   => $customerName,
-            'phone'          => $phone,
-            'city'           => $cityName,
-            'address'        => $address,
-            'note'           => $note,
-            'paymentMethod'  => $paymentMethod,
-            'transactionRef' => $transactionRef,
-            'items'          => $verifiedItems,
-            'subtotal'       => $calculatedSubtotal,
-            'discount'       => $discount,
-            'deliveryFee'    => $deliveryFee,
-            'total'          => $calculatedTotal,
-            'status'         => 'Pending',
-            'createdAt'      => $createdAt,
-            'userEmail'      => $userEmail,
-        ];
+        if ($cpn['usageLimit'] > 0 && (int)$cpn['usedCount'] >= (int)$cpn['usageLimit']) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'ဤကူပွန်သည် အသုံးပြုခွင့် အရေအတွက် ပြည့်သွားပါပြီ'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if ($subtotal < (int)$cpn['minOrderAmount']) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'ဤကူပွန် အသုံးပြုရန် အနည်းဆုံး ' . number_format($cpn['minOrderAmount']) . ' ကျပ်ဖိုး ဝယ်ယူရပါမည်'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $calculatedDiscount = 0;
+        if ($cpn['discountType'] === 'percent') {
+            $calculatedDiscount = (int)round($subtotal * ((int)$cpn['discountValue'] / 100));
+        } else {
+            $calculatedDiscount = min($subtotal, (int)$cpn['discountValue']);
+        }
 
         echo json_encode([
             'ok' => true,
-            'order' => $safeOrder,
-            'db' => buildScopedResponse($pdo, $sessionUser)
+            'coupon' => [
+                'code' => $cpn['code'],
+                'discountType' => $cpn['discountType'],
+                'discountValue' => (int)$cpn['discountValue'],
+                'discountAmount' => $calculatedDiscount,
+                'minOrderAmount' => (int)$cpn['minOrderAmount'],
+            ]
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 5.2 UPLOAD_SLIP (Public / Customer for Checkout)
+    if ($action === 'UPLOAD_SLIP') {
+        $file = $_FILES['slip'] ?? ($body['slip_data'] ?? null);
+        $res = handleSecureImageUpload($file, 'slips', 'slip');
+        if ($res['ok']) {
+            echo json_encode(['ok' => true, 'url' => $res['url']], JSON_UNESCAPED_UNICODE);
+        } else {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => $res['error']], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
+
+    // 5.3 CHECK_VERSION (Public / Mobile App)
+    if ($action === 'CHECK_VERSION') {
+        $stmt = $pdo->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('app_version', 'app_min_version', 'app_download_url')");
+        $verSettings = [];
+        while ($r = $stmt->fetch()) {
+            $verSettings[$r['key']] = $r['value'];
+        }
+        echo json_encode([
+            'ok' => true,
+            'latestVersion' => $verSettings['app_version'] ?? '1.2.0',
+            'minSupportedVersion' => $verSettings['app_min_version'] ?? '1.0.0',
+            'downloadUrl' => $verSettings['app_download_url'] ?? 'https://pontpont.com/download'
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -705,15 +1058,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cat = $body['category'] ?? [];
         $id = trim($cat['id'] ?? '');
         $labelEn = trim($cat['labelEn'] ?? $id);
+        $labelMm = trim($cat['labelMm'] ?? $labelEn);
 
-        if ($id) {
+        if (!$id && $labelEn) {
+            $id = preg_replace('/[^a-zA-Z0-9_\-]/', '', ucwords($labelEn));
+        }
+
+        if ($id && $labelEn) {
             $check = $pdo->prepare("SELECT id FROM categories WHERE LOWER(id) = ? OR LOWER(labelEn) = ? LIMIT 1");
             $check->execute([strtolower($id), strtolower($labelEn)]);
             if (!$check->fetch()) {
                 $maxSort = $pdo->query("SELECT MAX(sortOrder) as m FROM categories")->fetch();
                 $sort = ($maxSort ? (int)$maxSort['m'] : 0) + 1;
-                $ins = $pdo->prepare("INSERT INTO categories (id, labelEn, sortOrder) VALUES (?, ?, ?)");
-                $ins->execute([$id, $labelEn, $sort]);
+                $ins = $pdo->prepare("INSERT INTO categories (id, labelEn, labelMm, sortOrder) VALUES (?, ?, ?, ?)");
+                $ins->execute([$id, $labelEn, $labelMm, $sort]);
             }
         }
         echo json_encode([
@@ -785,6 +1143,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'ok' => true,
             'db' => buildScopedResponse($pdo, $sessionUser)
         ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 17. UPLOAD_IMAGE (Admin Product & Banner Upload)
+    if ($action === 'UPLOAD_IMAGE') {
+        $file = $_FILES['image'] ?? ($body['image_data'] ?? null);
+        $res = handleSecureImageUpload($file, 'products', 'prod');
+        if ($res['ok']) {
+            echo json_encode(['ok' => true, 'url' => $res['url']], JSON_UNESCAPED_UNICODE);
+        } else {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => $res['error']], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
+
+    // 18. ADD_COUPON
+    if ($action === 'ADD_COUPON') {
+        $cpn = $body['coupon'] ?? [];
+        $code = strtoupper(trim($cpn['code'] ?? ''));
+        if (!$code) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Coupon code is required'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $id = !empty($cpn['id']) ? trim($cpn['id']) : ('cpn-' . time());
+        $type = in_array($cpn['discountType'] ?? '', ['percent', 'fixed']) ? $cpn['discountType'] : 'percent';
+        $val = max(1, (int)($cpn['discountValue'] ?? 10));
+        $min = max(0, (int)($cpn['minOrderAmount'] ?? 0));
+        $limit = max(0, (int)($cpn['usageLimit'] ?? 0));
+        $expires = !empty($cpn['expiresAt']) ? trim($cpn['expiresAt']) : null;
+        $active = isset($cpn['isActive']) ? (int)$cpn['isActive'] : 1;
+        $now = gmdate('Y-m-d\TH:i:s\Z');
+
+        $ins = $pdo->prepare("INSERT INTO coupons (id, code, discountType, discountValue, minOrderAmount, usageLimit, usedCount, expiresAt, isActive, createdAt) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?) ON DUPLICATE KEY UPDATE discountType=?, discountValue=?, minOrderAmount=?, usageLimit=?, expiresAt=?, isActive=?");
+        $ins->execute([$id, $code, $type, $val, $min, $limit, $expires, $active, $now, $type, $val, $min, $limit, $expires, $active]);
+
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 19. DELETE_COUPON
+    if ($action === 'DELETE_COUPON') {
+        $cpnId = trim($body['couponId'] ?? '');
+        $del = $pdo->prepare("DELETE FROM coupons WHERE id = ?");
+        $del->execute([$cpnId]);
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 20. UPDATE_SETTINGS (Admin General, Contact & Telegram Settings)
+    if ($action === 'UPDATE_SETTINGS') {
+        $incomingSettings = $body['settings'] ?? [];
+        if (is_array($incomingSettings)) {
+            $allowedKeys = [
+                'shop_name', 'shop_name_mm', 'phone_1', 'phone_2', 'kpay_account',
+                'telegram_bot_token', 'telegram_chat_id', 'telegram_enabled',
+                'app_version', 'app_min_version', 'app_download_url'
+            ];
+            $stmt = $pdo->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?");
+            foreach ($incomingSettings as $k => $v) {
+                if (in_array($k, $allowedKeys)) {
+                    $valStr = (string)$v;
+                    $stmt->execute([$k, $valStr, $valStr]);
+                }
+            }
+        }
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 21. TEST_TELEGRAM (Send test message to verify Telegram Bot)
+    if ($action === 'TEST_TELEGRAM') {
+        $testOrder = [
+            'id' => 'TEST-' . rand(100, 999),
+            'customerName' => 'စမ်းသပ်အသုံးပြုသူ (Test User)',
+            'phone' => '09-963000502',
+            'city' => 'Mandalay (မန္တလေး)',
+            'address' => '၇၃ လမ်း၊ မန္တလေးမြို့',
+            'note' => 'Telegram Bot ချိတ်ဆက်မှု စမ်းသပ်ခြင်း ဖြစ်ပါသည်',
+            'paymentMethod' => 'KPay',
+            'transactionRef' => 'TEST123456',
+            'couponCode' => 'PONTPONT10',
+            'items' => [
+                ['nameMm' => 'ပုံ့ပုံ့ စိန်ကွက်ဖော် ရွှေကြိုးချိတ် ဘေးလွယ်အိတ်', 'selectedColor' => 'Onyx Black', 'quantity' => 1, 'price' => 29500]
+            ],
+            'total' => 29500
+        ];
+        sendTelegramOrderAlert($pdo, $testOrder);
+        echo json_encode(['ok' => true, 'message' => 'Telegram စမ်းသပ်အကြောင်းကြားချက် ပေးပို့ပြီးပါပြီ']);
         exit;
     }
 

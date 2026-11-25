@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS `categories`;
 CREATE TABLE `categories` (
   `id` VARCHAR(50) NOT NULL PRIMARY KEY,
   `labelEn` VARCHAR(100) NOT NULL,
+  `labelMm` VARCHAR(100) DEFAULT NULL,
   `sortOrder` INT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -74,6 +75,8 @@ CREATE TABLE `orders` (
   `note` TEXT DEFAULT NULL,
   `paymentMethod` VARCHAR(30) NOT NULL,
   `transactionRef` VARCHAR(50) DEFAULT NULL,
+  `paymentSlip` VARCHAR(255) DEFAULT NULL,
+  `couponCode` VARCHAR(50) DEFAULT NULL,
   `itemsJson` LONGTEXT NOT NULL,
   `subtotal` INT NOT NULL,
   `discount` INT NOT NULL DEFAULT 0,
@@ -99,6 +102,23 @@ CREATE TABLE `announcements` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
+-- Table structure for `coupons`
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `coupons`;
+CREATE TABLE `coupons` (
+  `id` VARCHAR(50) NOT NULL PRIMARY KEY,
+  `code` VARCHAR(50) NOT NULL UNIQUE,
+  `discountType` VARCHAR(20) NOT NULL DEFAULT 'percent',
+  `discountValue` INT NOT NULL,
+  `minOrderAmount` INT NOT NULL DEFAULT 0,
+  `usageLimit` INT NOT NULL DEFAULT 0,
+  `usedCount` INT NOT NULL DEFAULT 0,
+  `expiresAt` VARCHAR(50) DEFAULT NULL,
+  `isActive` TINYINT(1) NOT NULL DEFAULT 1,
+  `createdAt` VARCHAR(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
 -- Table structure for `settings`
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `settings`;
@@ -112,12 +132,12 @@ CREATE TABLE `settings` (
 -- ============================================================
 
 -- Dumping data for table `categories`
-INSERT INTO `categories` (`id`, `labelEn`, `sortOrder`) VALUES ('All', 'All Bags', 0);
-INSERT INTO `categories` (`id`, `labelEn`, `sortOrder`) VALUES ('Tote', 'Tote & Handbags', 1);
-INSERT INTO `categories` (`id`, `labelEn`, `sortOrder`) VALUES ('Crossbody', 'Sling & Crossbody', 2);
-INSERT INTO `categories` (`id`, `labelEn`, `sortOrder`) VALUES ('Shoulder', 'Shoulder Bags', 3);
-INSERT INTO `categories` (`id`, `labelEn`, `sortOrder`) VALUES ('Clutch', 'Wallets & Purses', 4);
-INSERT INTO `categories` (`id`, `labelEn`, `sortOrder`) VALUES ('Backpack', 'Backpacks', 5);
+INSERT INTO `categories` (`id`, `labelEn`, `labelMm`, `sortOrder`) VALUES ('All', 'All Bags', 'အိတ်အားလုံး', 0);
+INSERT INTO `categories` (`id`, `labelEn`, `labelMm`, `sortOrder`) VALUES ('Tote', 'Tote & Handbags', 'လက်ဆွဲအိတ် / တုတ်အိတ်', 1);
+INSERT INTO `categories` (`id`, `labelEn`, `labelMm`, `sortOrder`) VALUES ('Crossbody', 'Sling & Crossbody', 'ဘေးလွယ်အိတ်', 2);
+INSERT INTO `categories` (`id`, `labelEn`, `labelMm`, `sortOrder`) VALUES ('Shoulder', 'Shoulder Bags', 'ပုခုံးလွယ်အိတ်', 3);
+INSERT INTO `categories` (`id`, `labelEn`, `labelMm`, `sortOrder`) VALUES ('Clutch', 'Wallets & Purses', 'ပိုက်ဆံအိတ် / ပွဲတက်အိတ်', 4);
+INSERT INTO `categories` (`id`, `labelEn`, `labelMm`, `sortOrder`) VALUES ('Backpack', 'Backpacks', 'ကျောပိုးအိတ်', 5);
 
 -- Dumping data for table `products`
 INSERT INTO `products` (`id`, `nameEn`, `nameMm`, `category`, `categoryMm`, `price`, `originalPrice`, `wholesalePrice`, `image`, `colorsJson`, `badge`, `rating`, `reviewsCount`, `stock`, `material`, `dimensions`, `descriptionEn`, `descriptionMm`, `sortOrder`) VALUES ('pp-bag-01', 'Pont Pont Signature Ladies Office Tote Bag', 'ပုံ့ပုံ့ ရုံးတက် လက်ဆွဲ သားရေ တုတ်အိတ်ကြီး', 'Tote', 'လက်ဆွဲအိတ် / တုတ်အိတ်', 38000, 45000, 31000, 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=900&q=80', '[{"name":"Caramel Brown","hex":"#9C5B34"},{"name":"Midnight Black","hex":"#1C1917"},{"name":"Cream Ivory","hex":"#F5EFE6"}]', 'Best Seller', 4.9, 215, 45, 'High-Grade PU Pebbled Leather', '34cm x 28cm x 14cm', 'Pont Pont Mandalay best-selling spacious tote bag for office and daily use. Available for both retail and wholesale orders.', 'ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) ၏ လူကြိုက်အများဆုံး ရုံးတက်၊ ကျောင်းတက် နေ့စဉ်သုံး သားရေ လက်ဆွဲတုတ်အိတ်။ လက်လီဈေး 38,000 ကျပ် (လက်ကား ၅ လုံးအထက် 31,000 ကျပ်ဖြင့် မှာယူနိုင်ပါသည်)။', 0);
@@ -148,6 +168,27 @@ INSERT INTO `settings` (`key`, `value`) VALUES
 ('shop_name_mm', 'ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး (မန္တလေး)'),
 ('phone_1', '09-963000502'),
 ('phone_2', '09-750072752'),
-('kpay_account', '09-963000502 / 09-750072752 (Ma Pont Pont)');
+('kpay_account', '09-963000502 / 09-750072752 (Ma Pont Pont)'),
+('telegram_bot_token', ''),
+('telegram_chat_id', ''),
+('telegram_enabled', '0'),
+('app_version', '1.2.0'),
+('app_min_version', '1.0.0'),
+('app_download_url', 'https://pontpont.com/download');
+
+-- Dumping data for table `coupons`
+INSERT INTO `coupons` (`id`, `code`, `discountType`, `discountValue`, `minOrderAmount`, `usageLimit`, `usedCount`, `expiresAt`, `isActive`, `createdAt`) VALUES
+('cpn-01', 'PONTPONT10', 'percent', 10, 0, 0, 0, NULL, 1, '2026-11-23T00:00:00Z'),
+('cpn-02', 'PONTWELCOME', 'fixed', 5000, 30000, 100, 0, NULL, 1, '2026-11-23T00:00:00Z'),
+('cpn-03', 'VIPLUXURY', 'percent', 15, 100000, 50, 0, NULL, 1, '2026-11-23T00:00:00Z');
+
+-- --------------------------------------------------------
+-- Table structure for `login_attempts` (Rate Limiting)
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `login_attempts` (
+  `ip` VARCHAR(45) NOT NULL PRIMARY KEY,
+  `attempts` INT NOT NULL DEFAULT 1,
+  `lastAttempt` INT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 COMMIT;

@@ -1,0 +1,29 @@
+# ============================================================
+# Pont Pont Handbag Shop - Uploads Security
+# Prevent execution of any scripts in upload directories
+# ============================================================
+
+# Disable PHP script execution
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Block all script extensions
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phps|cgi|pl|py|sh|bash|exe|bat|cmd)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Only allow legitimate static image files
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+Options -ExecCGI -Indexes

@@ -12,3 +12,11 @@ Thumbs.db
 *.swp
 *.bak
 *~
+install.lock
+
+# Runtime uploaded user files
+assets/uploads/products/*
+!assets/uploads/products/.gitkeep
+assets/uploads/slips/*
+!assets/uploads/slips/.gitkeep
+

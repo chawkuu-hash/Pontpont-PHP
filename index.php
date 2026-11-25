@@ -134,10 +134,10 @@ try {
             <!-- Action Buttons -->
             <div class="flex items-center gap-2 sm:gap-3">
                 <!-- Admin Dashboard Button (shown when admin logged in) -->
-                <button id="adminBtn" onclick="openAdminModal()" class="hidden px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-black text-amber-400 text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+                <a id="adminBtn" href="admin.php" class="hidden px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-black text-amber-400 text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
                     <i data-lucide="shield-check" class="w-4 h-4"></i>
                     <span class="hidden sm:inline">Admin Dashboard</span>
-                </button>
+                </a>
 
                 <!-- User Account Button -->
                 <button id="userBtn" onclick="handleUserBtnClick()" class="p-2.5 sm:px-4 sm:py-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-800 text-xs font-bold transition flex items-center gap-2">
@@ -514,11 +514,20 @@ try {
                                     📋 Copy နံပါတ်
                                 </button>
                             </div>
-                            <p class="font-extrabold text-stone-900 text-sm">09-963000502 / 09-750072752</p>
-                            <p class="text-[11px] text-stone-600">Account Name: <strong>Ma Pont Pont (ပုံ့ပုံ့ အိတ်ဆိုင် - မန္တလေး)</strong></p>
+                            <p class="font-extrabold text-stone-900 text-sm" id="transferPhoneDisplay">09-963000502 / 09-750072752</p>
+                            <p class="text-[11px] text-stone-600">Account Name: <strong id="transferNameDisplay">Ma Pont Pont (ပုံ့ပုံ့ အိတ်ဆိုင် - မန္တလေး)</strong></p>
                             <div>
                                 <label class="block font-bold text-blue-950 mt-2 mb-1">ငွေလွှဲပြေစာ နောက်ဆုံး (၆) လုံး (Transaction Ref) *</label>
                                 <input type="text" id="orderTxRef" placeholder="ဥပမာ: 849201" class="w-full px-3 py-1.5 rounded-xl border border-blue-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <!-- Payment Slip Upload -->
+                            <div class="pt-2 border-t border-blue-200/60">
+                                <label class="block font-bold text-blue-950 mb-1">ငွေလွှဲပြေစာ Screenshot ပုံတင်ရန် (Payment Slip - Optional)</label>
+                                <input type="file" id="orderSlipInput" accept="image/*" onchange="handleSlipFileSelect(event)" class="w-full text-xs text-stone-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                                <div id="slipPreviewContainer" class="mt-2 relative inline-block hidden">
+                                    <img id="slipPreviewImg" class="w-20 h-24 object-cover rounded-lg border border-blue-300 shadow-sm" src="" alt="Slip Preview">
+                                    <button type="button" onclick="clearSlipFile()" class="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold hover:bg-red-700">✕</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -926,6 +935,17 @@ try {
     <!-- JAVASCRIPT APP LOGIC -->
     <!-- =================================================================== -->
     <script>
+        // Security Helper: Escape HTML special characters to prevent XSS
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // Global App State
         let shopData = {
             products: [],
@@ -943,9 +963,15 @@ try {
         let selectedProductForModal = null;
         let selectedColorForModal = '';
         let appliedPromo = false;
+        let appliedCoupon = null;
+        let selectedSlipBase64 = null;
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
+            if (window.location.search.includes('admin=1')) {
+                window.location.href = 'admin.php';
+                return;
+            }
             loadShopData();
             loadCartFromStorage();
         });
@@ -989,14 +1015,15 @@ try {
             (shopData.announcements || []).forEach(ann => {
                 const card = document.createElement('div');
                 card.className = 'p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition';
+                const tagClass = ann.tag === 'Promotion' ? 'bg-amber-100 text-amber-800' : (ann.tag === 'Wholesale' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800');
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${ann.tag === 'Promotion' ? 'bg-amber-100 text-amber-800' : (ann.tag === 'Wholesale' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800')}">${ann.tag}</span>
-                            <span class="text-[11px] text-stone-400">${ann.authorName || 'ပုံ့ပုံ့ ဆိုင်'}</span>
+                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${tagClass}">${escapeHtml(ann.tag)}</span>
+                            <span class="text-[11px] text-stone-400">${escapeHtml(ann.authorName || 'ပုံ့ပုံ့ ဆိုင်')}</span>
                         </div>
-                        <h4 class="font-bold text-stone-900 text-xs sm:text-sm line-clamp-1">${ann.title}</h4>
-                        <p class="text-xs text-stone-600 mt-1 line-clamp-2 leading-relaxed">${ann.content}</p>
+                        <h4 class="font-bold text-stone-900 text-xs sm:text-sm line-clamp-1">${escapeHtml(ann.title)}</h4>
+                        <p class="text-xs text-stone-600 mt-1 line-clamp-2 leading-relaxed">${escapeHtml(ann.content)}</p>
                     </div>
                 `;
                 container.appendChild(card);
@@ -1009,13 +1036,13 @@ try {
             const container = document.getElementById('categoryTabs');
             container.innerHTML = '';
 
-            const cats = [{ id: 'All', labelEn: 'All Bags' }, ...(shopData.categories || []).filter(c => c.id !== 'All')];
+            const cats = [{ id: 'All', labelEn: 'All Bags', labelMm: 'အားလုံး' }, ...(shopData.categories || []).filter(c => c.id !== 'All')];
 
             cats.forEach(c => {
                 const isActive = (c.id === activeCategory);
                 const btn = document.createElement('button');
                 btn.className = `px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition ${isActive ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20' : 'bg-white border border-stone-200 text-stone-700 hover:border-amber-400'}`;
-                btn.innerText = c.labelEn;
+                btn.innerHTML = `<span>${escapeHtml(c.labelEn)}</span>${c.labelMm ? ` <span class="opacity-75 font-medium text-[11px]">(${escapeHtml(c.labelMm)})</span>` : ''}`;
                 btn.onclick = () => {
                     activeCategory = c.id;
                     renderCategories();
@@ -1076,15 +1103,15 @@ try {
                 card.className = 'group bg-white rounded-3xl border border-stone-200/80 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between';
 
                 const colorsDots = (p.colors || []).map(c => `
-                    <span class="w-3.5 h-3.5 rounded-full border border-stone-300 inline-block" style="background-color: ${c.hex};" title="${c.name}"></span>
+                    <span class="w-3.5 h-3.5 rounded-full border border-stone-300 inline-block" style="background-color: ${escapeHtml(c.hex)};" title="${escapeHtml(c.name)}"></span>
                 `).join('');
 
                 card.innerHTML = `
                     <div>
                         <!-- Image Container -->
-                        <div class="relative h-60 w-full bg-stone-100 overflow-hidden cursor-pointer" onclick="openProductModal('${p.id}')">
-                            <img src="${p.image}" alt="${p.nameEn}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                            ${p.badge ? `<span class="absolute top-3 left-3 bg-amber-500 text-stone-950 font-black text-[10px] px-2.5 py-1 rounded-full shadow-md uppercase tracking-wider">${p.badge}</span>` : ''}
+                        <div class="relative h-60 w-full bg-stone-100 overflow-hidden cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">
+                            <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.nameEn)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            ${p.badge ? `<span class="absolute top-3 left-3 bg-amber-500 text-stone-950 font-black text-[10px] px-2.5 py-1 rounded-full shadow-md uppercase tracking-wider">${escapeHtml(p.badge)}</span>` : ''}
                             <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded-lg text-[10px] font-bold text-stone-800 flex items-center gap-1 shadow-xs">
                                 <i data-lucide="star" class="w-3 h-3 text-amber-500 fill-amber-500"></i> ${p.rating} (${p.reviewsCount})
                             </div>
@@ -1096,8 +1123,8 @@ try {
                                 ${colorsDots}
                             </div>
                             <div>
-                                <h3 class="font-extrabold text-stone-900 text-sm line-clamp-1 group-hover:text-amber-700 transition cursor-pointer" onclick="openProductModal('${p.id}')">${p.nameEn}</h3>
-                                <p class="text-xs text-stone-500 line-clamp-1 font-medium">${p.nameMm}</p>
+                                <h3 class="font-extrabold text-stone-900 text-sm line-clamp-1 group-hover:text-amber-700 transition cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">${escapeHtml(p.nameEn)}</h3>
+                                <p class="text-xs text-stone-500 line-clamp-1 font-medium">${escapeHtml(p.nameMm)}</p>
                             </div>
 
                             <div class="pt-1">
@@ -1116,7 +1143,7 @@ try {
 
                     <!-- Footer Action -->
                     <div class="p-4 pt-0">
-                        <button onclick="quickAddToCart('${p.id}')" class="w-full py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                        <button onclick="quickAddToCart('${escapeHtml(p.id)}')" class="w-full py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
                             <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
                             <span>ခြင်းတောင်းထဲ ထည့်မည်</span>
                         </button>
@@ -1163,7 +1190,7 @@ try {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${c.name === selectedColorForModal ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-600/20' : 'border-stone-300 bg-white hover:border-stone-400 text-stone-700'}`;
-                btn.innerHTML = `<span class="w-3.5 h-3.5 rounded-full border border-black/20" style="background-color:${c.hex}"></span> <span>${c.name}</span>`;
+                btn.innerHTML = `<span class="w-3.5 h-3.5 rounded-full border border-black/20" style="background-color:${escapeHtml(c.hex)}"></span> <span>${escapeHtml(c.name)}</span>`;
                 btn.onclick = () => {
                     selectedColorForModal = c.name;
                     document.getElementById('selectedColorName').innerText = c.name;
@@ -1280,18 +1307,18 @@ try {
                     const row = document.createElement('div');
                     row.className = 'flex gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-200/80 items-center';
                     row.innerHTML = `
-                        <img src="${prod.image}" class="w-14 h-14 object-cover rounded-xl border border-stone-200">
+                        <img src="${escapeHtml(prod.image)}" class="w-14 h-14 object-cover rounded-xl border border-stone-200">
                         <div class="flex-1 min-w-0">
-                            <h4 class="font-bold text-xs text-stone-900 truncate">${prod.nameEn}</h4>
-                            <p class="text-[11px] text-stone-500">အရောင်: ${item.selectedColor}</p>
+                            <h4 class="font-bold text-xs text-stone-900 truncate">${escapeHtml(prod.nameEn)}</h4>
+                            <p class="text-[11px] text-stone-500">အရောင်: ${escapeHtml(item.selectedColor)}</p>
                             <p class="text-xs font-extrabold text-amber-700">${prod.price.toLocaleString()} Ks</p>
                         </div>
                         <div class="flex items-center gap-1.5 bg-white border border-stone-200 rounded-xl px-2 py-1">
-                            <button onclick="updateCartQty('${item.productId}', '${item.selectedColor}', -1)" class="text-stone-500 hover:text-stone-900 font-bold px-1 text-xs">-</button>
+                            <button onclick="updateCartQty('${escapeHtml(item.productId)}', '${escapeHtml(item.selectedColor)}', -1)" class="text-stone-500 hover:text-stone-900 font-bold px-1 text-xs">-</button>
                             <span class="text-xs font-bold w-4 text-center">${item.quantity}</span>
-                            <button onclick="updateCartQty('${item.productId}', '${item.selectedColor}', 1)" class="text-stone-500 hover:text-stone-900 font-bold px-1 text-xs">+</button>
+                            <button onclick="updateCartQty('${escapeHtml(item.productId)}', '${escapeHtml(item.selectedColor)}', 1)" class="text-stone-500 hover:text-stone-900 font-bold px-1 text-xs">+</button>
                         </div>
-                        <button onclick="removeCartItem('${item.productId}', '${item.selectedColor}')" class="text-stone-400 hover:text-red-600 p-1">
+                        <button onclick="removeCartItem('${escapeHtml(item.productId)}', '${escapeHtml(item.selectedColor)}')" class="text-stone-400 hover:text-red-600 p-1">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     `;
@@ -1299,14 +1326,23 @@ try {
                 });
             }
 
-            const discount = appliedPromo ? Math.round(subtotal * 0.1) : 0;
+            let discount = 0;
+            if (appliedCoupon) {
+                if (appliedCoupon.discountType === 'percent') {
+                    discount = Math.round(subtotal * (appliedCoupon.discountValue / 100));
+                } else {
+                    discount = Math.min(subtotal, appliedCoupon.discountAmount || appliedCoupon.discountValue);
+                }
+            } else if (appliedPromo) {
+                discount = Math.round(subtotal * 0.1);
+            }
             const cityFee = getSelectedCityFee();
             const deliveryFee = (subtotal - discount >= 100000) ? 0 : cityFee;
-            const total = subtotal - discount + deliveryFee;
+            const total = Math.max(0, subtotal - discount + deliveryFee);
 
             document.getElementById('cartSubtotalText').innerText = subtotal.toLocaleString() + ' Ks';
             document.getElementById('cartDiscountText').innerText = '-' + discount.toLocaleString() + ' Ks';
-            document.getElementById('cartDiscountRow').style.display = appliedPromo ? 'flex' : 'none';
+            document.getElementById('cartDiscountRow').style.display = (discount > 0) ? 'flex' : 'none';
             document.getElementById('cartDeliveryFeeText').innerText = (deliveryFee === 0 ? 'Free (အခမဲ့)' : deliveryFee.toLocaleString() + ' Ks');
             document.getElementById('cartTotalText').innerText = total.toLocaleString() + ' Ks';
 
@@ -1323,17 +1359,84 @@ try {
             updateCartUI();
         }
 
-        function applyPromoCode() {
-            const code = document.getElementById('promoInput').value.trim().toUpperCase();
+        function handleSlipFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                clearSlipFile();
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('ပုံအရွယ်အစားသည် 5MB ထက် မကျော်ရပါ');
+                event.target.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedSlipBase64 = e.target.result;
+                const previewImg = document.getElementById('slipPreviewImg');
+                const previewBox = document.getElementById('slipPreviewContainer');
+                if (previewImg && previewBox) {
+                    previewImg.src = selectedSlipBase64;
+                    previewBox.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearSlipFile() {
+            selectedSlipBase64 = null;
+            const input = document.getElementById('orderSlipInput');
+            if (input) input.value = '';
+            const previewBox = document.getElementById('slipPreviewContainer');
+            if (previewBox) previewBox.classList.add('hidden');
+        }
+
+        async function applyPromoCode() {
+            const codeInput = document.getElementById('promoInput');
+            const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
             const msg = document.getElementById('promoMessage');
-            if (code === 'PONTPONT10') {
-                appliedPromo = true;
-                msg.innerText = '✅ 10% လျှော့ဈေး အောင်မြင်စွာ ရရှိပါသည်!';
-                msg.classList.remove('hidden', 'text-red-600');
-                msg.classList.add('text-emerald-600');
-            } else {
+            if (!code) {
+                appliedCoupon = null;
                 appliedPromo = false;
-                msg.innerText = '❌ ကူပွန်ကုဒ် မှားယွင်းနေပါသည်။';
+                msg.classList.add('hidden');
+                updateCartUI();
+                return;
+            }
+
+            // Calculate current subtotal
+            let subtotal = 0;
+            cart.forEach(item => {
+                const prod = shopData.products.find(p => p.id === item.productId);
+                if (prod) subtotal += prod.price * item.quantity;
+            });
+
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'VALIDATE_COUPON', code: code, subtotal: subtotal })
+                });
+                const data = await res.json();
+                if (data.ok && data.coupon) {
+                    appliedCoupon = data.coupon;
+                    appliedPromo = true;
+                    const discountText = appliedCoupon.discountType === 'percent'
+                        ? `${appliedCoupon.discountValue}%`
+                        : `${appliedCoupon.discountAmount.toLocaleString()} Ks`;
+                    msg.innerText = `✅ ${discountText} လျှော့ဈေး အောင်မြင်စွာ ရရှိပါသည်!`;
+                    msg.classList.remove('hidden', 'text-red-600');
+                    msg.classList.add('text-emerald-600');
+                } else {
+                    appliedCoupon = null;
+                    appliedPromo = false;
+                    msg.innerText = `❌ ${data.error || 'ကူပွန်ကုဒ် မှားယွင်းနေပါသည်။'}`;
+                    msg.classList.remove('hidden', 'text-emerald-600');
+                    msg.classList.add('text-red-600');
+                }
+            } catch (err) {
+                appliedCoupon = null;
+                appliedPromo = false;
+                msg.innerText = '❌ ကူပွန် စစ်ဆေး၍ မရပါ';
                 msg.classList.remove('hidden', 'text-emerald-600');
                 msg.classList.add('text-red-600');
             }
@@ -1413,6 +1516,24 @@ try {
                 return;
             }
 
+            // Upload slip if selected
+            let uploadedSlipUrl = null;
+            if (selectedSlipBase64 && paymentMethod !== 'COD') {
+                try {
+                    const slipRes = await fetch('api/shop.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'UPLOAD_SLIP', slip_data: selectedSlipBase64 })
+                    });
+                    const slipData = await slipRes.json();
+                    if (slipData.ok && slipData.url) {
+                        uploadedSlipUrl = slipData.url;
+                    }
+                } catch (e) {
+                    console.error('Slip upload warning:', e);
+                }
+            }
+
             const items = cart.map(item => {
                 const prod = shopData.products.find(p => p.id === item.productId);
                 return {
@@ -1436,7 +1557,9 @@ try {
                     note: note,
                     paymentMethod: paymentMethod,
                     transactionRef: txRef,
-                    discount: appliedPromo ? 10 : 0,
+                    paymentSlip: uploadedSlipUrl,
+                    couponCode: appliedCoupon ? appliedCoupon.code : null,
+                    discount: (appliedCoupon || appliedPromo) ? 10 : 0,
                     items: items
                 }
             };
@@ -1449,8 +1572,11 @@ try {
                 });
                 const data = await res.json();
                 if (data.ok && data.order) {
-                    // Clear cart
+                    // Clear cart & slip
                     cart = [];
+                    clearSlipFile();
+                    appliedCoupon = null;
+                    appliedPromo = false;
                     saveCartToStorage();
                     updateCartUI();
 
@@ -1658,14 +1784,15 @@ try {
                 };
                 const card = document.createElement('div');
                 card.className = 'p-3 rounded-2xl bg-white border border-stone-200 text-xs space-y-2';
+                const itemsText = o.items.map(i => `${escapeHtml(i.nameEn)} (${escapeHtml(i.selectedColor)}) x ${Number(i.quantity) || 1}`).join(', ');
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
-                        <span class="font-mono font-bold text-stone-900">${o.id}</span>
-                        <span class="px-2.5 py-0.5 rounded-full font-bold ${statusColors[o.status] || 'bg-stone-100'}">${o.status}</span>
+                        <span class="font-mono font-bold text-stone-900">${escapeHtml(o.id)}</span>
+                        <span class="px-2.5 py-0.5 rounded-full font-bold ${statusColors[o.status] || 'bg-stone-100'}">${escapeHtml(o.status)}</span>
                     </div>
                     <div class="text-stone-600">
-                        <p>${o.items.map(i => `${i.nameEn} (${i.selectedColor}) x ${i.quantity}`).join(', ')}</p>
-                        <p class="mt-1 font-bold text-stone-900">ကျသင့်ငွေ: ${o.total.toLocaleString()} Ks (${o.paymentMethod})</p>
+                        <p>${itemsText}</p>
+                        <p class="mt-1 font-bold text-stone-900">ကျသင့်ငွေ: ${Number(o.total || 0).toLocaleString()} Ks (${escapeHtml(o.paymentMethod)})</p>
                     </div>
                 `;
                 list.appendChild(card);
@@ -1715,14 +1842,16 @@ try {
             (shopData.orders || []).forEach(o => {
                 const div = document.createElement('div');
                 div.className = 'p-3.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs space-y-2';
+                const itemsText = (o.items || []).map(i => `${escapeHtml(i.nameEn)} (${escapeHtml(i.selectedColor)}) x ${Number(i.quantity) || 1}`).join(', ');
+                const refText = o.transactionRef ? `(Ref: ${escapeHtml(o.transactionRef)})` : '';
                 div.innerHTML = `
                     <div class="flex items-center justify-between flex-wrap gap-2">
                         <div>
-                            <span class="font-mono font-bold text-stone-900 text-sm">${o.id}</span>
-                            <span class="text-stone-500 ml-2">ဝယ်သူ: <strong>${o.customerName}</strong> (${o.phone})</span>
+                            <span class="font-mono font-bold text-stone-900 text-sm">${escapeHtml(o.id)}</span>
+                            <span class="text-stone-500 ml-2">ဝယ်သူ: <strong>${escapeHtml(o.customerName)}</strong> (${escapeHtml(o.phone)})</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <select onchange="handleUpdateOrderStatus('${o.id}', this.value)" class="bg-white border border-stone-300 rounded-lg px-2.5 py-1 font-bold text-xs">
+                            <select onchange="handleUpdateOrderStatus('${escapeHtml(o.id)}', this.value)" class="bg-white border border-stone-300 rounded-lg px-2.5 py-1 font-bold text-xs">
                                 <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending (စစ်ဆေးဆဲ)</option>
                                 <option value="Confirmed" ${o.status === 'Confirmed' ? 'selected' : ''}>Confirmed (အတည်ပြုပြီး)</option>
                                 <option value="Shipped" ${o.status === 'Shipped' ? 'selected' : ''}>Shipped (ဂိတ်တင်ပြီး)</option>
@@ -1732,9 +1861,9 @@ try {
                         </div>
                     </div>
                     <div class="text-stone-600">
-                        <p><strong>လိပ်စာ:</strong> ${o.address}, ${o.city}</p>
-                        <p><strong>ပစ္စည်းများ:</strong> ${o.items.map(i => `${i.nameEn} (${i.selectedColor}) x ${i.quantity}`).join(', ')}</p>
-                        <p class="font-bold text-stone-900 mt-1">ကျသင့်ငွေ: ${o.total.toLocaleString()} Ks • ငွေပေးချေမှု: ${o.paymentMethod} ${o.transactionRef ? `(Ref: ${o.transactionRef})` : ''}</p>
+                        <p><strong>လိပ်စာ:</strong> ${escapeHtml(o.address)}, ${escapeHtml(o.city)}</p>
+                        <p><strong>ပစ္စည်းများ:</strong> ${itemsText}</p>
+                        <p class="font-bold text-stone-900 mt-1">ကျသင့်ငွေ: ${Number(o.total || 0).toLocaleString()} Ks • ငွေပေးချေမှု: ${escapeHtml(o.paymentMethod)} ${refText}</p>
                     </div>
                 `;
                 container.appendChild(div);
@@ -1761,14 +1890,14 @@ try {
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs';
                 div.innerHTML = `
-                    <img src="${p.image}" class="w-12 h-12 rounded-xl object-cover border border-stone-200">
+                    <img src="${escapeHtml(p.image)}" class="w-12 h-12 rounded-xl object-cover border border-stone-200">
                     <div class="flex-1 min-w-0">
-                        <h5 class="font-bold text-stone-900 truncate">${p.nameEn}</h5>
-                        <p class="text-stone-500">${p.category} • လက်လီ: ${p.price.toLocaleString()} Ks • လက်ကား: ${p.wholesalePrice ? p.wholesalePrice.toLocaleString() + ' Ks' : '-'} • Stock: ${p.stock}</p>
+                        <h5 class="font-bold text-stone-900 truncate">${escapeHtml(p.nameEn)}</h5>
+                        <p class="text-stone-500">${escapeHtml(p.category)} • လက်လီ: ${p.price.toLocaleString()} Ks • လက်ကား: ${p.wholesalePrice ? p.wholesalePrice.toLocaleString() + ' Ks' : '-'} • Stock: ${p.stock}</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="editProduct('${p.id}')" class="px-3 py-1 bg-white border border-stone-300 rounded-lg font-bold hover:bg-stone-100">Edit</button>
-                        <button onclick="deleteProduct('${p.id}')" class="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg font-bold hover:bg-red-100">Delete</button>
+                        <button onclick="editProduct('${escapeHtml(p.id)}')" class="px-3 py-1 bg-white border border-stone-300 rounded-lg font-bold hover:bg-stone-100">Edit</button>
+                        <button onclick="deleteProduct('${escapeHtml(p.id)}')" class="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg font-bold hover:bg-red-100">Delete</button>
                     </div>
                 `;
                 container.appendChild(div);
@@ -1865,10 +1994,10 @@ try {
                 div.className = 'flex items-center justify-between p-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs';
                 div.innerHTML = `
                     <div>
-                        <span class="font-bold text-stone-900">${a.title}</span>
-                        <span class="text-stone-500 ml-2">(${a.tag})</span>
+                        <span class="font-bold text-stone-900">${escapeHtml(a.title)}</span>
+                        <span class="text-stone-500 ml-2">(${escapeHtml(a.tag)})</span>
                     </div>
-                    <button onclick="deleteAnnouncement('${a.id}')" class="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg font-bold">Delete</button>
+                    <button onclick="deleteAnnouncement('${escapeHtml(a.id)}')" class="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg font-bold">Delete</button>
                 `;
                 container.appendChild(div);
             });
@@ -1922,14 +2051,14 @@ try {
                 div.className = 'flex items-center justify-between p-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs';
                 div.innerHTML = `
                     <div>
-                        <span class="font-bold text-stone-900">${u.name}</span>
-                        <span class="text-stone-500 ml-2">${u.email} (${u.phone})</span>
-                        <span class="ml-2 font-bold ${u.role === 'admin' ? 'text-amber-700' : 'text-stone-500'}">[${u.role}]</span>
+                        <span class="font-bold text-stone-900">${escapeHtml(u.name)}</span>
+                        <span class="text-stone-500 ml-2">${escapeHtml(u.email)} (${escapeHtml(u.phone)})</span>
+                        <span class="ml-2 font-bold ${u.role === 'admin' ? 'text-amber-700' : 'text-stone-500'}">[${escapeHtml(u.role)}]</span>
                     </div>
                     <div class="flex gap-2">
                         ${u.id !== shopData.currentUser.id ? `
-                            <button onclick="updateUserRole('${u.id}', '${u.role === 'admin' ? 'customer' : 'admin'}')" class="px-2.5 py-1 bg-white border border-stone-300 rounded-lg font-bold">${u.role === 'admin' ? 'Demote to Customer' : 'Promote to Admin'}</button>
-                            <button onclick="deleteUser('${u.id}')" class="px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg font-bold">Delete</button>
+                            <button onclick="updateUserRole('${escapeHtml(u.id)}', '${u.role === 'admin' ? 'customer' : 'admin'}')" class="px-2.5 py-1 bg-white border border-stone-300 rounded-lg font-bold">${u.role === 'admin' ? 'Demote to Customer' : 'Promote to Admin'}</button>
+                            <button onclick="deleteUser('${escapeHtml(u.id)}')" class="px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg font-bold">Delete</button>
                         ` : '<span class="text-stone-400 font-semibold">(You)</span>'}
                     </div>
                 `;

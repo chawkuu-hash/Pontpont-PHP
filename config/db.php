@@ -12,9 +12,20 @@ define('PONTPONT_DB_CONFIG_LOADED', true);
 
 // Start session if not started
 if (session_status() === PHP_SESSION_NONE) {
-    // 7 days session lifetime
+    // 7 days session lifetime with secure cookie settings
     ini_set('session.cookie_lifetime', 604800);
     ini_set('session.gc_maxlifetime', 604800);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_httponly', 1);
+
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+               || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+               || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    if ($isHttps) {
+        ini_set('session.cookie_secure', 1);
+    }
+    ini_set('session.cookie_samesite', 'Lax');
+
     session_start();
 }
 
@@ -28,12 +39,66 @@ if (session_status() === PHP_SESSION_NONE) {
 define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
 define('DB_PORT', getenv('DB_PORT') ?: '3306');
 define('DB_NAME', getenv('DB_NAME') ?: 'pontpont_db');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
+define('DB_USER', getenv('DB_USER') ?: 'pontpont_user');
+define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : 'PontPont2026!');
 define('DB_CHARSET', 'utf8mb4');
 
 // Secret key for HMAC token signing (can be customized)
 define('APP_SECRET_KEY', getenv('APP_SECRET_KEY') ?: 'pontpont-luxury-handbag-shop-secret-key-2026');
+
+/**
+ * Automatically update database schema with new tables and columns if missing
+ */
+function ensureSchemaUpdated($pdo) {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+    try {
+        // 1. Ensure paymentSlip and couponCode exist in orders table
+        $colStmt = $pdo->query("SHOW COLUMNS FROM `orders` LIKE 'paymentSlip'");
+        if (!$colStmt->fetch()) {
+            $pdo->exec("ALTER TABLE `orders` ADD COLUMN `paymentSlip` VARCHAR(255) DEFAULT NULL AFTER `transactionRef`");
+        }
+        $colStmt2 = $pdo->query("SHOW COLUMNS FROM `orders` LIKE 'couponCode'");
+        if (!$colStmt2->fetch()) {
+            $pdo->exec("ALTER TABLE `orders` ADD COLUMN `couponCode` VARCHAR(50) DEFAULT NULL AFTER `paymentSlip`");
+        }
+
+        // 2. Ensure coupons table exists
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `coupons` (
+            `id` VARCHAR(50) NOT NULL PRIMARY KEY,
+            `code` VARCHAR(50) NOT NULL UNIQUE,
+            `discountType` VARCHAR(20) NOT NULL DEFAULT 'percent',
+            `discountValue` INT NOT NULL,
+            `minOrderAmount` INT NOT NULL DEFAULT 0,
+            `usageLimit` INT NOT NULL DEFAULT 0,
+            `usedCount` INT NOT NULL DEFAULT 0,
+            `expiresAt` VARCHAR(50) DEFAULT NULL,
+            `isActive` TINYINT(1) NOT NULL DEFAULT 1,
+            `createdAt` VARCHAR(50) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // Seed default coupons if none exist
+        $cntCoupons = $pdo->query("SELECT COUNT(*) as c FROM coupons")->fetch();
+        if ($cntCoupons && (int)$cntCoupons['c'] === 0) {
+            $pdo->exec("INSERT INTO `coupons` (`id`, `code`, `discountType`, `discountValue`, `minOrderAmount`, `usageLimit`, `usedCount`, `expiresAt`, `isActive`, `createdAt`) VALUES
+            ('cpn-01', 'PONTPONT10', 'percent', 10, 0, 0, 0, NULL, 1, '2026-11-23T00:00:00Z'),
+            ('cpn-02', 'PONTWELCOME', 'fixed', 5000, 30000, 100, 0, NULL, 1, '2026-11-23T00:00:00Z'),
+            ('cpn-03', 'VIPLUXURY', 'percent', 15, 100000, 50, 0, NULL, 1, '2026-11-23T00:00:00Z')");
+        }
+
+        // 3. Ensure telegram and app settings exist
+        $pdo->exec("INSERT IGNORE INTO `settings` (`key`, `value`) VALUES 
+            ('telegram_bot_token', ''),
+            ('telegram_chat_id', ''),
+            ('telegram_enabled', '0'),
+            ('app_version', '1.2.0'),
+            ('app_min_version', '1.0.0'),
+            ('app_download_url', 'https://pontpont.com/download')");
+    } catch (\Throwable $e) {
+        // Silently skip if database or tables do not exist yet (e.g. before install)
+    }
+}
 
 /**
  * Get the PDO Database connection
@@ -56,9 +121,13 @@ function getDb() {
 
     try {
         $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+        ensureSchemaUpdated($pdo);
         return $pdo;
     } catch (PDOException $e) {
-        // If calling from API, return JSON error
+        // Log detailed error for system administrator
+        error_log("Database connection error: " . $e->getMessage());
+
+        // If calling from API, return generic error (do not leak DB credentials/path)
         $isApi = (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false)
                  || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
 
@@ -67,7 +136,7 @@ function getDb() {
             http_response_code(500);
             echo json_encode([
                 'ok' => false,
-                'error' => 'Database connection failed: ' . $e->getMessage(),
+                'error' => 'Database connection failed. Please check server configuration.',
                 'hint' => 'Please configure config/db.php with your Bluehost MySQL database credentials.'
             ], JSON_UNESCAPED_UNICODE);
             exit;
@@ -91,9 +160,6 @@ function getDb() {
                 <p class='text-stone-600 text-sm mb-4 leading-relaxed'>
                     MySQL Database သို့ ချိတ်ဆက်၍ မရပါ။ Bluehost cPanel တွင် Database ဖန်တီးပြီး <code>config/db.php</code> ဖိုင်တွင် အချက်အလက်များ မှန်ကန်စွာ ဖြည့်သွင်းပေးပါ။
                 </p>
-                <div class='bg-stone-100 p-3 rounded-lg text-xs font-mono text-red-700 overflow-x-auto mb-5'>
-                    " . htmlspecialchars($e->getMessage()) . "
-                </div>
                 <div class='bg-amber-50 border border-amber-200 p-4 rounded-xl text-xs text-amber-900 mb-6 space-y-1.5'>
                     <p class='font-bold'>📌 Bluehost cPanel တွင် လုပ်ဆောင်ရန် အဆင့်များ -</p>
                     <p>၁။ Bluehost cPanel > <strong>MySQL Databases</strong> သို့သွားပါ။</p>
