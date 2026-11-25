@@ -369,12 +369,34 @@ require_once __DIR__ . '/config/db.php';
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <!-- Filter Tabs -->
                     <div class="flex gap-1.5 overflow-x-auto hide-scrollbar bg-stone-200/70 p-1.5 rounded-2xl text-xs font-bold">
-                        <button onclick="filterOrders('ALL')" id="filter-ALL" class="order-filter-btn px-3 py-1.5 rounded-xl bg-white text-stone-900 shadow-xs">အားလုံး</button>
-                        <button onclick="filterOrders('Pending')" id="filter-Pending" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900">စစ်ဆေးဆဲ (Pending)</button>
-                        <button onclick="filterOrders('Confirmed')" id="filter-Confirmed" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900">အတည်ပြုပြီး (Confirmed)</button>
-                        <button onclick="filterOrders('Shipped')" id="filter-Shipped" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900">ဂိတ်တင်ပြီး (Shipped)</button>
-                        <button onclick="filterOrders('Delivered')" id="filter-Delivered" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900">ရောက်ရှိပြီး (Delivered)</button>
-                        <button onclick="filterOrders('Cancelled')" id="filter-Cancelled" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900">ပယ်ဖျက် (Cancelled)</button>
+                        <button onclick="filterOrders('ALL')" id="filter-ALL" class="order-filter-btn px-3 py-1.5 rounded-xl bg-white text-stone-900 shadow-xs flex items-center gap-1.5">
+                            <span>အားလုံး</span>
+                            <span id="badgeOrderAll" class="bg-stone-100 text-stone-600 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                        </button>
+                        <button onclick="filterOrders('Pending')" id="filter-Pending" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 flex items-center gap-1.5">
+                            <span>စစ်ဆေးဆဲ (Pending)</span>
+                            <span id="badgeOrderPending" class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                        </button>
+                        <button onclick="filterOrders('Confirmed')" id="filter-Confirmed" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 flex items-center gap-1.5">
+                            <span>အတည်ပြုပြီး (Confirmed)</span>
+                            <span id="badgeOrderConfirmed" class="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                        </button>
+                        <button onclick="filterOrders('Shipped')" id="filter-Shipped" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 flex items-center gap-1.5">
+                            <span>ဂိတ်တင်ပြီး (Shipped)</span>
+                            <span id="badgeOrderShipped" class="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                        </button>
+                        <button onclick="filterOrders('Delivered')" id="filter-Delivered" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 flex items-center gap-1.5">
+                            <span>ရောက်ရှိပြီး (Delivered)</span>
+                            <span id="badgeOrderDelivered" class="bg-teal-100 text-teal-800 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                        </button>
+                        <button onclick="filterOrders('Completed')" id="filter-Completed" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 flex items-center gap-1.5">
+                            <span class="text-emerald-700 font-extrabold">✓ Complete Order (ပြီးစီးပြီး)</span>
+                            <span id="badgeOrderCompleted" class="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
+                        </button>
+                        <button onclick="filterOrders('Cancelled')" id="filter-Cancelled" class="order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 flex items-center gap-1.5">
+                            <span>ပယ်ဖျက် (Cancelled)</span>
+                            <span id="badgeOrderCancelled" class="bg-red-100 text-red-800 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                        </button>
                     </div>
                     <!-- Order Search -->
                     <div class="relative w-full sm:w-64">
@@ -1676,7 +1698,7 @@ require_once __DIR__ . '/config/db.php';
                 return od >= currMonday && od <= currSunday;
             });
             const weekRev = weekOrders.reduce((sum, o) => sum + (o.status !== 'Cancelled' ? Number(o.total || 0) : 0), 0);
-            const weekDelivered = weekOrders.filter(o => o.status === 'Delivered').length;
+            const weekDelivered = weekOrders.filter(o => o.status === 'Delivered' || o.status === 'Completed').length;
 
             const wkRangeEl = document.getElementById('overviewWeekRange');
             if (wkRangeEl) {
@@ -1697,7 +1719,7 @@ require_once __DIR__ . '/config/db.php';
                 return od >= monthStart && od <= monthEnd;
             });
             const monthRev = monthOrders.reduce((sum, o) => sum + (o.status !== 'Cancelled' ? Number(o.total || 0) : 0), 0);
-            const monthDelivered = monthOrders.filter(o => o.status === 'Delivered').length;
+            const monthDelivered = monthOrders.filter(o => o.status === 'Delivered' || o.status === 'Completed').length;
 
             const monthsMm = ['ဇန်နဝါရီ', 'ဖေဖော်ဝါရီ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်', 'ဇူလိုင်', 'ဩဂုတ်', 'စက်တင်ဘာ', 'အောက်တိုဘာ', 'နိုဝင်ဘာ', 'ဒီဇင်ဘာ'];
             const moRangeEl = document.getElementById('overviewMonthRange');
@@ -1740,7 +1762,8 @@ require_once __DIR__ . '/config/db.php';
                 case 'Pending': return 'bg-amber-100 text-amber-800';
                 case 'Confirmed': return 'bg-blue-100 text-blue-800';
                 case 'Shipped': return 'bg-purple-100 text-purple-800';
-                case 'Delivered': return 'bg-emerald-100 text-emerald-800';
+                case 'Delivered': return 'bg-teal-100 text-teal-800';
+                case 'Completed': return 'bg-emerald-100 text-emerald-800';
                 case 'Cancelled': return 'bg-red-100 text-red-800';
                 default: return 'bg-stone-100 text-stone-700';
             }
@@ -1749,9 +1772,12 @@ require_once __DIR__ . '/config/db.php';
         function filterOrders(filter) {
             currentOrderFilter = filter;
             document.querySelectorAll('.order-filter-btn').forEach(btn => {
-                btn.className = 'order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900';
+                btn.className = 'order-filter-btn px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 flex items-center gap-1.5';
             });
-            document.getElementById('filter-' + filter).className = 'order-filter-btn px-3 py-1.5 rounded-xl bg-white text-stone-900 shadow-xs font-bold';
+            const activeFilterBtn = document.getElementById('filter-' + filter);
+            if (activeFilterBtn) {
+                activeFilterBtn.className = 'order-filter-btn px-3 py-1.5 rounded-xl bg-white text-stone-900 shadow-xs font-bold flex items-center gap-1.5';
+            }
             renderOrders();
         }
 
@@ -1764,8 +1790,28 @@ require_once __DIR__ . '/config/db.php';
             const container = document.getElementById('adminOrdersContainer');
             container.innerHTML = '';
 
-            let filtered = shopData.orders || [];
-            if (currentOrderFilter !== 'ALL') {
+            const allOrders = shopData.orders || [];
+
+            // Update Status Filter Badges
+            const bAll = document.getElementById('badgeOrderAll');
+            if (bAll) bAll.innerText = allOrders.length;
+            const bPending = document.getElementById('badgeOrderPending');
+            if (bPending) bPending.innerText = allOrders.filter(o => o.status === 'Pending').length;
+            const bConfirmed = document.getElementById('badgeOrderConfirmed');
+            if (bConfirmed) bConfirmed.innerText = allOrders.filter(o => o.status === 'Confirmed').length;
+            const bShipped = document.getElementById('badgeOrderShipped');
+            if (bShipped) bShipped.innerText = allOrders.filter(o => o.status === 'Shipped').length;
+            const bDelivered = document.getElementById('badgeOrderDelivered');
+            if (bDelivered) bDelivered.innerText = allOrders.filter(o => o.status === 'Delivered').length;
+            const bCompleted = document.getElementById('badgeOrderCompleted');
+            if (bCompleted) bCompleted.innerText = allOrders.filter(o => o.status === 'Completed' || o.status === 'Delivered').length;
+            const bCancelled = document.getElementById('badgeOrderCancelled');
+            if (bCancelled) bCancelled.innerText = allOrders.filter(o => o.status === 'Cancelled').length;
+
+            let filtered = allOrders;
+            if (currentOrderFilter === 'Completed') {
+                filtered = filtered.filter(o => o.status === 'Completed' || o.status === 'Delivered');
+            } else if (currentOrderFilter !== 'ALL') {
                 filtered = filtered.filter(o => o.status === currentOrderFilter);
             }
             if (orderSearchQuery) {
@@ -1789,12 +1835,16 @@ require_once __DIR__ . '/config/db.php';
 
             filtered.forEach(o => {
                 const card = document.createElement('div');
-                card.className = 'bg-white p-5 rounded-3xl border border-stone-200 shadow-sm text-xs space-y-3';
+                const isCompleted = (o.status === 'Completed' || o.status === 'Delivered');
+                card.className = `bg-white p-5 rounded-3xl border ${isCompleted ? 'border-emerald-200 bg-emerald-50/10' : 'border-stone-200'} shadow-sm text-xs space-y-3`;
                 const itemsText = (o.items || []).map(i => `${escapeHtml(i.nameMm || i.nameEn)} (${escapeHtml(i.selectedColor || 'Default')}) x ${Number(i.quantity) || 1}`).join(' • ');
                 const refText = o.transactionRef ? `<span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-mono font-bold">Ref: ${escapeHtml(o.transactionRef)}</span>` : '';
                 const couponBadge = o.couponCode ? `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">🏷️ Coupon: ${escapeHtml(o.couponCode)} (-${Number(o.discount||0).toLocaleString()} Ks)</span>` : '';
                 const slipBtn = o.paymentSlip ? `<button onclick="viewPaymentSlip('${escapeHtml(o.id)}')" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl font-bold flex items-center gap-1 transition"><i data-lucide="image" class="w-3.5 h-3.5"></i> 🖼️ ပြေစာပုံ ကြည့်မည်</button>` : '';
                 const invoiceBtn = `<button onclick="openInvoiceModal('${escapeHtml(o.id)}')" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl font-bold flex items-center gap-1 transition"><i data-lucide="printer" class="w-3.5 h-3.5"></i> 🖨️ ပြေစာ ထုတ်မည်</button>`;
+                const completeBtn = (!isCompleted && o.status !== 'Cancelled')
+                    ? `<button onclick="handleUpdateOrderStatus('${escapeHtml(o.id)}', 'Completed')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold flex items-center gap-1 transition shadow-xs"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i> ✓ Complete Order</button>`
+                    : (isCompleted ? `<span class="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold flex items-center gap-1"><i data-lucide="badge-check" class="w-3.5 h-3.5 text-emerald-600"></i> ပြီးစီးပြီး (Completed)</span>` : '');
 
                 card.innerHTML = `
                     <div class="flex items-center justify-between flex-wrap gap-2 border-b border-stone-100 pb-3">
@@ -1802,14 +1852,16 @@ require_once __DIR__ . '/config/db.php';
                             <span class="font-mono font-extrabold text-stone-900 text-sm">${escapeHtml(o.id)}</span>
                             <span class="text-stone-400">|</span>
                             <span class="text-stone-500 font-semibold">${new Date(o.createdAt).toLocaleString()}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusBadgeClass(o.status)}">${escapeHtml(o.status)}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <label class="text-[11px] font-bold text-stone-500">Status:</label>
+                            <label class="text-[11px] font-bold text-stone-500">Status ပြောင်းရန်:</label>
                             <select onchange="handleUpdateOrderStatus('${escapeHtml(o.id)}', this.value)" class="bg-stone-50 border border-stone-300 rounded-xl px-3 py-1.5 font-bold text-xs focus:ring-2 focus:ring-amber-500">
                                 <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending (စစ်ဆေးဆဲ)</option>
                                 <option value="Confirmed" ${o.status === 'Confirmed' ? 'selected' : ''}>Confirmed (အတည်ပြုပြီး)</option>
                                 <option value="Shipped" ${o.status === 'Shipped' ? 'selected' : ''}>Shipped (ဂိတ်တင်ပြီး)</option>
                                 <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered (ရောက်ရှိပြီး)</option>
+                                <option value="Completed" ${o.status === 'Completed' ? 'selected' : ''}>Completed (ပြီးစီးပြီး)</option>
                                 <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled (ပယ်ဖျက်)</option>
                             </select>
                         </div>
@@ -1837,6 +1889,7 @@ require_once __DIR__ . '/config/db.php';
                             ${couponBadge}
                         </div>
                         <div class="flex items-center gap-2">
+                            ${completeBtn}
                             ${slipBtn}
                             ${invoiceBtn}
                         </div>
@@ -2338,7 +2391,7 @@ require_once __DIR__ . '/config/db.php';
             document.getElementById('invDate').innerText = `Date: ${new Date(o.createdAt).toLocaleString()}`;
             document.getElementById('invStatusBadge').innerText = o.status;
             document.getElementById('invStatusBadge').className = `px-2 py-0.5 rounded text-[11px] font-bold ${
-                o.status === 'Confirmed' || o.status === 'Delivered' ? 'bg-emerald-100 text-emerald-800' :
+                o.status === 'Confirmed' || o.status === 'Delivered' || o.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
                 (o.status === 'Cancelled' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800')
             }`;
 
@@ -2977,7 +3030,7 @@ require_once __DIR__ . '/config/db.php';
                     g.revenueTotal += tot;
                     g.deliveryFeeTotal += fee;
                     g.discountTotal += disc;
-                    if (o.status === 'Delivered') {
+                    if (o.status === 'Delivered' || o.status === 'Completed') {
                         g.deliveredCount += 1;
                         g.realizedRevenue += tot;
                     }

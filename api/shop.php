@@ -1338,7 +1338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'UPDATE_ORDER_STATUS') {
         $orderId = trim($body['orderId'] ?? '');
         $status = trim($body['status'] ?? '');
-        $allowed = ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'];
+        $allowed = ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Completed', 'Cancelled'];
         if (in_array($status, $allowed)) {
             $upd = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
             $upd->execute([$status, $orderId]);
