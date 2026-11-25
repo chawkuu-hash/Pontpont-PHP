@@ -141,7 +141,8 @@ try {
 
                 <!-- User Account Button -->
                 <button id="userBtn" onclick="handleUserBtnClick()" class="p-2.5 sm:px-4 sm:py-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-800 text-xs font-bold transition flex items-center gap-2">
-                    <i data-lucide="user" class="w-4 h-4 text-stone-600"></i>
+                    <img id="userBtnAvatar" src="" alt="Avatar" class="w-5 h-5 rounded-full object-cover hidden border border-amber-300">
+                    <i id="userBtnIcon" data-lucide="user" class="w-4 h-4 text-stone-600"></i>
                     <span id="userBtnText" class="hidden sm:inline">အကောင့်ဝင်ရန်</span>
                 </button>
 
@@ -1898,7 +1899,7 @@ try {
         // ===================================================================
         function handleUserBtnClick() {
             if (shopData.currentUser) {
-                openProfileModal();
+                window.location.href = 'profile.php';
             } else {
                 openAuthModal();
             }
@@ -1998,9 +1999,19 @@ try {
         function updateUserUI() {
             const btnText = document.getElementById('userBtnText');
             const adminBtn = document.getElementById('adminBtn');
+            const avatarImg = document.getElementById('userBtnAvatar');
+            const avatarIcon = document.getElementById('userBtnIcon');
 
             if (shopData.currentUser) {
                 btnText.innerText = shopData.currentUser.name;
+                if (shopData.currentUser.avatar && avatarImg && avatarIcon) {
+                    avatarImg.src = shopData.currentUser.avatar;
+                    avatarImg.classList.remove('hidden');
+                    avatarIcon.classList.add('hidden');
+                } else if (avatarImg && avatarIcon) {
+                    avatarImg.classList.add('hidden');
+                    avatarIcon.classList.remove('hidden');
+                }
                 if (shopData.currentUser.role === 'admin') {
                     adminBtn.classList.remove('hidden');
                 } else {
@@ -2008,6 +2019,10 @@ try {
                 }
             } else {
                 btnText.innerText = 'အကောင့်ဝင်ရန်';
+                if (avatarImg && avatarIcon) {
+                    avatarImg.classList.add('hidden');
+                    avatarIcon.classList.remove('hidden');
+                }
                 adminBtn.classList.add('hidden');
             }
         }

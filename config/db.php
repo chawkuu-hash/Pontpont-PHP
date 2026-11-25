@@ -64,6 +64,12 @@ function ensureSchemaUpdated($pdo) {
             $pdo->exec("ALTER TABLE `orders` ADD COLUMN `couponCode` VARCHAR(50) DEFAULT NULL AFTER `paymentSlip`");
         }
 
+        // 1b. Ensure avatar column exists in users table
+        $colAvatar = $pdo->query("SHOW COLUMNS FROM `users` LIKE 'avatar'");
+        if (!$colAvatar->fetch()) {
+            $pdo->exec("ALTER TABLE `users` ADD COLUMN `avatar` VARCHAR(255) DEFAULT NULL AFTER `address`");
+        }
+
         // 2. Ensure coupons table exists
         $pdo->exec("CREATE TABLE IF NOT EXISTS `coupons` (
             `id` VARCHAR(50) NOT NULL PRIMARY KEY,

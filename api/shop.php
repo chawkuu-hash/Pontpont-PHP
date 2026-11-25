@@ -831,8 +831,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $address = isset($body['address']) ? mb_substr(trim($body['address']), 0, 250) : $existing['address'];
 
         $password = $existing['password'];
-        if (!empty($body['newPassword']) && mb_strlen(trim($body['newPassword'])) >= 6) {
-            $password = password_hash(trim($body['newPassword']), PASSWORD_BCRYPT);
+        if (!empty($body['newPassword'])) {
+            $newPwd = trim($body['newPassword']);
+            if (mb_strlen($newPwd) < 6) {
+                http_response_code(400);
+                echo json_encode(['error' => 'စကားဝှက်အသစ်သည် အနည်းဆုံး ၆ လုံး ရှိရပါမည်'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            if (isset($body['currentPassword']) && $body['currentPassword'] !== '') {
+                if (!password_verify($body['currentPassword'], $existing['password'])) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'လက်ရှိစကားဝှက် မှားယွင်းနေပါသည်'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            }
+            $password = password_hash($newPwd, PASSWORD_BCRYPT);
         }
 
         $upd = $pdo->prepare("UPDATE users SET name = ?, phone = ?, city = ?, address = ?, password = ? WHERE id = ?");
@@ -845,6 +858,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'ok' => true,
             'user' => sanitizeUser($updatedUser),
             'db' => buildScopedResponse($pdo, $updatedUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 4.1 UPLOAD_AVATAR (Authenticated User Profile Picture)
+    if ($action === 'UPLOAD_AVATAR') {
+        if (!$sessionUser) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'အကောင့်ဝင်ပြီးမှသာ ပုံတင်နိုင်ပါသည်'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $targetUserId = trim($_POST['userId'] ?? ($body['userId'] ?? $sessionUser['id']));
+        if ($targetUserId !== $sessionUser['id'] && $sessionUser['role'] !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'Unauthorized avatar update'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $file = $_FILES['avatar'] ?? ($body['avatar_data'] ?? null);
+        $res = handleSecureImageUpload($file, 'avatars', 'avatar');
+        if (!$res['ok']) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => $res['error']], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$targetUserId]);
+        $existing = $stmt->fetch();
+        if (!$existing) {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'User not found'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // Remove previous local avatar file if it exists
+        if (!empty($existing['avatar']) && strpos($existing['avatar'], 'assets/uploads/avatars/') === 0) {
+            $oldFile = __DIR__ . '/../' . $existing['avatar'];
+            if (is_file($oldFile)) {
+                @unlink($oldFile);
+            }
+        }
+
+        $upd = $pdo->prepare("UPDATE users SET avatar = ? WHERE id = ?");
+        $upd->execute([$res['url'], $targetUserId]);
+
+        $stmt->execute([$targetUserId]);
+        $updatedUser = $stmt->fetch();
+
+        echo json_encode([
+            'ok' => true,
+            'url' => $res['url'],
+            'user' => sanitizeUser($updatedUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 4.2 REMOVE_AVATAR (Authenticated User)
+    if ($action === 'REMOVE_AVATAR') {
+        if (!$sessionUser) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $targetUserId = trim($body['userId'] ?? $sessionUser['id']);
+        if ($targetUserId !== $sessionUser['id'] && $sessionUser['role'] !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$targetUserId]);
+        $existing = $stmt->fetch();
+        if ($existing && !empty($existing['avatar']) && strpos($existing['avatar'], 'assets/uploads/avatars/') === 0) {
+            $oldFile = __DIR__ . '/../' . $existing['avatar'];
+            if (is_file($oldFile)) {
+                @unlink($oldFile);
+            }
+        }
+
+        $upd = $pdo->prepare("UPDATE users SET avatar = NULL WHERE id = ?");
+        $upd->execute([$targetUserId]);
+
+        $stmt->execute([$targetUserId]);
+        $updatedUser = $stmt->fetch();
+
+        echo json_encode([
+            'ok' => true,
+            'user' => sanitizeUser($updatedUser)
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }

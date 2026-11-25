@@ -58,6 +58,7 @@ CREATE TABLE `users` (
   `phone` VARCHAR(50) NOT NULL,
   `city` VARCHAR(100) NOT NULL,
   `address` TEXT NOT NULL,
+  `avatar` VARCHAR(255) DEFAULT NULL,
   `role` VARCHAR(20) NOT NULL DEFAULT 'customer',
   `createdAt` VARCHAR(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
