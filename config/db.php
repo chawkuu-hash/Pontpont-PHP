@@ -93,7 +93,7 @@ function ensureSchemaUpdated($pdo) {
           `provider` VARCHAR(50) NOT NULL DEFAULT 'mock',
           `apiUrl` TEXT DEFAULT NULL,
           `apiKey` TEXT DEFAULT NULL,
-          `model` VARCHAR(100) NOT NULL DEFAULT 'gemini-1.5-flash',
+          `model` VARCHAR(100) NOT NULL DEFAULT 'gemini-flash-lite-latest',
           `systemPrompt` TEXT NOT NULL,
           `botName` VARCHAR(100) NOT NULL DEFAULT 'ပုံ့ပုံ့ AI အကူအညီ',
           `welcomeMessageMm` TEXT NOT NULL,
@@ -105,7 +105,7 @@ function ensureSchemaUpdated($pdo) {
         $cntBot = $pdo->query("SELECT COUNT(*) as c FROM chatbot_config")->fetch();
         if ($cntBot && (int)$cntBot['c'] === 0) {
             $pdo->exec("INSERT INTO `chatbot_config` (`id`, `provider`, `apiUrl`, `apiKey`, `model`, `systemPrompt`, `botName`, `welcomeMessageMm`, `welcomeMessageEn`, `enabled`, `updatedAt`) VALUES
-            (1, 'mock', '', '', 'gemini-1.5-flash', 'You are \"Pont Pont AI\" (ပုံ့ပုံ့ AI အကူအညီ), the polite, friendly customer assistant for \"Pont Pont Handbag Shop\" (ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး) based in Mandalay, Myanmar.', 'ပုံ့ပုံ့ AI အကူအညီ', 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။', 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.', 1, '2026-11-23T00:00:00Z')");
+            (1, 'mock', '', '', 'gemini-flash-lite-latest', 'You are \"Pont Pont AI\" (ပုံ့ပုံ့ AI အကူအညီ), the polite, friendly customer assistant for \"Pont Pont Handbag Shop\" (ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး) based in Mandalay, Myanmar.', 'ပုံ့ပုံ့ AI အကူအညီ', 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။', 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.', 1, '2026-11-23T00:00:00Z')");
         }
 
         // 4. Ensure telegram and app settings exist

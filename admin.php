@@ -722,7 +722,7 @@ require_once __DIR__ . '/config/db.php';
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex gap-2">
-                                        <input type="text" id="adminBotModel" value="gemini-1.5-flash" placeholder="e.g. gemini-1.5-flash, gpt-4o-mini" class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
+                                        <input type="text" id="adminBotModel" value="gemini-flash-lite-latest" placeholder="e.g. gemini-flash-lite-latest, gpt-4o-mini" class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
                                         <select id="adminBotModelSelect" onchange="document.getElementById('adminBotModel').value = this.value;" class="flex-1 px-3.5 py-2.5 rounded-xl border border-emerald-400 bg-emerald-50 font-mono font-bold hidden">
                                             <!-- Dynamically populated -->
                                         </select>
@@ -731,7 +731,7 @@ require_once __DIR__ . '/config/db.php';
                                             <span id="btnFetchModelsText">Fetch Models</span>
                                         </button>
                                     </div>
-                                    <p class="text-[11px] text-stone-400">Gemini: <code>gemini-1.5-flash</code> | OpenAI: <code>gpt-4o-mini</code> | Groq: <code>llama-3.3-70b-versatile</code></p>
+                                    <p class="text-[11px] text-stone-400">Gemini: <code>gemini-flash-lite-latest</code> (Free Quota အကြံပြုချက်) | OpenAI: <code>gpt-4o-mini</code> | Groq: <code>llama-3.3-70b-versatile</code></p>
                                 </div>
                             </div>
                         </div>
@@ -2061,7 +2061,7 @@ Store Information:
                 keyBox.classList.remove('hidden');
                 urlBox.classList.add('hidden');
                 if (prov === 'gemini') {
-                    if (!modelInp.value || modelInp.value === 'built-in-rules') modelInp.value = 'gemini-1.5-flash';
+                    if (!modelInp.value || modelInp.value === 'built-in-rules' || modelInp.value === 'gemini-1.5-flash') modelInp.value = 'gemini-flash-lite-latest';
                     hint.innerText = '💡 Google Gemini သည် မြန်မာစာအထူးကျွမ်းကျင်ပြီး အခမဲ့ Rate Limits ကောင်းမွန်ပါသည်။';
                     linkText.innerHTML = '<a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 Google AI Studio တွင် အခမဲ့ Gemini Key ရယူရန်</a>';
                 } else if (prov === 'openai') {
@@ -2156,7 +2156,7 @@ Store Information:
             if (provEl) provEl.value = cfg.provider || 'gemini';
             
             const modelEl = document.getElementById('adminBotModel');
-            if (modelEl) modelEl.value = cfg.model || 'gemini-1.5-flash';
+            if (modelEl) modelEl.value = cfg.model || 'gemini-flash-lite-latest';
             
             const urlEl = document.getElementById('adminBotApiUrl');
             if (urlEl) urlEl.value = cfg.apiUrl || '';
@@ -2276,13 +2276,20 @@ Store Information:
                 });
                 const data = await res.json();
                 let reply = data.reply;
+                let badge = '';
+                if (data.model) {
+                    badge = `<div class="mt-1 text-[10px] text-emerald-400 font-mono flex items-center gap-1"><span>✨ AI:</span><span class="bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">${escapeHtml(data.model)}</span></div>`;
+                } else if (data.fallback) {
+                    badge = `<div class="mt-1 text-[10px] text-amber-400 font-mono flex items-center gap-1"><span>🏪 မူလဆိုင်အကူအညီ စနစ် (Built-in Knowledge)</span></div>`;
+                }
+
                 if (!reply) {
-                    reply = 'မင်္ဂလာပါရှင် ပုံ့ပုံ့ အိတ်ဆိုင်မှ ကြိုဆိုပါတယ်။ ဆိုင်ခွဲများမှာ ၆၅ လမ်း (၁၀၇×၁၀၈ ကြား) နှင့် ၇၃ လမ်း (၃၆×၃၇ ကြား) မန္တလေးမြို့တွင် ရှိပြီး ဖုန်း 09-963000502 သို့ ဆက်သွယ်မှာယူနိုင်ပါသည်ရှင်။';
+                    reply = 'မင်္ဂလာပါရှင့် မေးခွန်းအတွက် အချက်အလက်များ ရှာမတွေ့ပါသဖြင့် ဖုန်း 09-963000502 သို့ တိုက်ရိုက် ဆက်သွယ်ပေးပါရှင်။';
                 }
 
                 const botMsg = document.createElement('div');
                 botMsg.className = 'flex items-start gap-2';
-                botMsg.innerHTML = `<span class="text-emerald-400 font-bold shrink-0">🤖 Bot:</span><span class="bg-stone-800/90 text-stone-200 px-3 py-1.5 rounded-xl border border-stone-700/80 leading-relaxed">${escapeHtml(reply)}</span>`;
+                botMsg.innerHTML = `<span class="text-emerald-400 font-bold shrink-0 mt-0.5">🤖 Bot:</span><div class="bg-stone-800/90 text-stone-200 px-3.5 py-2.5 rounded-2xl border border-stone-700/80 leading-relaxed text-xs"><div class="whitespace-pre-line">${escapeHtml(reply)}</div>${badge}</div>`;
                 output.appendChild(botMsg);
                 output.scrollTop = output.scrollHeight;
             } catch (err) {

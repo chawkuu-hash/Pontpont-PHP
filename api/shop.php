@@ -345,6 +345,50 @@ function makeHttpRequest($url, $method = 'GET', $headers = [], $postData = null,
         ];
     }
 }
+
+// Helper: Intelligent Myanmar Rule-Based Chatbot Engine (Tailored to Pont Pont Handbag Shop)
+function generateIntelligentBurmeseReply($message, $pdo = null) {
+    $q = mb_strtolower(trim($message), 'UTF-8');
+
+    // 1. Delivery, Bus Gates & Cities
+    if (preg_match('/(ပို့|ကားဂိတ်|ဂိတ်|ကားလိုင်း|ပို့ခ|deli|delivery|ဘယ်မြို့|နယ်|ရန်ကုန်|တောင်ကြီး|နေပြည်တော်|မုံရွာ|ပဲခူး|စစ်ကိုင်း)/u', $q)) {
+        return "မင်္ဂလာပါရှင့် 🙏 Pont Pont အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး (မန္တလေး) မှ ကြိုဆိုပါတယ်ရှင့်။\n\n🚚 ပို့ဆောင်ရေး ဝန်ဆောင်မှု နှုန်းထားများ:\n• မန္တလေးမြို့တွင်း: ၂,၅၀၀ ကျပ် (အိမ်အရောက်ငွေချေစနစ် Cash on Delivery ရပါသည်)\n• ရန်ကုန်မြို့တွင်း: ၃,၅၀၀ ကျပ်\n• နေပြည်တော်: ၃,၅၀၀ ကျပ်\n• နယ်ဝေးမြို့နယ်ပေါင်းစုံ: ၄,၀၀၀ ကျပ် (ခရီးသည်တင် ကားဂိတ်/ကားလိုင်းများမှတစ်ဆင့် ပို့ဆောင်ပေးပါသည်)\n\n⚡ အမှာစာများကို ၁-၃ ရက်အတွင်း အမြန်ဆုံး ပို့ဆောင်ပေးပါသည်ရှင်။ ဘယ်မြို့ကို ပို့ဆောင်ပေးရမလဲရှင့်။";
+    }
+
+    // 2. Branches, Address & Location
+    if (preg_match('/(လိပ်စာ|ဆိုင်|ဘယ်မှာ|ပင်မ|address|branch|လမ်း|နေရာ|တည်နေရာ)/u', $q)) {
+        return "🏪 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေးမြို့) ဆိုင်ခွဲ (၃) ဆိုင် လိပ်စာများ:\n\n• ပင်မဆိုင်: ၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့\n• ဆိုင်ခွဲ (၂): ၇၃ လမ်း၊ ၃၆×၃၇ လမ်းကြား၊ မန္တလေးမြို့\n• ဆိုင်ခွဲ (၃): ၇၈ လမ်း (ရန်ကုန်-မန္တလေးလမ်း)၊ တံခွန်တိုင်ဈေးအနီး\n\n⏰ ဆိုင်ဖွင့်ချိန်: နေ့စဉ် မနက် 8:00 AM မှ ည 8:00 PM အထိ ဆိုင်သို့ လာရောက်လေ့လာ ဝယ်ယူနိုင်ပါသည်ရှင်။";
+    }
+
+    // 3. Phone & Viber Contact
+    if (preg_match('/(ဖုန်း|ဆက်သွယ်|phone|call|viber|contact)/u', $q)) {
+        return "📞 ဆက်သွယ်ရန် ဖုန်းနံပါတ်များ:\n• 09-963000502 (ပင်မဖုန်း / Viber)\n• 09-750072752\n• 09-404448881\n\nနေ့စဉ် မနက် 8:00 မှ ည 8:00 အထိ စုံစမ်းမေးမြန်း အော်ဒါတင်နိုင်ပါတယ်ရှင်။";
+    }
+
+    // 4. Payment & Banking
+    if (preg_match('/(ငွေ|kpay|wave|pay|ဘဏ်|လွှဲ|banking|acc|account|cod)/u', $q)) {
+        return "💰 ငွေပေးချေမှု နည်းလမ်းများ:\n• KBZPay: 09-963000502 (Ma Pont Pont)\n• WavePay: 09-963000502 (Ma Pont Pont)\n• မန္တလေးမြို့တွင်း အိမ်အရောက်ငွေချေ (COD)\n• Mobile Banking (KBZ, CB, AYA)\n\n% ထပ်ဆောင်း ကောက်ခံခြင်း လုံးဝ မရှိပါရှင်။";
+    }
+
+    // 5. Wholesale
+    if (preg_match('/(လက်ကား|လက္ကား|wholesale|ပြန်ရောင်း|အထည်)/u', $q)) {
+        return "📦 လက်ကား မှာယူမှုများ (Wholesale):\nဆိုင်ရှင်များနှင့် ပြန်လည်ရောင်းချသူများအတွက် အထူးလက်ကားဈေးနှုန်း သီးသန့်ရှိပါသည် (အနည်းဆုံး ၅ လုံးမှ ၁၀ လုံးအထက်)။\nလက်ကား ကတ်တလောက်နှင့် ဈေးနှုန်းညှိနှိုင်းရန် ဖုန်း 09-963000502 (Viber) သို့ တိုက်ရိုက် ဆက်သွယ်စုံစမ်းနိုင်ပါသည်ရှင်။";
+    }
+
+    // 6. Products & Handbags
+    if (preg_match('/(အိတ်|လက်ဆွဲ|ကျောပိုး|ဘေးလွယ်|ပေါင်မုန့်|ဒလက်|ဒီဇိုင်း|bag|price|ဈေး)/u', $q)) {
+        return "👜 ပုံ့ပုံ့ အိတ်ဆိုင်တွင် လက်ဆွဲအိတ်၊ ကျောပိုးအိတ်၊ ဘေးလွယ်အိတ်၊ ဖက်ရှင်အိတ်နှင့် ရုံးတက်အိတ် အမျိုးစုံကို အရည်အသွေးမြင့် သားရေ/ပိတ်သားများဖြင့် ရရှိနိုင်ပါသည်ရှင်။\nဝဘ်ဆိုက် ပင်မစာမျက်နှာတွင် ပစ္စည်းပုံများနှင့် ဈေးနှုန်းများကို အသေးစိတ် ကြည့်ရှု၍ တိုက်ရိုက် Order တင်နိုင်ပါသည်ရှင်။";
+    }
+
+    // 7. General Services & Greetings
+    if (preg_match('/(ဝန်ဆောင်မှု|service|မင်္ဂလာ|hello|hi|မေး|စုံစမ်း)/u', $q)) {
+        return "မင်္ဂလာပါရှင့် 🙏 \"ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး\" (မန္တလေး) မှ ကြိုဆိုပါတယ်ရှင့်။\n\nကျွန်မတို့ဆိုင်မှ ပေးဆောင်သော ဝန်ဆောင်မှုများမှာ -\n၁။ ခေတ်မီ အရည်အသွေးမြင့် အိတ်အမျိုးမျိုး လက်လီ/လက်ကား ရောင်းချခြင်း\n၂။ မန္တလေးမြို့တွင်း အိမ်အရောက် ငွေချေ (COD) စနစ်\n၃။ နယ်မြို့များအားလုံးသို့ ကားဂိတ်/ပို့ဆောင်ရေးဖြင့် အမြန်ပို့စနစ်\n၄။ ငွေလွှဲ % ပေးရန်မလိုဘဲ KPay/WavePay ဖြင့် လွယ်ကူစွာ ငွေချေနိုင်ခြင်း\n\nအိတ်ဒီဇိုင်းများ၊ ဈေးနှုန်း၊ ဆိုင်လိပ်စာနှင့် ပို့ခများကို စိတ်ကြိုက် မေးမြန်းနိုင်ပါသည်ရှင်။";
+    }
+
+    // Default Fallback
+    return "မင်္ဂလာပါရှင့် 🙏 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်ရှင့်။\nဆိုင်လိပ်စာ၊ ဖုန်းနံပါတ်၊ ကားဂိတ်ပို့ဆောင်ခ၊ ငွေပေးချေမှုနှင့် အိတ်ဒီဇိုင်း/ဈေးနှုန်းများကို အသေးစိတ် မေးမြန်းနိုင်ပါသည်ရှင်။ (ဖုန်း - 09-963000502)";
+}
+
 // Helper: Build complete scoped database response
 function buildScopedResponse($pdo, $sessionUser) {
     // 1. Categories
@@ -1064,7 +1108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Gemini AI Provider
         if ($provider === 'gemini' && $apiKey) {
-            $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            $modelsToTry = array_unique([$model, 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-flash-latest']);
             $payload = [
                 'contents' => [
                     [
@@ -1079,13 +1123,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'maxOutputTokens' => 800
                 ]
             ];
-            $res = makeHttpRequest($geminiUrl, 'POST', ['Content-Type' => 'application/json'], $payload, 20);
-            if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
-                $data = json_decode($res['body'], true);
-                $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-                if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply], JSON_UNESCAPED_UNICODE);
-                    exit;
+
+            foreach ($modelsToTry as $tryModel) {
+                if (empty($tryModel)) continue;
+                $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$tryModel}:generateContent?key={$apiKey}";
+                $res = makeHttpRequest($geminiUrl, 'POST', ['Content-Type' => 'application/json'], $payload, 20);
+                if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
+                    $data = json_decode($res['body'], true);
+                    $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                    if ($reply) {
+                        if ($tryModel !== $model) {
+                            try {
+                                $upd = $pdo->prepare("UPDATE chatbot_config SET model = ? WHERE id = 1");
+                                $upd->execute([$tryModel]);
+                            } catch (\Throwable $t) {}
+                        }
+                        echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $tryModel], JSON_UNESCAPED_UNICODE);
+                        exit;
+                    }
                 }
             }
         }
@@ -1152,8 +1207,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Fallback: Signal frontend to use intelligent Burmese knowledgebase
-        echo json_encode(['ok' => true, 'reply' => null], JSON_UNESCAPED_UNICODE);
+        // Intelligent Myanmar Rule-based Knowledge Engine fallback
+        $reply = generateIntelligentBurmeseReply($message, $pdo);
+        echo json_encode(['ok' => true, 'reply' => $reply, 'fallback' => true], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -1174,14 +1230,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($res['status'] === 200 && $res['body']) {
                     $data = json_decode($res['body'], true);
                     if (isset($data['models']) && is_array($data['models'])) {
+                        $rawModels = [];
                         foreach ($data['models'] as $m) {
                             $methods = $m['supportedGenerationMethods'] ?? [];
                             $name = $m['name'] ?? '';
                             if (in_array('generateContent', $methods) || strpos($name, 'gemini') !== false) {
                                 $cleanName = str_replace('models/', '', $name);
-                                if ($cleanName) $models[] = $cleanName;
+                                if ($cleanName) $rawModels[] = $cleanName;
                             }
                         }
+                        // Sort so proven production free-tier / fast models are at the top
+                        $preferredOrder = [
+                            'gemini-flash-lite-latest',
+                            'gemini-3.8-flash',
+                            'gemini-3.5-flash',
+                            'gemini-2.5-flash-lite',
+                            'gemini-flash-latest',
+                            'gemini-pro-latest'
+                        ];
+                        $top = [];
+                        $rest = [];
+                        foreach ($rawModels as $rm) {
+                            if (in_array($rm, $preferredOrder)) {
+                                $top[] = $rm;
+                            } else {
+                                $rest[] = $rm;
+                            }
+                        }
+                        usort($top, function($a, $b) use ($preferredOrder) {
+                            return array_search($a, $preferredOrder) <=> array_search($b, $preferredOrder);
+                        });
+                        $models = array_merge($top, $rest);
                     }
                 }
             } else {
