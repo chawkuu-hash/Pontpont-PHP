@@ -1207,7 +1207,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 5.1. CHAT_MESSAGE (Customer Chatbot Query)
+// Helper: Build compact live MySQL shop context (products, coupons, payment methods) for AI Chatbot
+function buildLiveShopContextForAI($pdo) {
+    $lines = ["[LIVE SHOP DATABASE - ALWAYS USE THESE EXACT PRICES, STOCK & DETAILS]"];
+
+    // 1. Live Products
+    try {
+        $stmt = $pdo->query("SELECT id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, colorsJson, stock, material, dimensions FROM products ORDER BY sortOrder ASC");
+        $products = $stmt->fetchAll();
+        if (!empty($products)) {
+            $lines[] = "\nProducts (" . count($products) . " items):";
+            foreach ($products as $p) {
+                $colorsArr = json_decode($p['colorsJson'] ?: '[]', true);
+                $colorNames = [];
+                if (is_array($colorsArr)) {
+                    foreach ($colorsArr as $c) {
+                        if (!empty($c['name'])) $colorNames[] = $c['name'];
+                    }
+                }
+                $colorsStr = !empty($colorNames) ? implode(', ', $colorNames) : 'Standard';
+                $stockNum = (int)$p['stock'];
+                $stockStr = $stockNum > 0 ? "{$stockNum} available" : "OUT OF STOCK";
+                $origStr = !empty($p['originalPrice']) ? " (Original: " . number_format((int)$p['originalPrice']) . " Ks)" : "";
+                $wsStr = !empty($p['wholesalePrice']) ? " | Wholesale (5+ pcs): " . number_format((int)$p['wholesalePrice']) . " Ks" : "";
+                $lines[] = "- [{$p['id']}] {$p['nameEn']} ({$p['nameMm']}) | Category: {$p['category']} ({$p['categoryMm']}) | Retail: " . number_format((int)$p['price']) . " Ks{$origStr}{$wsStr} | Stock: {$stockStr} | Colors: {$colorsStr} | Material: {$p['material']} | Size: {$p['dimensions']}";
+            }
+        }
+    } catch (\Throwable $e) {}
+
+    // 2. Active Coupons
+    try {
+        $cpnStmt = $pdo->query("SELECT code, discountType, discountValue, minOrderAmount FROM coupons WHERE isActive = 1 ORDER BY createdAt DESC");
+        $coupons = $cpnStmt->fetchAll();
+        if (!empty($coupons)) {
+            $cpnParts = [];
+            foreach ($coupons as $c) {
+                $val = ($c['discountType'] === 'percent') ? "{$c['discountValue']}% OFF" : number_format((int)$c['discountValue']) . " Ks OFF";
+                $min = ((int)$c['minOrderAmount'] > 0) ? " (min order " . number_format((int)$c['minOrderAmount']) . " Ks)" : "";
+                $cpnParts[] = "{$c['code']}: {$val}{$min}";
+            }
+            $lines[] = "\nActive Coupons: " . implode(' | ', $cpnParts);
+        }
+    } catch (\Throwable $e) {}
+
+    // 3. Active Payment Methods
+    try {
+        $pmStmt = $pdo->query("SELECT name, nameMm, accountName, accountNumber FROM payment_methods WHERE isActive = 1 ORDER BY sortOrder ASC");
+        $pms = $pmStmt->fetchAll();
+        if (!empty($pms)) {
+            $pmParts = [];
+            foreach ($pms as $pm) {
+                $acc = !empty($pm['accountNumber']) ? " ({$pm['accountNumber']}" . (!empty($pm['accountName']) ? " - {$pm['accountName']}" : "") . ")" : "";
+                $pmParts[] = "{$pm['name']}{$acc}";
+            }
+            $lines[] = "\nPayment Methods: " . implode(' | ', $pmParts);
+        }
+    } catch (\Throwable $e) {}
+
+    return implode("\n", $lines);
+}
+
+// --------------------------------------------------------------------------
+// 5.1. CHAT_MESSAGE (Customer Chatbot Query)
     if ($action === 'CHAT_MESSAGE') {
         $message = trim($body['message'] ?? '');
         if (!$message) {
@@ -1235,20 +1296,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $apiKey = trim($cfg['apiKey'] ?? '');
         $apiUrl = trim($cfg['apiUrl'] ?? '');
         $model = trim($cfg['model'] ?? 'gemini-1.5-flash');
-        $systemPrompt = $cfg['systemPrompt'] ?? '';
+        $systemPrompt = trim($cfg['systemPrompt'] ?? '');
+        $liveShopContext = buildLiveShopContextForAI($pdo);
+        $fullSystemPrompt = ($systemPrompt !== '' ? $systemPrompt . "\n\n" : '') . $liveShopContext;
+
+        // Sanitize optional temporary chat history (max last 8 turns)
+        $rawHistory = is_array($body['history'] ?? null) ? array_slice($body['history'], -8) : [];
+        $cleanHistory = [];
+        foreach ($rawHistory as $h) {
+            if (!is_array($h)) continue;
+            $hText = trim((string)($h['text'] ?? ''));
+            if ($hText === '') continue;
+            $hRole = (($h['role'] ?? '') === 'user') ? 'user' : 'bot';
+            $cleanHistory[] = ['role' => $hRole, 'text' => mb_substr($hText, 0, 1500)];
+        }
 
         // Gemini AI Provider
         if ($provider === 'gemini' && $apiKey) {
             $modelsToTry = array_unique([$model, 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-flash-latest']);
+            $geminiContents = [];
+            foreach ($cleanHistory as $h) {
+                $geminiContents[] = [
+                    'role' => $h['role'] === 'user' ? 'user' : 'model',
+                    'parts' => [['text' => $h['text']]]
+                ];
+            }
+            $geminiContents[] = [
+                'role' => 'user',
+                'parts' => [['text' => $message]]
+            ];
+
             $payload = [
-                'contents' => [
-                    [
-                        'role' => 'user',
-                        'parts' => [
-                            ['text' => "System Prompt Instructions:\n" . $systemPrompt . "\n\nCustomer Message: " . $message]
-                        ]
-                    ]
+                'systemInstruction' => [
+                    'parts' => [['text' => $fullSystemPrompt]]
                 ],
+                'contents' => $geminiContents,
                 'generationConfig' => [
                     'temperature' => 0.7,
                     'maxOutputTokens' => 4096
@@ -1290,12 +1372,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : 'https://api.openai.com/v1/chat/completions';
 
             $defaultModel = ($provider === 'groq') ? 'llama-3.3-70b-versatile' : 'gpt-4o-mini';
+            $openAiMessages = [['role' => 'system', 'content' => $fullSystemPrompt]];
+            foreach ($cleanHistory as $h) {
+                $openAiMessages[] = ['role' => $h['role'] === 'user' ? 'user' : 'assistant', 'content' => $h['text']];
+            }
+            $openAiMessages[] = ['role' => 'user', 'content' => $message];
+
             $payload = [
                 'model' => $model ?: $defaultModel,
-                'messages' => [
-                    ['role' => 'system', 'content' => $systemPrompt],
-                    ['role' => 'user', 'content' => $message],
-                ],
+                'messages' => $openAiMessages,
                 'temperature' => 0.7,
                 'max_tokens' => 2048
             ];
@@ -1325,12 +1410,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $headers['Authorization'] = "Bearer {$apiKey}";
             }
 
+            $customMessages = [['role' => 'system', 'content' => $fullSystemPrompt]];
+            foreach ($cleanHistory as $h) {
+                $customMessages[] = ['role' => $h['role'] === 'user' ? 'user' : 'assistant', 'content' => $h['text']];
+            }
+            $customMessages[] = ['role' => 'user', 'content' => $message];
+
             $payload = [
                 'model' => $model ?: 'gpt-3.5-turbo',
-                'messages' => [
-                    ['role' => 'system', 'content' => $systemPrompt],
-                    ['role' => 'user', 'content' => $message],
-                ],
+                'messages' => $customMessages,
                 'temperature' => 0.7,
                 'max_tokens' => 2048
             ];

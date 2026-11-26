@@ -2688,6 +2688,57 @@ Store Information:
             }
         }
 
+        const CHAT_HISTORY_KEY = 'pontpont_chat_history';
+
+        function getStoredChatHistory() {
+            try {
+                const raw = sessionStorage.getItem(CHAT_HISTORY_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveChatHistoryEntry(role, text) {
+            try {
+                const history = getStoredChatHistory();
+                history.push({ role, text: String(text || '') });
+                // Keep last 12 messages temporarily in sessionStorage
+                sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history.slice(-12)));
+            } catch (e) {}
+        }
+
+        function clearChatHistory() {
+            try {
+                sessionStorage.removeItem(CHAT_HISTORY_KEY);
+            } catch (e) {}
+            const body = document.getElementById('chatMessages');
+            if (body) {
+                const welcomeText = (shopData.chatbotConfig && shopData.chatbotConfig.welcomeMessageMm)
+                    ? shopData.chatbotConfig.welcomeMessageMm
+                    : 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ အိတ်ဒီဇိုင်းများ၊ ဈေးနှုန်း၊ ပို့ဆောင်ခ၊ ဆိုင်လိပ်စာနှင့် ဖုန်းနံပါတ်များ စိတ်ကြိုက်မေးမြန်းနိုင်ပါတယ်ရှင်။';
+                body.innerHTML = `
+                    <div class="flex gap-2 justify-start">
+                        <div class="w-7 h-7 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">🤖</div>
+                        <div class="max-w-[80%] bg-white border border-stone-200 text-stone-800 rounded-2xl rounded-bl-none px-3.5 py-2.5 shadow-sm text-xs">
+                            <p id="chatbotWelcomeMsg">${escapeHtml(welcomeText)}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function restoreChatHistoryUI() {
+            const history = getStoredChatHistory();
+            history.forEach(item => {
+                if (item && item.text) {
+                    appendChatMessage(item.role === 'user' ? 'user' : 'bot', item.text, null, false);
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', restoreChatHistoryUI);
+
         function scrollChatToBottom() {
             const body = document.getElementById('chatMessages');
             if (body) body.scrollTop = body.scrollHeight;
@@ -2704,6 +2755,9 @@ Store Information:
             const inp = document.getElementById('chatInput');
             const query = inp.value.trim();
             if (!query) return;
+
+            // Capture recent temporary history BEFORE appending current query
+            const historyForAI = getStoredChatHistory().slice(-8);
 
             // Append user message
             appendChatMessage('user', query);
@@ -2728,7 +2782,7 @@ Store Information:
                     const res = await fetch('api/shop.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'CHAT_MESSAGE', message: query })
+                        body: JSON.stringify({ action: 'CHAT_MESSAGE', message: query, history: historyForAI })
                     });
                     if (res.ok) {
                         const data = await res.json();
@@ -2755,7 +2809,10 @@ Store Information:
             }
         }
 
-        function appendChatMessage(sender, text, action) {
+        function appendChatMessage(sender, text, action, persist = true) {
+            if (persist) {
+                saveChatHistoryEntry(sender === 'user' ? 'user' : 'bot', text);
+            }
             const body = document.getElementById('chatMessages');
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const msgDiv = document.createElement('div');
@@ -2866,9 +2923,14 @@ Store Information:
                     </p>
                 </div>
             </div>
-            <button onclick="toggleChatbot()" class="p-1.5 rounded-full hover:bg-white/10 text-stone-300 hover:text-white transition">
-                ✕
-            </button>
+            <div class="flex items-center gap-1">
+                <button onclick="clearChatHistory()" title="စကားဝိုင်းအသစ်စမည်" class="p-1.5 rounded-full hover:bg-white/10 text-stone-300 hover:text-white transition text-xs">
+                    🗑️
+                </button>
+                <button onclick="toggleChatbot()" class="p-1.5 rounded-full hover:bg-white/10 text-stone-300 hover:text-white transition">
+                    ✕
+                </button>
+            </div>
         </div>
 
         <!-- Messages Area -->
