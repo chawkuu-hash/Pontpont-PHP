@@ -111,8 +111,8 @@ try {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
             <!-- Brand Logo -->
             <a href="index.php" class="flex items-center gap-3 group flex-shrink-0">
-                <div id="brandLogoContainer" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-700 via-amber-600 to-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition overflow-hidden">
-                    <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                <div id="brandLogoContainer" class="w-12 h-12 rounded-2xl bg-white border border-stone-200 text-amber-600 flex items-center justify-center shadow-xs group-hover:scale-105 transition overflow-hidden p-1">
+                    <i data-lucide="shopping-bag" class="w-6 h-6 text-amber-600"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-1.5">
@@ -255,8 +255,8 @@ try {
                 <!-- Col 1: Brand Info -->
                 <div class="space-y-3">
                     <div class="flex items-center gap-2.5">
-                        <div class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold">
-                            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                        <div id="footerBrandLogoContainer" class="w-10 h-10 rounded-xl bg-white border border-stone-700 text-amber-600 flex items-center justify-center font-bold overflow-hidden p-1">
+                            <i data-lucide="shopping-bag" class="w-5 h-5 text-amber-600"></i>
                         </div>
                         <span class="text-lg font-extrabold text-white">Pont Pont Handbag</span>
                     </div>
@@ -1154,9 +1154,18 @@ try {
                     const logoContainer = document.getElementById('brandLogoContainer');
                     if (logoContainer) {
                         if (s.shop_logo && s.shop_logo.trim()) {
-                            logoContainer.innerHTML = `<img src="${escapeHtml(s.shop_logo.trim())}" alt="Shop Logo" class="w-full h-full object-cover">`;
+                            logoContainer.innerHTML = `<img src="${escapeHtml(s.shop_logo.trim())}" alt="Shop Logo" class="w-full h-full object-contain">`;
                         } else {
-                            logoContainer.innerHTML = `<i data-lucide="shopping-bag" class="w-6 h-6"></i>`;
+                            logoContainer.innerHTML = `<i data-lucide="shopping-bag" class="w-6 h-6 text-amber-600"></i>`;
+                            lucide.createIcons();
+                        }
+                    }
+                    const footerLogoContainer = document.getElementById('footerBrandLogoContainer');
+                    if (footerLogoContainer) {
+                        if (s.shop_logo && s.shop_logo.trim()) {
+                            footerLogoContainer.innerHTML = `<img src="${escapeHtml(s.shop_logo.trim())}" alt="Shop Logo" class="w-full h-full object-contain">`;
+                        } else {
+                            footerLogoContainer.innerHTML = `<i data-lucide="shopping-bag" class="w-5 h-5 text-amber-600"></i>`;
                             lucide.createIcons();
                         }
                     }

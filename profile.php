@@ -50,8 +50,8 @@ try {
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
             <a href="index.php" class="flex items-center gap-3 group">
-                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-amber-700 via-amber-600 to-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition">
-                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                <div id="brandLogoContainer" class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white border border-stone-200 text-amber-600 flex items-center justify-center shadow-xs group-hover:scale-105 transition overflow-hidden p-1">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-amber-600"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-1.5">
