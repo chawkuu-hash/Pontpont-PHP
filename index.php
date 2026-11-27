@@ -270,7 +270,7 @@ try {
                         မန္တလေးမြို့၏ နာမည်ကျော် အမျိုးသမီးနှင့် အမျိုးသား လက်ကိုင်အိတ်၊ ဘေးလွယ်အိတ်၊ ကျောပိုးအိတ် လက်လီ/လက်ကား အရောင်းဆိုင်ကြီး။
                     </p>
                     <p class="text-xs text-amber-400 font-semibold">
-                        ဆိုင်ဖွင့်ချိန်: နေ့စဉ် မနက် 8:00 AM မှ ည 8:00 PM အထိ
+                        ဆိုင်ဖွင့်ချိန်: နေ့စဉ် မနက် 8:00 AM မှ ည 7:00 PM အထိ
                     </p>
                 </div>
 
@@ -2299,7 +2299,7 @@ Store Information:
 - Main Branch (ပင်မဆိုင်): 65th Street, Between 107th & 108th Streets, Mandalay (၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့)
 - Branch (2): 73rd Street, Between 36th & 37th Streets, Mandalay (၇၃ လမ်း၊ ၃၆×၃၇ လမ်းကြား၊ မန္တလေးမြို့)
 - Branch (3): 78th Street, Near Thakhun Taing Market, Mandalay (၇၈ လမ်း၊ တံခွန်တိုင်ဈေးအနီး)
-- Opening Hours: Daily 8:00 AM – 8:00 PM (နေ့စဉ် မနက် 8:00 မှ ည 8:00 အထိ)
+- Opening Hours: Daily 8:00 AM – 7:00 PM (နေ့စဉ် မနက် 8:00 မှ ည 7:00 အထိ)
 - Contact Phones / Viber: 09-963000502, 09-750072752, 09-404448881
 - Delivery: Mandalay downtown 2,500 MMK (COD available), Yangon 3,500 MMK, Naypyitaw 3,500 MMK, other cities 4,000 MMK via Bus Gates. Free delivery over 100,000 MMK.
 - Payment Methods: KBZPay (09-963000502), WavePay (09-963000502), Mobile Banking. No extra percentage fee.
@@ -2917,7 +2917,7 @@ Store Information:
             // Branches / Address
             if (q.includes('လိပ်စာ') || q.includes('ဆိုင်') || q.includes('ပင်မ') || q.includes('address') || q.includes('branch')) {
                 return {
-                    text: "🏪 မန္တလေးမြို့ ဆိုင်ခွဲ (၃) ဆိုင် လိပ်စာများ:\n\n• ပင်မဆိုင်: ၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့\n• ဆိုင်ခွဲ (၂): ၇၃ လမ်း၊ ၃၆×၃၇ လမ်းကြား၊ မန္တလေးမြို့\n• ဆိုင်ခွဲ (၃): ၇၈ လမ်း (ရန်ကုန်-မန္တလေးလမ်း)၊ တံခွန်တိုင်ဈေးအနီး\n\n⏰ ဆိုင်ဖွင့်ချိန်: နေ့စဉ် မနက် 8:00 AM မှ ည 8:00 PM အထိ",
+                    text: "🏪 မန္တလေးမြို့ ဆိုင်ခွဲ (၃) ဆိုင် လိပ်စာများ:\n\n• ပင်မဆိုင်: ၆၅ လမ်း၊ ၁၀၇×၁၀၈ လမ်းကြား၊ မန္တလေးမြို့\n• ဆိုင်ခွဲ (၂): ၇၃ လမ်း၊ ၃၆×၃၇ လမ်းကြား၊ မန္တလေးမြို့\n• ဆိုင်ခွဲ (၃): ၇၈ လမ်း (ရန်ကုန်-မန္တလေးလမ်း)၊ တံခွန်တိုင်ဈေးအနီး\n\n⏰ ဆိုင်ဖွင့်ချိန်: နေ့စဉ် မနက် 8:00 AM မှ ည 7:00 PM အထိ",
                     action: { label: "📍 ဆိုင်ခွဲလိပ်စာများ ကြည့်မည်", onClick: "window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'}); toggleChatbot();" }
                 };
             }
@@ -2925,7 +2925,7 @@ Store Information:
             // Phone / Contact
             if (q.includes('ဖုန်း') || q.includes('ဆက်သွယ်') || q.includes('phone') || q.includes('call') || q.includes('viber')) {
                 return {
-                    text: "📞 ဆက်သွယ်ရန် ဖုန်းနံပါတ်များ:\n• 09-963000502 (ပင်မဖုန်း / Viber)\n• 09-750072752\n• 09-404448881\n\nနေ့စဉ် မနက် 8:00 မှ ည 8:00 ထိ စုံစမ်းမေးမြန်းနိုင်ပါတယ်ရှင်။",
+                    text: "📞 ဆက်သွယ်ရန် ဖုန်းနံပါတ်များ:\n• 09-963000502 (ပင်မဖုန်း / Viber)\n• 09-750072752\n• 09-404448881\n\nနေ့စဉ် မနက် 8:00 မှ ည 7:00 ထိ စုံစမ်းမေးမြန်းနိုင်ပါတယ်ရှင်။",
                     action: { label: "📞 09-963000502 သို့ ဖုန်းခေါ်မည်", onClick: "window.open('tel:09963000502');" }
                 };
             }
