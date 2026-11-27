@@ -202,16 +202,34 @@ try {
             <div class="absolute -right-10 -bottom-10 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
         </div>
 
-        <!-- Announcements / Promotion Slider -->
+        <!-- Announcements / Promotion Slideshow -->
         <div id="announcementsSection" class="space-y-3">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i data-lucide="sparkles" class="w-5 h-5 text-amber-600"></i>
                     <h2 class="text-lg font-bold text-stone-900">ဆိုင်သတင်းနှင့် အထူးအစီအစဉ်များ</h2>
                 </div>
+                <!-- Slider Nav Controls -->
+                <div id="announcementNavControls" class="flex items-center gap-2">
+                    <button id="annPrevBtn" onclick="prevAnnouncementSlide()" title="ရှေ့သို့" class="w-8 h-8 rounded-full bg-white border border-stone-200 text-stone-700 hover:bg-stone-100 flex items-center justify-center shadow-xs transition active:scale-95">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <button id="annNextBtn" onclick="nextAnnouncementSlide()" title="နောက်သို့" class="w-8 h-8 rounded-full bg-white border border-stone-200 text-stone-700 hover:bg-stone-100 flex items-center justify-center shadow-xs transition active:scale-95">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
-            <div id="announcementsList" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Dynamically loaded announcements -->
+
+            <!-- Slideshow Container -->
+            <div id="announcementsSliderWrapper" class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 text-white shadow-xl border border-stone-850">
+                <div id="announcementsTrack" class="flex transition-transform duration-500 ease-out w-full">
+                    <!-- Slides injected dynamically -->
+                </div>
+
+                <!-- Slide Dots Indicators -->
+                <div id="announcementDots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full">
+                    <!-- Dots injected dynamically -->
+                </div>
             </div>
         </div>
 
@@ -1194,9 +1212,10 @@ try {
                 updateUserUI();
 
                 if (data.chatbotConfig) {
-                    if (data.chatbotConfig.botName) {
-                        const botTitleEl = document.getElementById('chatbotTitle');
-                        if (botTitleEl) botTitleEl.innerText = data.chatbotConfig.botName;
+                    const botTitleEl = document.getElementById('chatbotTitle');
+                    if (botTitleEl) {
+                        const customName = (data.chatbotConfig.botName || '').replace(/AI|Bot|bot/gi, '').trim();
+                        botTitleEl.innerText = customName ? `Live Chat • ${customName}` : 'Live Chat • ပုံ့ပုံ့ အိတ်ဆိုင်';
                     }
                     if (data.chatbotConfig.welcomeMessageMm) {
                         const botWelcomeEl = document.getElementById('chatbotWelcomeMsg');
@@ -1230,27 +1249,159 @@ try {
             }
         }
 
-        // Render Announcements
+        // ==================== ANNOUNCEMENTS SLIDESHOW ====================
+        let currentAnnSlide = 0;
+        let annSlideTimer = null;
+
         function renderAnnouncements() {
-            const container = document.getElementById('announcementsList');
-            container.innerHTML = '';
-            (shopData.announcements || []).forEach(ann => {
-                const card = document.createElement('div');
-                card.className = 'p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition';
-                const tagClass = ann.tag === 'Promotion' ? 'bg-amber-100 text-amber-800' : (ann.tag === 'Wholesale' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800');
-                card.innerHTML = `
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${tagClass}">${escapeHtml(ann.tag)}</span>
-                            <span class="text-[11px] text-stone-400">${escapeHtml(ann.authorName || 'ပုံ့ပုံ့ ဆိုင်')}</span>
-                        </div>
-                        <h4 class="font-bold text-stone-900 text-xs sm:text-sm line-clamp-1">${escapeHtml(ann.title)}</h4>
-                        <p class="text-xs text-stone-600 mt-1 line-clamp-2 leading-relaxed">${escapeHtml(ann.content)}</p>
+            const track = document.getElementById('announcementsTrack');
+            const dotsContainer = document.getElementById('announcementDots');
+            const navControls = document.getElementById('announcementNavControls');
+            const section = document.getElementById('announcementsSection');
+            if (!track || !section) return;
+
+            track.innerHTML = '';
+            if (dotsContainer) dotsContainer.innerHTML = '';
+
+            const list = shopData.announcements || [];
+            if (list.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            list.forEach((ann, idx) => {
+                const slide = document.createElement('div');
+                slide.className = 'w-full flex-shrink-0 min-w-full flex flex-col md:flex-row items-center justify-between p-6 sm:p-8 gap-6';
+
+                const tagClass = ann.tag === 'Promotion' 
+                    ? 'bg-amber-500/25 text-amber-300 border border-amber-400/40' 
+                    : (ann.tag === 'Wholesale' ? 'bg-purple-500/25 text-purple-300 border border-purple-400/40' : 'bg-blue-500/25 text-blue-300 border border-blue-400/40');
+
+                const imgHtml = ann.image ? `
+                    <div class="w-full md:w-80 h-44 sm:h-52 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-lg bg-stone-950/50">
+                        <img src="${escapeHtml(ann.image)}" alt="${escapeHtml(ann.title)}" class="w-full h-full object-cover hover:scale-105 transition duration-500">
                     </div>
+                ` : '';
+
+                slide.innerHTML = `
+                    <div class="flex-1 space-y-3 z-10 w-full">
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <span class="text-[11px] font-extrabold uppercase px-2.5 py-1 rounded-full ${tagClass}">
+                                ${escapeHtml(ann.tag)}
+                            </span>
+                            <span class="text-xs text-amber-200/80 font-medium">✨ ${escapeHtml(ann.authorName || 'မပုံ့ (Admin)')}</span>
+                        </div>
+                        <h3 class="text-lg sm:text-2xl font-extrabold text-white leading-snug tracking-tight">
+                            ${escapeHtml(ann.title)}
+                        </h3>
+                        <p class="text-xs sm:text-sm text-stone-300 leading-relaxed max-w-xl">
+                            ${escapeHtml(ann.content)}
+                        </p>
+                        <div class="pt-2 flex items-center gap-3 flex-wrap">
+                            <a href="tel:09963000502" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md transition active:scale-95">
+                                <i data-lucide="phone-call" class="w-3.5 h-3.5"></i> 09-963000502 သို့ ဖုန်းခေါ်မည်
+                            </a>
+                            <button onclick="toggleChatbot()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-xs transition">
+                                <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> Live Chat မေးမြန်းမည်
+                            </button>
+                        </div>
+                    </div>
+                    ${imgHtml}
                 `;
-                container.appendChild(card);
+                track.appendChild(slide);
+
+                if (dotsContainer) {
+                    const dot = document.createElement('button');
+                    dot.className = `h-2 rounded-full transition-all duration-300 ${idx === 0 ? 'w-6 bg-amber-400' : 'w-2 bg-white/40 hover:bg-white/80'}`;
+                    dot.title = `Slide ${idx + 1}`;
+                    dot.onclick = () => goToAnnouncementSlide(idx);
+                    dotsContainer.appendChild(dot);
+                }
             });
+
+            if (navControls) {
+                navControls.style.display = list.length > 1 ? 'flex' : 'none';
+            }
+            if (dotsContainer) {
+                dotsContainer.style.display = list.length > 1 ? 'flex' : 'none';
+            }
+
+            goToAnnouncementSlide(0);
+            startAnnouncementAutoPlay();
+            initAnnouncementTouchSwipe();
             lucide.createIcons();
+        }
+
+        function goToAnnouncementSlide(idx) {
+            const list = shopData.announcements || [];
+            if (list.length === 0) return;
+            currentAnnSlide = (idx + list.length) % list.length;
+            const track = document.getElementById('announcementsTrack');
+            if (track) {
+                track.style.transform = `translateX(-${currentAnnSlide * 100}%)`;
+            }
+            const dots = document.querySelectorAll('#announcementDots button');
+            dots.forEach((d, i) => {
+                if (i === currentAnnSlide) {
+                    d.className = 'w-6 h-2 rounded-full bg-amber-400 transition-all duration-300';
+                } else {
+                    d.className = 'w-2 h-2 rounded-full bg-white/40 hover:bg-white/80 transition-all duration-300';
+                }
+            });
+        }
+
+        function nextAnnouncementSlide() {
+            goToAnnouncementSlide(currentAnnSlide + 1);
+        }
+
+        function prevAnnouncementSlide() {
+            goToAnnouncementSlide(currentAnnSlide - 1);
+        }
+
+        function startAnnouncementAutoPlay() {
+            stopAnnouncementAutoPlay();
+            if ((shopData.announcements || []).length > 1) {
+                annSlideTimer = setInterval(() => {
+                    nextAnnouncementSlide();
+                }, 4500);
+            }
+        }
+
+        function stopAnnouncementAutoPlay() {
+            if (annSlideTimer) {
+                clearInterval(annSlideTimer);
+                annSlideTimer = null;
+            }
+        }
+
+        function pauseAnnouncementSlider() {
+            stopAnnouncementAutoPlay();
+        }
+
+        function resumeAnnouncementSlider() {
+            startAnnouncementAutoPlay();
+        }
+
+        function initAnnouncementTouchSwipe() {
+            const slider = document.getElementById('announcementsSliderWrapper');
+            if (!slider || slider.dataset.swipeInit) return;
+            slider.dataset.swipeInit = 'true';
+            let touchStartX = 0;
+            slider.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                pauseAnnouncementSlider();
+            }, { passive: true });
+            slider.addEventListener('touchend', (e) => {
+                const diffX = e.changedTouches[0].clientX - touchStartX;
+                if (Math.abs(diffX) > 40) {
+                    if (diffX < 0) nextAnnouncementSlide();
+                    else prevAnnouncementSlide();
+                }
+                resumeAnnouncementSlider();
+            }, { passive: true });
+            slider.addEventListener('mouseenter', pauseAnnouncementSlider);
+            slider.addEventListener('mouseleave', resumeAnnouncementSlider);
         }
 
         // Render Categories Tabs
@@ -2731,22 +2882,127 @@ Store Information:
             }
         }
 
-        // ==================== AI CHATBOT ====================
+        // ==================== LIVE CHAT & DRAGGABLE WIDGET ====================
         let chatbotOpen = false;
+
         function toggleChatbot() {
             chatbotOpen = !chatbotOpen;
             const win = document.getElementById('chatbotWindow');
             const btn = document.getElementById('chatbotToggleBtn');
+            if (!win || !btn) return;
+
             if (chatbotOpen) {
                 win.classList.remove('hidden');
                 win.classList.add('flex');
                 btn.classList.add('hidden');
+
+                // If button was dragged and window hasn't been dragged yet, align window near button
+                if (btn.style.left && !win.style.left) {
+                    const btnRect = btn.getBoundingClientRect();
+                    const winWidth = win.offsetWidth || 384;
+                    const winHeight = win.offsetHeight || 520;
+                    let targetLeft = btnRect.right - winWidth;
+                    let targetTop = btnRect.bottom - winHeight;
+                    targetLeft = Math.max(10, Math.min(window.innerWidth - winWidth - 10, targetLeft));
+                    targetTop = Math.max(10, Math.min(window.innerHeight - winHeight - 10, targetTop));
+                    win.style.left = `${targetLeft}px`;
+                    win.style.top = `${targetTop}px`;
+                    win.style.right = 'auto';
+                    win.style.bottom = 'auto';
+                }
+
                 scrollChatToBottom();
             } else {
                 win.classList.add('hidden');
                 win.classList.remove('flex');
                 btn.classList.remove('hidden');
             }
+        }
+
+        // Draggable Helper: supports mouse drag and touch swipe/drag without interfering with clicks
+        function makeDraggable(element, handle = null, onClickCallback = null) {
+            const dragTarget = handle || element;
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let initialLeft = 0, initialTop = 0;
+            let hasMoved = false;
+
+            function onPointerDown(e) {
+                if (e.type === 'mousedown' && e.button !== 0) return;
+                // If user clicked a functional button inside the handle (like close/clear), don't drag
+                if (e.target.closest('button') && e.target.closest('button') !== element) return;
+
+                isDragging = true;
+                hasMoved = false;
+
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                startX = clientX;
+                startY = clientY;
+
+                const rect = element.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+
+                dragTarget.style.cursor = 'grabbing';
+                document.body.style.userSelect = 'none';
+
+                window.addEventListener('mousemove', onPointerMove, { passive: false });
+                window.addEventListener('mouseup', onPointerUp);
+                window.addEventListener('touchmove', onPointerMove, { passive: false });
+                window.addEventListener('touchend', onPointerUp);
+            }
+
+            function onPointerMove(e) {
+                if (!isDragging) return;
+
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                const deltaX = clientX - startX;
+                const deltaY = clientY - startY;
+
+                if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+                    hasMoved = true;
+                    if (e.cancelable) e.preventDefault();
+                }
+
+                if (hasMoved) {
+                    const width = element.offsetWidth;
+                    const height = element.offsetHeight;
+                    const maxLeft = window.innerWidth - width - 8;
+                    const maxTop = window.innerHeight - height - 8;
+
+                    let newLeft = Math.max(8, Math.min(maxLeft, initialLeft + deltaX));
+                    let newTop = Math.max(8, Math.min(maxTop, initialTop + deltaY));
+
+                    element.style.left = `${newLeft}px`;
+                    element.style.top = `${newTop}px`;
+                    element.style.right = 'auto';
+                    element.style.bottom = 'auto';
+                    element.style.position = 'fixed';
+                }
+            }
+
+            function onPointerUp(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                dragTarget.style.cursor = '';
+                document.body.style.userSelect = '';
+
+                window.removeEventListener('mousemove', onPointerMove);
+                window.removeEventListener('mouseup', onPointerUp);
+                window.removeEventListener('touchmove', onPointerMove);
+                window.removeEventListener('touchend', onPointerUp);
+
+                if (!hasMoved && onClickCallback) {
+                    onClickCallback(e);
+                }
+            }
+
+            dragTarget.addEventListener('mousedown', onPointerDown);
+            dragTarget.addEventListener('touchstart', onPointerDown, { passive: true });
         }
 
         const CHAT_HISTORY_KEY = 'pontpont_chat_history';
@@ -2765,7 +3021,6 @@ Store Information:
             try {
                 const history = getStoredChatHistory();
                 history.push({ role, text: String(text || '') });
-                // Keep last 12 messages temporarily in sessionStorage
                 sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history.slice(-12)));
             } catch (e) {}
         }
@@ -2778,10 +3033,10 @@ Store Information:
             if (body) {
                 const welcomeText = (shopData.chatbotConfig && shopData.chatbotConfig.welcomeMessageMm)
                     ? shopData.chatbotConfig.welcomeMessageMm
-                    : 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ အိတ်ဒီဇိုင်းများ၊ ဈေးနှုန်း၊ ပို့ဆောင်ခ၊ ဆိုင်လိပ်စာနှင့် ဖုန်းနံပါတ်များ စိတ်ကြိုက်မေးမြန်းနိုင်ပါတယ်ရှင်။';
+                    : 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် Live Chat မှ ကြိုဆိုပါတယ်။ အိတ်ဒီဇိုင်းများ၊ ဈေးနှုန်း၊ ပို့ဆောင်ခ၊ ဆိုင်လိပ်စာနှင့် ဖုန်းနံပါတ်များ စိတ်ကြိုက်မေးမြန်းနိုင်ပါတယ်ရှင်။';
                 body.innerHTML = `
                     <div class="flex gap-2 justify-start">
-                        <div class="w-7 h-7 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">🤖</div>
+                        <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-extrabold shadow-xs">PP</div>
                         <div class="max-w-[80%] bg-white border border-stone-200 text-stone-800 rounded-2xl rounded-bl-none px-3.5 py-2.5 shadow-sm text-xs">
                             <p id="chatbotWelcomeMsg">${escapeHtml(welcomeText)}</p>
                         </div>
@@ -2798,7 +3053,22 @@ Store Information:
                 }
             });
         }
-        document.addEventListener('DOMContentLoaded', restoreChatHistoryUI);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            restoreChatHistoryUI();
+
+            // Initialize draggable Live Chat widget and modal
+            const btn = document.getElementById('chatbotToggleBtn');
+            const win = document.getElementById('chatbotWindow');
+            const handle = document.getElementById('chatHeaderDragHandle');
+
+            if (btn) {
+                makeDraggable(btn, null, () => toggleChatbot());
+            }
+            if (win && handle) {
+                makeDraggable(win, handle);
+            }
+        });
 
         function scrollChatToBottom() {
             const body = document.getElementById('chatMessages');
@@ -2817,7 +3087,6 @@ Store Information:
             const query = inp.value.trim();
             if (!query) return;
 
-            // Capture recent temporary history BEFORE appending current query
             const historyForAI = getStoredChatHistory().slice(-8);
 
             // Append user message
@@ -2828,14 +3097,13 @@ Store Information:
             const typingId = 'typing-' + Date.now();
             const body = document.getElementById('chatMessages');
             const typingDiv = document.createElement('div');
-            typingDiv.id = typingId;
-            typingDiv.className = 'flex items-center gap-2 text-stone-500 text-xs bg-white px-3 py-2 rounded-2xl border border-stone-200 w-fit';
-            typingDiv.innerHTML = `<span>✨ ပုံ့ပုံ့ AI ဖြေကြားနေပါသည်...</span>`;
+            typingId && (typingDiv.id = typingId);
+            typingDiv.className = 'flex items-center gap-2 text-stone-500 text-xs bg-white px-3 py-2 rounded-2xl border border-stone-200 w-fit shadow-xs';
+            typingDiv.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-ping"></span><span>Live Chat စာပြန်နေပါသည်...</span>`;
             body.appendChild(typingDiv);
             scrollChatToBottom();
 
             try {
-                // If chatbot is configured with AI, query the server REST API
                 const botCfg = shopData.chatbotConfig;
                 let gotAiReply = false;
 
@@ -2899,7 +3167,7 @@ Store Information:
                 `;
             } else {
                 msgDiv.innerHTML = `
-                    <div class="w-7 h-7 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">🤖</div>
+                    <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-extrabold shadow-xs">PP</div>
                     <div class="max-w-[80%] bg-white border border-stone-200 text-stone-800 rounded-2xl rounded-bl-none px-3.5 py-2.5 shadow-sm text-xs">
                         <p class="whitespace-pre-line">${text}</p>
                         ${actionHtml}
@@ -2909,6 +3177,7 @@ Store Information:
             }
             body.appendChild(msgDiv);
             scrollChatToBottom();
+            lucide.createIcons();
         }
 
         function generateChatbotReply(query) {
@@ -2960,31 +3229,35 @@ Store Information:
         }
     </script>
 
-    <!-- Floating Chatbot Toggle Button -->
-    <button id="chatbotToggleBtn" onclick="toggleChatbot()" class="fixed bottom-6 right-5 z-50 group flex items-center gap-2.5 bg-gradient-to-r from-amber-600 via-rose-600 to-amber-700 text-white px-4 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border border-amber-300/40">
-        <span class="text-lg">🤖</span>
-        <span class="text-xs font-bold tracking-wide">အိတ်ဆိုင် Chatbot</span>
-        <span class="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-extrabold uppercase">AI</span>
+    <!-- Floating Live Chat Toggle Button (Draggable) -->
+    <button id="chatbotToggleBtn" class="fixed bottom-6 right-5 z-50 group flex items-center gap-2.5 bg-gradient-to-r from-amber-600 via-rose-600 to-amber-700 text-white px-4 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-150 border border-amber-300/40 cursor-grab active:cursor-grabbing select-none" title="Live Chat ဖွင့်ရန် နှိပ်ပါ (မောက်စ်ဖြင့် ဖိဆွဲ၍ နေရာရွှေ့နိုင်ပါသည်)">
+        <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-400"></span>
+        </span>
+        <i data-lucide="message-circle" class="w-4 h-4 text-white"></i>
+        <span class="text-xs font-bold tracking-wide">Live Chat</span>
     </button>
 
-    <!-- Chatbot Window -->
+    <!-- Chatbot Window (Draggable Header) -->
     <div id="chatbotWindow" class="hidden fixed bottom-6 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-h-[85vh] h-[520px] bg-white rounded-3xl shadow-2xl border border-stone-200 flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 text-white px-4 py-3.5 flex items-center justify-between shadow-md">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-amber-600/30 border border-amber-400/40 flex items-center justify-center text-xl shadow-inner">
-                    🤖
+        <!-- Header (Draggable Handle) -->
+        <div id="chatHeaderDragHandle" class="bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 text-white px-4 py-3.5 flex items-center justify-between shadow-md cursor-grab active:cursor-grabbing select-none" title="မောက်စ်ဖြင့် ဖိဆွဲ၍ နေရာရွှေ့နိုင်ပါသည် (Drag to move)">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i>
                 </div>
                 <div>
                     <h3 id="chatbotTitle" class="font-bold text-sm tracking-tight flex items-center gap-1.5">
-                        ပုံ့ပုံ့ AI အကူအညီ ✨
+                        Live Chat • ပုံ့ပုံ့ အိတ်ဆိုင်
                     </h3>
-                    <p class="text-[11px] text-amber-300 font-medium">
-                        ပုံ့ပုံ့ အိတ်ဆိုင် အကူအညီ • အသင့်ရှိပါသည်
+                    <p class="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> အွန်လိုင်းရှိပါသည် • မေးမြန်းနိုင်ပါသည်
                     </p>
                 </div>
             </div>
             <div class="flex items-center gap-1">
+                <span class="text-[10px] text-stone-400 mr-1 hidden sm:inline" title="မောက်စ်ဖြင့် ဖိဆွဲ၍ နေရာရွှေ့နိုင်ပါသည်">⠿ Drag</span>
                 <button onclick="clearChatHistory()" title="စကားဝိုင်းအသစ်စမည်" class="p-1.5 rounded-full hover:bg-white/10 text-stone-300 hover:text-white transition text-xs">
                     🗑️
                 </button>
@@ -2997,9 +3270,9 @@ Store Information:
         <!-- Messages Area -->
         <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-stone-50/70 text-xs">
             <div class="flex gap-2 justify-start">
-                <div class="w-7 h-7 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">🤖</div>
+                <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-extrabold shadow-xs">PP</div>
                 <div class="max-w-[80%] bg-white border border-stone-200 text-stone-800 rounded-2xl rounded-bl-none px-3.5 py-2.5 shadow-sm text-xs">
-                    <p id="chatbotWelcomeMsg">မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ အိတ်ဒီဇိုင်းများ၊ ဈေးနှုန်း၊ ပို့ဆောင်ခ၊ ဆိုင်လိပ်စာနှင့် ဖုန်းနံပါတ်များ စိတ်ကြိုက်မေးမြန်းနိုင်ပါတယ်ရှင်။</p>
+                    <p id="chatbotWelcomeMsg">မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် Live Chat မှ ကြိုဆိုပါတယ်။ အိတ်ဒီဇိုင်းများ၊ ဈေးနှုန်း၊ ပို့ဆောင်ခ၊ ဆိုင်လိပ်စာနှင့် ဖုန်းနံပါတ်များ စိတ်ကြိုက်မေးမြန်းနိုင်ပါတယ်ရှင်။</p>
                 </div>
             </div>
         </div>
