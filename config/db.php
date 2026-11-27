@@ -44,7 +44,7 @@ define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : ')Hm?{qxauzp
 define('DB_CHARSET', 'utf8mb4');
 
 // Secret key for HMAC token signing (can be customized)
-define('APP_SECRET_KEY', getenv('APP_SECRET_KEY') ?: 'pontpont-luxury-handbag-shop-secret-key-2026');
+define('APP_SECRET_KEY', getenv('APP_SECRET_KEY') ?: '6b2cd5e9e97a11a0915621128fdd2a45721c9935f715eceab354ade9905d973d');
 
 /**
  * Automatically update database schema with new tables and columns if missing
