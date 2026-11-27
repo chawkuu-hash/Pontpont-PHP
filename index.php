@@ -3089,10 +3089,10 @@ Store Information:
             }
         }
 
-        function saveChatHistoryEntry(role, text) {
+        function saveChatHistoryEntry(role, text, products = null) {
             try {
                 const history = getStoredChatHistory();
-                history.push({ role, text: String(text || '') });
+                history.push({ role, text: String(text || ''), products: products || null });
                 sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history.slice(-12)));
             } catch (e) {}
         }
@@ -3121,7 +3121,7 @@ Store Information:
             const history = getStoredChatHistory();
             history.forEach(item => {
                 if (item && item.text) {
-                    appendChatMessage(item.role === 'user' ? 'user' : 'bot', item.text, null, false);
+                    appendChatMessage(item.role === 'user' ? 'user' : 'bot', item.text, null, false, item.products || null);
                 }
             });
         }
@@ -3151,6 +3151,27 @@ Store Information:
             const inp = document.getElementById('chatInput');
             inp.value = promptText;
             handleChatSubmit(new Event('submit'));
+        }
+
+        // Helper: Format Chatbot Text (Markdown Bold & Images)
+        function formatChatMessage(text) {
+            if (!text) return '';
+            let safe = escapeHtml(text);
+
+            // Parse Markdown Images: ![alt](url)
+            safe = safe.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+|assets\/[^\s)]+)\)/g, function(match, alt, url) {
+                return `
+                    <div class="my-2 rounded-2xl overflow-hidden border border-stone-200 bg-stone-100 shadow-xs max-w-full">
+                        <img src="${url}" alt="${alt}" class="w-full h-44 object-cover cursor-pointer hover:scale-[1.02] transition duration-300" onclick="window.open('${url}', '_blank')">
+                        ${alt ? `<div class="px-2.5 py-1 bg-white text-[10px] text-stone-600 font-semibold truncate flex items-center gap-1"><i data-lucide="tag" class="w-3 h-3 text-amber-600"></i> ${alt}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            // Parse Bold **text**
+            safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-stone-900">$1</strong>');
+
+            return safe;
         }
 
         async function handleChatSubmit(e) {
@@ -3187,10 +3208,10 @@ Store Information:
                     });
                     if (res.ok) {
                         const data = await res.json();
-                        if (data && data.reply) {
+                        if (data && (data.reply || data.products)) {
                             const el = document.getElementById(typingId);
                             if (el) el.remove();
-                            appendChatMessage('bot', data.reply);
+                            appendChatMessage('bot', data.reply, null, true, data.products || null);
                             gotAiReply = true;
                         }
                     }
@@ -3200,19 +3221,19 @@ Store Information:
                     const el = document.getElementById(typingId);
                     if (el) el.remove();
                     const reply = generateChatbotReply(query);
-                    appendChatMessage('bot', reply.text, reply.action);
+                    appendChatMessage('bot', reply.text, reply.action, true, reply.products || null);
                 }
             } catch (err) {
                 const el = document.getElementById(typingId);
                 if (el) el.remove();
                 const reply = generateChatbotReply(query);
-                appendChatMessage('bot', reply.text, reply.action);
+                appendChatMessage('bot', reply.text, reply.action, true, reply.products || null);
             }
         }
 
-        function appendChatMessage(sender, text, action, persist = true) {
+        function appendChatMessage(sender, text, action, persist = true, products = null) {
             if (persist) {
-                saveChatHistoryEntry(sender === 'user' ? 'user' : 'bot', text);
+                saveChatHistoryEntry(sender === 'user' ? 'user' : 'bot', text, products);
             }
             const body = document.getElementById('chatMessages');
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -3230,20 +3251,54 @@ Store Information:
                 `;
             }
 
+            let productsHtml = '';
+            if (products && Array.isArray(products) && products.length > 0) {
+                productsHtml = `
+                    <div class="mt-3 space-y-2 pt-2.5 border-t border-stone-100">
+                        <div class="text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i> ဆိုင်ရှိ အိတ်ပုံများနှင့် ဈေးနှုန်းများ
+                        </div>
+                        <div class="grid grid-cols-1 gap-2">
+                            ${products.map(p => `
+                                <div class="p-2 rounded-2xl bg-stone-50 border border-stone-200/90 flex items-center gap-3 hover:bg-amber-50/50 transition">
+                                    <div class="w-16 h-16 rounded-xl overflow-hidden bg-white border border-stone-200 shrink-0 shadow-xs cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">
+                                        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.nameMm || p.nameEn)}" class="w-full h-full object-cover hover:scale-105 transition duration-300">
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h5 class="font-bold text-stone-900 text-xs truncate cursor-pointer hover:text-amber-700 transition" onclick="openProductModal('${escapeHtml(p.id)}')">
+                                            ${escapeHtml(p.nameMm || p.nameEn)}
+                                        </h5>
+                                        <div class="flex items-center gap-1.5 mt-0.5">
+                                            <span class="text-amber-700 font-extrabold text-xs">${Number(p.price).toLocaleString()} Ks</span>
+                                            ${p.originalPrice ? `<span class="text-stone-400 line-through text-[10px]">${Number(p.originalPrice).toLocaleString()} Ks</span>` : ''}
+                                        </div>
+                                        ${p.wholesalePrice ? `<span class="inline-block mt-0.5 text-[9px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded-md">လက်ကား ${Number(p.wholesalePrice).toLocaleString()} Ks</span>` : ''}
+                                    </div>
+                                    <button onclick="openProductModal('${escapeHtml(p.id)}')" class="shrink-0 px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold shadow-xs transition active:scale-95 flex items-center gap-1" title="အသေးစိတ်ကြည့်ရန်">
+                                        <i data-lucide="eye" class="w-3 h-3"></i> ကြည့်မည်
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
             if (sender === 'user') {
                 msgDiv.innerHTML = `
-                    <div class="max-w-[80%] bg-amber-600 text-white rounded-2xl rounded-br-none px-3.5 py-2.5 shadow-sm text-xs">
-                        <p class="whitespace-pre-line">${text}</p>
+                    <div class="max-w-[85%] bg-amber-600 text-white rounded-2xl rounded-br-none px-3.5 py-2.5 shadow-sm text-xs">
+                        <p class="whitespace-pre-line">${escapeHtml(text)}</p>
                         <span class="block text-[10px] text-amber-200 text-right mt-1">${time}</span>
                     </div>
                 `;
             } else {
                 msgDiv.innerHTML = `
                     <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-extrabold shadow-xs">PP</div>
-                    <div class="max-w-[80%] bg-white border border-stone-200 text-stone-800 rounded-2xl rounded-bl-none px-3.5 py-2.5 shadow-sm text-xs">
-                        <p class="whitespace-pre-line">${text}</p>
+                    <div class="max-w-[88%] bg-white border border-stone-200 text-stone-800 rounded-2xl rounded-bl-none px-3.5 py-2.5 shadow-sm text-xs">
+                        <div class="whitespace-pre-line leading-relaxed">${formatChatMessage(text)}</div>
+                        ${productsHtml}
                         ${actionHtml}
-                        <span class="block text-[10px] text-stone-400 mt-1">${time}</span>
+                        <span class="block text-[10px] text-stone-400 mt-1.5">${time}</span>
                     </div>
                 `;
             }
@@ -3254,6 +3309,29 @@ Store Information:
 
         function generateChatbotReply(query) {
             const q = query.toLowerCase();
+
+            // Products & Bag photos
+            if (q.includes('အိတ်') || q.includes('ပုံ') || q.includes('photo') || q.includes('pic') || q.includes('ဒီဇိုင်း') || q.includes('design') || q.includes('tote') || q.includes('sling') || q.includes('လွယ်အိတ်') || q.includes('ကျောပိုး') || q.includes('wallet') || q.includes('bag') || q.includes('ပစ္စည်း')) {
+                let matched = (shopData.products || []);
+                if (q.includes('tote') || q.includes('တုတ်') || q.includes('လက်ဆွဲ')) {
+                    matched = matched.filter(p => (p.categoryEn || p.category || '').toLowerCase().includes('tote') || (p.categoryMm || '').includes('လက်ဆွဲ'));
+                } else if (q.includes('sling') || q.includes('ဘေးလွယ်')) {
+                    matched = matched.filter(p => (p.categoryEn || p.category || '').toLowerCase().includes('crossbody') || (p.categoryMm || '').includes('ဘေးလွယ်'));
+                } else if (q.includes('shoulder') || q.includes('ပုခုံး')) {
+                    matched = matched.filter(p => (p.categoryEn || p.category || '').toLowerCase().includes('shoulder') || (p.categoryMm || '').includes('ပုခုံး'));
+                } else if (q.includes('backpack') || q.includes('ကျောပိုး')) {
+                    matched = matched.filter(p => (p.categoryEn || p.category || '').toLowerCase().includes('backpack') || (p.categoryMm || '').includes('ကျောပိုး'));
+                } else if (q.includes('wallet') || q.includes('ပိုက်ဆံအိတ်') || q.includes('clutch')) {
+                    matched = matched.filter(p => (p.categoryEn || p.category || '').toLowerCase().includes('clutch') || (p.categoryMm || '').includes('ပိုက်ဆံအိတ်'));
+                }
+                const displayProducts = (matched.length > 0 ? matched : (shopData.products || [])).slice(0, 4);
+
+                return {
+                    text: "👜 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) ၏ လူကြိုက်အများဆုံး အိတ်ဒီဇိုင်းများနှင့် ဓာတ်ပုံများ ဖြစ်ပါသည်ရှင်။\nအိတ်တစ်လုံးချင်းစီ၏ အသေးစိတ်နှင့် အရောင်များကို ကြည့်ရှုလိုပါက 'ကြည့်မည်' ကို နှိပ်နိုင်ပါသည်ရှင်။",
+                    products: displayProducts,
+                    action: { label: "🛍️ ဆိုင်ရှိ အိတ်အားလုံး ကြည့်မည်", onClick: "window.scrollTo({top: 500, behavior: 'smooth'}); toggleChatbot();" }
+                };
+            }
 
             // Branches / Address
             if (q.includes('လိပ်စာ') || q.includes('ဆိုင်') || q.includes('ပင်မ') || q.includes('address') || q.includes('branch')) {
@@ -3352,7 +3430,7 @@ Store Information:
         <!-- Quick Prompts -->
         <div class="px-3 py-2 bg-stone-100 border-t border-stone-200 overflow-x-auto flex gap-1.5 no-scrollbar">
             <button onclick="sendChatPrompt('📍 ပင်မဆိုင်လိပ်စာ')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">📍 ပင်မဆိုင်လိပ်စာ</button>
-            <button onclick="sendChatPrompt('👜 ရောင်းအားအကောင်းဆုံးအိတ်များ')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">👜 အိတ်ဒီဇိုင်းများ</button>
+            <button onclick="sendChatPrompt('👜 အိတ်ပုံများနှင့် ဒီဇိုင်းများ ကြည့်မည်')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">👜 အိတ်ပုံများ ကြည့်မည်</button>
             <button onclick="sendChatPrompt('🚚 ပို့ဆောင်ခနှင့် ကားဂိတ်')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">🚚 ပို့ဆောင်ခ</button>
             <button onclick="sendChatPrompt('📞 ဆက်သွယ်ရန်ဖုန်း')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white text-stone-700 hover:bg-amber-50 hover:text-amber-800 text-[11px] font-medium border border-stone-200 transition">📞 ဖုန်းနံပါတ်</button>
         </div>

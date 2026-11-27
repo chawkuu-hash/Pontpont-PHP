@@ -376,8 +376,19 @@ function generateIntelligentBurmeseReply($message, $pdo = null) {
     }
 
     // 6. Products & Handbags
-    if (preg_match('/(အိတ်|လက်ဆွဲ|ကျောပိုး|ဘေးလွယ်|ပေါင်မုန့်|ဒလက်|ဒီဇိုင်း|bag|price|ဈေး)/u', $q)) {
-        return "👜 ပုံ့ပုံ့ အိတ်ဆိုင်တွင် လက်ဆွဲအိတ်၊ ကျောပိုးအိတ်၊ ဘေးလွယ်အိတ်၊ ဖက်ရှင်အိတ်နှင့် ရုံးတက်အိတ် အမျိုးစုံကို အရည်အသွေးမြင့် သားရေ/ပိတ်သားများဖြင့် ရရှိနိုင်ပါသည်ရှင်။\nဝဘ်ဆိုက် ပင်မစာမျက်နှာတွင် ပစ္စည်းပုံများနှင့် ဈေးနှုန်းများကို အသေးစိတ် ကြည့်ရှု၍ တိုက်ရိုက် Order တင်နိုင်ပါသည်ရှင်။";
+    if (preg_match('/(အိတ်|လက်ဆွဲ|ကျောပိုး|ဘေးလွယ်|ပေါင်မုန့်|ဒလက်|ဒီဇိုင်း|bag|price|ဈေး|ပုံ|photo|pic)/u', $q)) {
+        $text = "👜 ပုံ့ပုံ့ အိတ်ဆိုင်၏ လူကြိုက်အများဆုံး အိတ်ဒီဇိုင်းများနှင့် ဓာတ်ပုံများ ဖြစ်ပါသည်ရှင့်:\n";
+        if ($pdo) {
+            try {
+                $pStmt = $pdo->query("SELECT id, nameMm, nameEn, price, image FROM products ORDER BY sortOrder ASC LIMIT 3");
+                $prods = $pStmt->fetchAll();
+                foreach ($prods as $p) {
+                    $text .= "\n• **{$p['nameMm']}** ({$p['nameEn']}) - " . number_format($p['price']) . " Ks\n![{$p['nameMm']}]({$p['image']})\n";
+                }
+            } catch (\Throwable $e) {}
+        }
+        $text .= "\nအိတ်တစ်လုံးချင်းစီ၏ အသေးစိတ်၊ အရောင်နှင့် လက်ကားဈေးနှုန်းများကို အောက်ဖော်ပြပါ Card များတွင် 'ကြည့်မည်' ကို နှိပ်၍ တိုက်ရိုက် Order တင်နိုင်ပါသည်ရှင်။";
+        return $text;
     }
 
     // 7. General Services & Greetings
@@ -1214,7 +1225,7 @@ function buildLiveShopContextForAI($pdo) {
 
     // 1. Live Products
     try {
-        $stmt = $pdo->query("SELECT id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, colorsJson, stock, material, dimensions FROM products ORDER BY sortOrder ASC");
+        $stmt = $pdo->query("SELECT id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, colorsJson, stock, material, dimensions, image FROM products ORDER BY sortOrder ASC");
         $products = $stmt->fetchAll();
         if (!empty($products)) {
             $lines[] = "\nProducts (" . count($products) . " items):";
@@ -1231,7 +1242,7 @@ function buildLiveShopContextForAI($pdo) {
                 $stockStr = $stockNum > 0 ? "{$stockNum} available" : "OUT OF STOCK";
                 $origStr = !empty($p['originalPrice']) ? " (Original: " . number_format((int)$p['originalPrice']) . " Ks)" : "";
                 $wsStr = !empty($p['wholesalePrice']) ? " | Wholesale (5+ pcs): " . number_format((int)$p['wholesalePrice']) . " Ks" : "";
-                $lines[] = "- [{$p['id']}] {$p['nameEn']} ({$p['nameMm']}) | Category: {$p['category']} ({$p['categoryMm']}) | Retail: " . number_format((int)$p['price']) . " Ks{$origStr}{$wsStr} | Stock: {$stockStr} | Colors: {$colorsStr} | Material: {$p['material']} | Size: {$p['dimensions']}";
+                $lines[] = "- [{$p['id']}] {$p['nameEn']} ({$p['nameMm']}) | Category: {$p['category']} ({$p['categoryMm']}) | Retail: " . number_format((int)$p['price']) . " Ks{$origStr}{$wsStr} | Stock: {$stockStr} | Colors: {$colorsStr} | Material: {$p['material']} | Size: {$p['dimensions']} | Image: {$p['image']}";
             }
         }
     } catch (\Throwable $e) {}
@@ -1299,7 +1310,30 @@ function buildLiveShopContextForAI($pdo) {
         $model = trim($cfg['model'] ?? 'gemini-1.5-flash');
         $systemPrompt = trim($cfg['systemPrompt'] ?? '');
         $liveShopContext = buildLiveShopContextForAI($pdo);
-        $fullSystemPrompt = ($systemPrompt !== '' ? $systemPrompt . "\n\n" : '') . $liveShopContext;
+
+        // Look up matching products in database for bag/picture queries
+        $matchingProducts = [];
+        if (preg_match('/(အိတ်|ပုံ|photo|pic|image|ဒီဇိုင်း|design|တုတ်|tote|sling|လွယ်အိတ်|ကျောပိုး|backpack|wallet|ပိုက်ဆံအိတ်|clutch|ပစ္စည်း|ကြည့်|ရှာ|ဈေး|price|ရောင်းအား|best|အသစ်)/iu', $message)) {
+            try {
+                $catWhere = '';
+                if (preg_match('/(tote|တုတ်|ရုံးတက်|လက်ဆွဲ)/iu', $message)) {
+                    $catWhere = "WHERE category LIKE '%Tote%' OR categoryMm LIKE '%လက်ဆွဲ%'";
+                } elseif (preg_match('/(sling|crossbody|ဘေးလွယ်)/iu', $message)) {
+                    $catWhere = "WHERE category LIKE '%Crossbody%' OR categoryMm LIKE '%ဘေးလွယ်%'";
+                } elseif (preg_match('/(shoulder|ပုခုံး)/iu', $message)) {
+                    $catWhere = "WHERE category LIKE '%Shoulder%' OR categoryMm LIKE '%ပုခုံး%'";
+                } elseif (preg_match('/(backpack|ကျောပိုး)/iu', $message)) {
+                    $catWhere = "WHERE category LIKE '%Backpack%' OR categoryMm LIKE '%ကျောပိုး%'";
+                } elseif (preg_match('/(wallet|clutch|ပိုက်ဆံအိတ်|ပွဲတက်)/iu', $message)) {
+                    $catWhere = "WHERE category LIKE '%Clutch%' OR category LIKE '%Wallet%' OR categoryMm LIKE '%ပိုက်ဆံအိတ်%'";
+                }
+                $mStmt = $pdo->query("SELECT id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, image, badge FROM products {$catWhere} ORDER BY sortOrder ASC LIMIT 4");
+                $matchingProducts = $mStmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\Throwable $t) {}
+        }
+
+        $imageInstructions = "\n\nPRODUCT IMAGES INSTRUCTION:\nWhen the customer asks to see bag pictures, photos, or designs (e.g. 'အိတ်ပုံ', 'ဒီဇိုင်းတွေ', 'ပုံပြပါ'), you MUST display the matching bag pictures using Markdown syntax: ![Bag Name](image_url)\nThe chat UI will render the images directly to the user.";
+        $fullSystemPrompt = ($systemPrompt !== '' ? $systemPrompt . "\n\n" : '') . $liveShopContext . $imageInstructions;
 
         // Sanitize optional temporary chat history (max last 8 turns)
         $rawHistory = is_array($body['history'] ?? null) ? array_slice($body['history'], -8) : [];
@@ -1361,7 +1395,7 @@ function buildLiveShopContextForAI($pdo) {
                                 $upd->execute([$tryModel]);
                             } catch (\Throwable $t) {}
                         }
-                        echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $tryModel, 'provider' => 'gemini'], JSON_UNESCAPED_UNICODE);
+                        echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $tryModel, 'provider' => 'gemini', 'products' => $matchingProducts], JSON_UNESCAPED_UNICODE);
                         exit;
                     }
                 } else {
@@ -1412,7 +1446,7 @@ function buildLiveShopContextForAI($pdo) {
                 $data = json_decode($res['body'], true);
                 $reply = $data['output']['message']['content'][0]['text'] ?? null;
                 if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $bedrockModel, 'provider' => 'bedrock'], JSON_UNESCAPED_UNICODE);
+                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $bedrockModel, 'provider' => 'bedrock', 'products' => $matchingProducts], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
             } else {
@@ -1450,7 +1484,7 @@ function buildLiveShopContextForAI($pdo) {
                 $data = json_decode($res['body'], true);
                 $reply = $data['choices'][0]['message']['content'] ?? null;
                 if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => ($model ?: $defaultModel), 'provider' => $provider], JSON_UNESCAPED_UNICODE);
+                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => ($model ?: $defaultModel), 'provider' => $provider, 'products' => $matchingProducts], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
             } else {
@@ -1488,7 +1522,7 @@ function buildLiveShopContextForAI($pdo) {
                 $data = json_decode($res['body'], true);
                 $reply = $data['choices'][0]['message']['content'] ?? null;
                 if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => ($model ?: 'custom'), 'provider' => 'custom'], JSON_UNESCAPED_UNICODE);
+                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => ($model ?: 'custom'), 'provider' => 'custom', 'products' => $matchingProducts], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
             } else {
@@ -1500,7 +1534,7 @@ function buildLiveShopContextForAI($pdo) {
 
         // Intelligent Myanmar Rule-based Knowledge Engine fallback
         $reply = generateIntelligentBurmeseReply($message, $pdo);
-        $fallbackResp = ['ok' => true, 'reply' => $reply, 'fallback' => true];
+        $fallbackResp = ['ok' => true, 'reply' => $reply, 'fallback' => true, 'products' => $matchingProducts];
         if (!empty($lastAiError)) {
             $fallbackResp['aiError'] = $lastAiError;
         }
