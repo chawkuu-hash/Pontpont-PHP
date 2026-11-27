@@ -1843,11 +1843,11 @@ function buildLiveShopContextForAI($pdo) {
         exit;
     }
 
-    // 17. UPLOAD_IMAGE (Admin Product, Logo & Banner Upload)
+    // 17. UPLOAD_IMAGE (Admin Product, Logo, Banner & Announcements Upload)
     if ($action === 'UPLOAD_IMAGE') {
         $file = $_FILES['image'] ?? ($body['image_data'] ?? null);
-        $folder = in_array($body['folder'] ?? '', ['products', 'logos', 'banners', 'slips']) ? $body['folder'] : 'products';
-        $prefix = ($folder === 'logos') ? 'logo' : (($folder === 'banners') ? 'banner' : 'prod');
+        $folder = in_array($body['folder'] ?? '', ['products', 'logos', 'banners', 'slips', 'announcements']) ? $body['folder'] : 'products';
+        $prefix = ($folder === 'logos') ? 'logo' : (($folder === 'banners') ? 'banner' : (($folder === 'announcements') ? 'ann' : 'prod'));
         $res = handleSecureImageUpload($file, $folder, $prefix);
         if ($res['ok']) {
             echo json_encode(['ok' => true, 'url' => $res['url']], JSON_UNESCAPED_UNICODE);
@@ -1855,6 +1855,21 @@ function buildLiveShopContextForAI($pdo) {
             http_response_code(400);
             echo json_encode(['ok' => false, 'error' => $res['error']], JSON_UNESCAPED_UNICODE);
         }
+        exit;
+    }
+
+    // UPDATE_ANNOUNCEMENT_IMAGE
+    if ($action === 'UPDATE_ANNOUNCEMENT_IMAGE') {
+        $announcementId = trim($body['announcementId'] ?? '');
+        $image = trim($body['image'] ?? '');
+        if ($announcementId) {
+            $upd = $pdo->prepare("UPDATE announcements SET image = ? WHERE id = ?");
+            $upd->execute([$image ?: null, $announcementId]);
+        }
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
 

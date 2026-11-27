@@ -962,10 +962,21 @@ try {
                             <textarea id="annContent" required rows="2" class="w-full px-3 py-1.5 rounded-xl border border-stone-300"></textarea>
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">ဓာတ်ပုံ URL (Optional)</label>
-                            <input type="url" id="annImage" class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
+                            <label class="block font-bold mb-1">ကြေညာချက် ဓာတ်ပုံ (Slide Show ပုံ)</label>
+                            <div class="flex items-center gap-2">
+                                <label class="cursor-pointer px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl font-bold transition flex items-center gap-1.5 text-xs">
+                                    <i data-lucide="image-plus" class="w-3.5 h-3.5"></i>
+                                    <span>ပုံရွေးချယ်တင်မည်</span>
+                                    <input type="file" id="annImageFileModal" accept="image/*" class="hidden" onchange="handleModalAnnImageSelect(event)">
+                                </label>
+                                <input type="text" id="annImage" placeholder="သို့မဟုတ် ပုံ URL လင့်ခ် ထည့်ပါ..." class="flex-1 px-3 py-1.5 rounded-xl border border-stone-300 text-xs">
+                            </div>
+                            <div id="annModalPreviewWrapper" class="hidden mt-2 w-28 h-20 rounded-xl border border-stone-200 overflow-hidden relative shadow-xs">
+                                <img id="annModalPreview" src="" alt="Preview" class="w-full h-full object-cover">
+                                <button type="button" onclick="clearModalAnnImagePreview()" class="absolute top-1 right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px]">✕</button>
+                            </div>
                         </div>
-                        <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-xl transition">ကြေညာချက် တင်မည်</button>
+                        <button type="submit" id="btnSubmitModalAnn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-xl transition">ကြေညာချက် တင်မည်</button>
                     </form>
                     <div id="adminAnnouncementsList" class="space-y-3"></div>
                 </div>
@@ -1279,10 +1290,16 @@ try {
                     : (ann.tag === 'Wholesale' ? 'bg-purple-500/25 text-purple-300 border border-purple-400/40' : 'bg-blue-500/25 text-blue-300 border border-blue-400/40');
 
                 const imgHtml = ann.image ? `
-                    <div class="w-full md:w-80 h-44 sm:h-52 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-lg bg-stone-950/50">
+                    <div class="w-full md:w-80 lg:w-96 h-48 sm:h-56 rounded-2xl overflow-hidden shrink-0 border border-white/15 shadow-xl bg-stone-950/70 flex items-center justify-center relative">
                         <img src="${escapeHtml(ann.image)}" alt="${escapeHtml(ann.title)}" class="w-full h-full object-cover hover:scale-105 transition duration-500">
                     </div>
-                ` : '';
+                ` : `
+                    <div class="w-full md:w-80 lg:w-96 h-48 sm:h-56 rounded-2xl overflow-hidden shrink-0 border border-amber-500/20 shadow-xl bg-gradient-to-br from-stone-900 via-stone-850 to-amber-950/60 flex flex-col items-center justify-center p-6 text-center relative">
+                        <img src="assets/images/pontpont_logo.jpg" alt="Pont Pont Bag Shop" class="h-16 w-auto object-contain mb-2.5 opacity-90 drop-shadow">
+                        <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">${escapeHtml(ann.tag)}</span>
+                        <span class="text-[11px] text-stone-400 mt-1">Pont Pont Handbag • Mandalay</span>
+                    </div>
+                `;
 
                 slide.innerHTML = `
                     <div class="flex-1 space-y-3 z-10 w-full">
@@ -2776,28 +2793,83 @@ Store Information:
             });
         }
 
+        let selectedModalAnnImageBase64 = null;
+
+        function handleModalAnnImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert('ပုံအရွယ်အစားသည် 5MB ထက် မကျော်ရပါ');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedModalAnnImageBase64 = e.target.result;
+                const previewImg = document.getElementById('annModalPreview');
+                const wrapper = document.getElementById('annModalPreviewWrapper');
+                if (previewImg && wrapper) {
+                    previewImg.src = selectedModalAnnImageBase64;
+                    wrapper.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearModalAnnImagePreview() {
+            selectedModalAnnImageBase64 = null;
+            const fileInput = document.getElementById('annImageFileModal');
+            if (fileInput) fileInput.value = '';
+            const urlInput = document.getElementById('annImage');
+            if (urlInput) urlInput.value = '';
+            const wrapper = document.getElementById('annModalPreviewWrapper');
+            if (wrapper) wrapper.classList.add('hidden');
+        }
+
         async function handleAddAnnouncement(e) {
             e.preventDefault();
-            const ann = {
-                id: 'ann-' + Date.now(),
-                title: document.getElementById('annTitle').value.trim(),
-                tag: document.getElementById('annTag').value,
-                content: document.getElementById('annContent').value.trim(),
-                image: document.getElementById('annImage').value.trim() || null,
-                authorName: shopData.currentUser ? shopData.currentUser.name : 'မပုံ့ (Admin)'
-            };
+            const btn = document.getElementById('btnSubmitModalAnn');
+            if (btn) btn.disabled = true;
+
             try {
+                let imageUrl = document.getElementById('annImage').value.trim() || null;
+
+                if (selectedModalAnnImageBase64) {
+                    const upRes = await fetch('api/shop.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'UPLOAD_IMAGE', image_data: selectedModalAnnImageBase64, folder: 'announcements' })
+                    });
+                    const upData = await upRes.json();
+                    if (upData.ok && upData.url) {
+                        imageUrl = upData.url;
+                    }
+                }
+
+                const ann = {
+                    id: 'ann-' + Date.now(),
+                    title: document.getElementById('annTitle').value.trim(),
+                    tag: document.getElementById('annTag').value,
+                    content: document.getElementById('annContent').value.trim(),
+                    image: imageUrl,
+                    authorName: shopData.currentUser ? shopData.currentUser.name : 'မပုံ့ (Admin)'
+                };
+
                 await fetch('api/shop.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'ADD_ANNOUNCEMENT', announcement: ann })
                 });
+
                 document.getElementById('annTitle').value = '';
                 document.getElementById('annContent').value = '';
+                clearModalAnnImagePreview();
+                alert('ကြေညာချက် တင်ပြီးပါပြီ! ✅');
                 loadShopData();
                 renderAdminAnnouncements();
             } catch (err) {
                 alert(err);
+            } finally {
+                if (btn) btn.disabled = false;
             }
         }
 

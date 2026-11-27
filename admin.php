@@ -772,20 +772,44 @@ require_once __DIR__ . '/config/db.php';
                         </div>
                         <div>
                             <label class="block font-bold mb-1">အသေးစိတ် အကြောင်းအရာ *</label>
-                            <textarea id="annContent" required rows="3" class="w-full px-3.5 py-2 rounded-xl border border-stone-300"></textarea>
+                            <textarea id="annContent" required rows="3" placeholder="ကြေညာချက် သို့မဟုတ် ပရိုမိုးရှင်း အသေးစိတ် ဖော်ပြချက်..." class="w-full px-3.5 py-2 rounded-xl border border-stone-300"></textarea>
                         </div>
-                        <div>
-                            <label class="block font-bold mb-1">ဓာတ်ပုံ URL (Optional)</label>
-                            <input type="url" id="annImage" placeholder="https://..." class="w-full px-3.5 py-2 rounded-xl border border-stone-300">
+
+                        <!-- Announcement Image Upload Area -->
+                        <div class="space-y-2">
+                            <label class="block font-bold text-stone-800">ကြေညာချက် ဓာတ်ပုံ (Slide Show တွင် ပြသမည့် ပုံ)</label>
+                            
+                            <div class="flex flex-col sm:flex-row gap-4 items-start">
+                                <!-- Upload Box -->
+                                <div class="flex-1 w-full space-y-2">
+                                    <div id="annDropZone" onclick="document.getElementById('annImageFile').click()" class="border-2 border-dashed border-stone-300 hover:border-amber-500 rounded-2xl p-4 text-center cursor-pointer transition bg-stone-50 hover:bg-amber-50/40 flex flex-col items-center justify-center gap-1.5 min-h-[110px]">
+                                        <i data-lucide="image-plus" class="w-6 h-6 text-amber-600"></i>
+                                        <p class="font-bold text-stone-800 text-xs">ပုံဖိုင် ရွေးချယ်တင်ရန် နှိပ်ပါ (သို့မဟုတ် Drag & Drop)</p>
+                                        <p class="text-[10px] text-stone-400">JPG, PNG, WEBP (အများဆုံး 5MB)</p>
+                                        <input type="file" id="annImageFile" accept="image/*" class="hidden" onchange="handleAnnouncementImageSelect(event)">
+                                    </div>
+                                    <input type="text" id="annImage" placeholder="သို့မဟုတ် ပုံ URL လင့်ခ် ထည့်သွင်းပါ (ဥပမာ: https://...)" class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-xs" oninput="updateAnnouncementImagePreview(this.value)">
+                                </div>
+
+                                <!-- Image Preview Box -->
+                                <div id="annImagePreviewWrapper" class="hidden w-40 h-28 rounded-2xl border border-stone-200 overflow-hidden bg-stone-100 relative shrink-0 shadow-xs">
+                                    <img id="annImagePreview" src="" alt="Preview" class="w-full h-full object-cover">
+                                    <button type="button" onclick="clearAnnouncementImagePreview()" title="ပုံဖျက်မည်" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center text-xs hover:bg-red-700 shadow transition">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-5 rounded-xl transition">
-                            ကြေညာချက် တင်မည်
+
+                        <button type="submit" id="btnSubmitAnn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-6 rounded-xl transition flex items-center gap-2">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>ကြေညာချက် တင်မည်</span>
                         </button>
                     </form>
                 </div>
 
                 <div class="space-y-3">
-                    <h4 class="font-extrabold text-stone-900 text-sm">လက်ရှိ ကြေညာချက်များ</h4>
+                    <h4 class="font-extrabold text-stone-900 text-sm">လက်ရှိ ကြေညာချက်များ (News & Announcements)</h4>
                     <div id="adminAnnouncementsContainer" class="space-y-3"></div>
                 </div>
             </section>
@@ -2458,29 +2482,148 @@ require_once __DIR__ . '/config/db.php';
         // ===================================================================
         // ANNOUNCEMENTS MANAGEMENT
         // ===================================================================
+        let selectedAnnouncementImageBase64 = null;
+
+        function handleAnnouncementImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert('ပုံအရွယ်အစားသည် 5MB ထက် မကျော်ရပါ');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedAnnouncementImageBase64 = e.target.result;
+                const previewImg = document.getElementById('annImagePreview');
+                const wrapper = document.getElementById('annImagePreviewWrapper');
+                if (previewImg && wrapper) {
+                    previewImg.src = selectedAnnouncementImageBase64;
+                    wrapper.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateAnnouncementImagePreview(url) {
+            const previewImg = document.getElementById('annImagePreview');
+            const wrapper = document.getElementById('annImagePreviewWrapper');
+            if (url && url.trim()) {
+                selectedAnnouncementImageBase64 = null;
+                if (previewImg && wrapper) {
+                    previewImg.src = url.trim();
+                    wrapper.classList.remove('hidden');
+                }
+            } else if (!selectedAnnouncementImageBase64 && wrapper) {
+                wrapper.classList.add('hidden');
+            }
+        }
+
+        function clearAnnouncementImagePreview() {
+            selectedAnnouncementImageBase64 = null;
+            const fileInput = document.getElementById('annImageFile');
+            if (fileInput) fileInput.value = '';
+            const urlInput = document.getElementById('annImage');
+            if (urlInput) urlInput.value = '';
+            const wrapper = document.getElementById('annImagePreviewWrapper');
+            if (wrapper) wrapper.classList.add('hidden');
+        }
+
         async function handleAddAnnouncement(e) {
             e.preventDefault();
-            const ann = {
-                id: 'ann-' + Date.now(),
-                title: document.getElementById('annTitle').value.trim(),
-                tag: document.getElementById('annTag').value,
-                content: document.getElementById('annContent').value.trim(),
-                image: document.getElementById('annImage').value.trim() || null,
-                authorName: shopData.currentUser ? shopData.currentUser.name : 'မပုံ့ (Admin)'
-            };
+            const btn = document.getElementById('btnSubmitAnn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span>တင်နေပါသည်...</span>`;
+            }
+
             try {
+                let imageUrl = document.getElementById('annImage').value.trim() || null;
+
+                // If user selected a local file, upload it first
+                if (selectedAnnouncementImageBase64) {
+                    const upRes = await fetch('api/shop.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'UPLOAD_IMAGE', image_data: selectedAnnouncementImageBase64, folder: 'announcements' })
+                    });
+                    const upData = await upRes.json();
+                    if (upData.ok && upData.url) {
+                        imageUrl = upData.url;
+                    } else {
+                        alert('ပုံတင်သွင်းမှု မအောင်မြင်ပါ: ' + (upData.error || 'Server error'));
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i><span>ကြေညာချက် တင်မည်</span>`;
+                            lucide.createIcons();
+                        }
+                        return;
+                    }
+                }
+
+                const ann = {
+                    id: 'ann-' + Date.now(),
+                    title: document.getElementById('annTitle').value.trim(),
+                    tag: document.getElementById('annTag').value,
+                    content: document.getElementById('annContent').value.trim(),
+                    image: imageUrl,
+                    authorName: shopData.currentUser ? shopData.currentUser.name : 'မပုံ့ (Admin)'
+                };
+
                 await fetch('api/shop.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'ADD_ANNOUNCEMENT', announcement: ann })
                 });
+
                 document.getElementById('annTitle').value = '';
                 document.getElementById('annContent').value = '';
-                document.getElementById('annImage').value = '';
+                clearAnnouncementImagePreview();
+                alert('ကြေညာချက် အသစ် အောင်မြင်စွာ တင်ပြီးပါပြီ! ✅');
                 loadData();
             } catch (err) {
                 alert('ကြေညာချက် တင်သွင်းမှု မအောင်မြင်ပါ: ' + err);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i><span>ကြေညာချက် တင်မည်</span>`;
+                    lucide.createIcons();
+                }
             }
+        }
+
+        async function uploadAnnouncementImageFile(annId, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert('ပုံအရွယ်အစားသည် 5MB ထက် မကျော်ရပါ');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                try {
+                    const upRes = await fetch('api/shop.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'UPLOAD_IMAGE', image_data: base64Data, folder: 'announcements' })
+                    });
+                    const upData = await upRes.json();
+                    if (upData.ok && upData.url) {
+                        await fetch('api/shop.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'UPDATE_ANNOUNCEMENT_IMAGE', announcementId: annId, image: upData.url })
+                        });
+                        alert('ကြေညာချက် ဓာတ်ပုံ အောင်မြင်စွာ တင်ပြီးပါပြီ! Slide Show တွင် ပြသပါမည်။ ✅');
+                        loadData();
+                    } else {
+                        alert('Upload မအောင်မြင်ပါ: ' + (upData.error || 'Server error'));
+                    }
+                } catch (err) {
+                    alert('Upload Error: ' + err);
+                }
+            };
+            reader.readAsDataURL(file);
         }
 
         async function deleteAnnouncement(announcementId) {
@@ -2502,22 +2645,48 @@ require_once __DIR__ . '/config/db.php';
             container.innerHTML = '';
             (shopData.announcements || []).forEach(a => {
                 const div = document.createElement('div');
-                div.className = 'bg-white p-4 rounded-3xl border border-stone-200 shadow-sm flex items-center justify-between text-xs';
+                div.className = 'bg-white p-4 rounded-3xl border border-stone-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs';
                 div.innerHTML = `
-                    <div class="space-y-1">
-                        <div class="flex items-center gap-2">
-                            <span class="font-extrabold text-stone-900 text-sm">${escapeHtml(a.title)}</span>
-                            <span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[10px]">${escapeHtml(a.tag)}</span>
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <!-- Image Thumbnail -->
+                        <div class="relative group w-16 h-16 rounded-2xl overflow-hidden border border-stone-200 bg-stone-100 shrink-0 flex items-center justify-center">
+                            ${a.image ? `
+                                <img src="${escapeHtml(a.image)}" alt="${escapeHtml(a.title)}" class="w-full h-full object-cover">
+                            ` : `
+                                <div class="flex flex-col items-center justify-center text-stone-400 text-[10px]">
+                                    <i data-lucide="image" class="w-5 h-5 mb-0.5"></i>
+                                    <span>ပုံမရှိပါ</span>
+                                </div>
+                            `}
+                            <label class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition text-[9px] font-bold p-1 text-center">
+                                <i data-lucide="camera" class="w-4 h-4 mb-0.5"></i>
+                                <span>ပုံပြောင်း</span>
+                                <input type="file" accept="image/*" class="hidden" onchange="uploadAnnouncementImageFile('${escapeHtml(a.id)}', event)">
+                            </label>
                         </div>
-                        <p class="text-stone-600 line-clamp-1">${escapeHtml(a.content)}</p>
-                        <p class="text-[11px] text-stone-400">တင်သည့်ရက်: ${new Date(a.createdAt).toLocaleDateString()} • တင်သူ: ${escapeHtml(a.authorName)}</p>
+                        <div class="space-y-1 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-extrabold text-stone-900 text-sm">${escapeHtml(a.title)}</span>
+                                <span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[10px]">${escapeHtml(a.tag)}</span>
+                            </div>
+                            <p class="text-stone-600 line-clamp-1">${escapeHtml(a.content)}</p>
+                            <p class="text-[11px] text-stone-400">တင်သည့်ရက်: ${new Date(a.createdAt).toLocaleDateString()} • တင်သူ: ${escapeHtml(a.authorName)}</p>
+                        </div>
                     </div>
-                    <button onclick="deleteAnnouncement('${escapeHtml(a.id)}')" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl font-bold transition">
-                        Delete
-                    </button>
+                    <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <label class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl font-bold transition cursor-pointer flex items-center gap-1.5 text-xs">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                            <span>${a.image ? 'ပုံပြောင်းမည်' : 'ပုံတင်မည်'}</span>
+                            <input type="file" accept="image/*" class="hidden" onchange="uploadAnnouncementImageFile('${escapeHtml(a.id)}', event)">
+                        </label>
+                        <button onclick="deleteAnnouncement('${escapeHtml(a.id)}')" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl font-bold transition">
+                            Delete
+                        </button>
+                    </div>
                 `;
                 container.appendChild(div);
             });
+            lucide.createIcons();
         }
 
         // ===================================================================
