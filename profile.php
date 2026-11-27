@@ -101,14 +101,13 @@ try {
 
             <!-- Profile Hero Card -->
             <section class="bg-white rounded-3xl border border-stone-200/90 shadow-xs overflow-hidden">
-                <div class="h-24 sm:h-32 bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 relative">
-                    <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#d4a353_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                <div class="h-24 sm:h-32 bg-white border-b border-stone-200/80 relative">
                 </div>
                 <div class="px-5 sm:px-8 pb-6">
                     <div class="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 -mt-12 sm:-mt-14 relative z-10">
                         <!-- Avatar -->
                         <div class="relative group self-start">
-                            <div id="avatarWrapper" class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-amber-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-amber-800 font-extrabold text-3xl">
+                            <div id="avatarWrapper" class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-amber-50 border-4 border-white shadow-md ring-1 ring-stone-200/70 overflow-hidden flex items-center justify-center text-amber-800 font-extrabold text-3xl">
                                 <img id="avatarPreviewImg" src="" alt="Profile Photo" class="w-full h-full object-cover hidden">
                                 <span id="avatarInitials">P</span>
                             </div>
