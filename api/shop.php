@@ -1760,10 +1760,12 @@ function buildLiveShopContextForAI($pdo) {
         exit;
     }
 
-    // 17. UPLOAD_IMAGE (Admin Product & Banner Upload)
+    // 17. UPLOAD_IMAGE (Admin Product, Logo & Banner Upload)
     if ($action === 'UPLOAD_IMAGE') {
         $file = $_FILES['image'] ?? ($body['image_data'] ?? null);
-        $res = handleSecureImageUpload($file, 'products', 'prod');
+        $folder = in_array($body['folder'] ?? '', ['products', 'logos', 'banners', 'slips']) ? $body['folder'] : 'products';
+        $prefix = ($folder === 'logos') ? 'logo' : (($folder === 'banners') ? 'banner' : 'prod');
+        $res = handleSecureImageUpload($file, $folder, $prefix);
         if ($res['ok']) {
             echo json_encode(['ok' => true, 'url' => $res['url']], JSON_UNESCAPED_UNICODE);
         } else {
@@ -1820,7 +1822,8 @@ function buildLiveShopContextForAI($pdo) {
             $allowedKeys = [
                 'shop_name', 'shop_name_mm', 'phone_1', 'phone_2', 'kpay_account',
                 'telegram_bot_token', 'telegram_chat_id', 'telegram_enabled',
-                'app_version', 'app_min_version', 'app_download_url'
+                'app_version', 'app_min_version', 'app_download_url',
+                'shop_logo', 'title_bar', 'shop_subtitle', 'announcement'
             ];
             $stmt = $pdo->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?");
             foreach ($incomingSettings as $k => $v) {

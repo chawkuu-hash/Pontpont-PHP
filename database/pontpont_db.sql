@@ -203,6 +203,10 @@ INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `city`, `addres
 -- Dumping data for table `settings`
 INSERT INTO `settings` (`key`, `value`) VALUES
 ('theme', 'luxury-gold'),
+('title_bar', 'Pont Pont Handbag Shop | ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး (မန္တလေး)'),
+('shop_subtitle', 'ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး'),
+('announcement', '✨ PONTPONT10 ကူပွန်ဖြင့် 10% OFF • ၁ သိန်းအထက် Free Delivery • နေ့ချင်း ကားဂိတ်ပို့'),
+('shop_logo', ''),
 ('shop_name', 'Pont Pont Handbag Shop'),
 ('shop_name_mm', 'ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး (မန္တလေး)'),
 ('phone_1', '09-963000502'),

@@ -102,12 +102,12 @@ require_once __DIR__ . '/config/db.php';
             <!-- Brand -->
             <div class="p-5 border-b border-stone-800 flex items-center justify-between">
                 <a href="admin.php" class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold shadow-md shadow-amber-600/30">
+                    <div id="adminBrandLogoContainer" class="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold shadow-md shadow-amber-600/30 overflow-hidden flex-shrink-0">
                         <i data-lucide="shield-check" class="w-5 h-5"></i>
                     </div>
-                    <div>
-                        <h1 class="text-sm font-extrabold text-white tracking-wide">Pont Pont Admin</h1>
-                        <p class="text-[11px] text-amber-400 font-medium">မန္တလေး စတိုးဆိုင် စီမံမှု</p>
+                    <div class="min-w-0">
+                        <h1 id="adminBrandTitle" class="text-sm font-extrabold text-white tracking-wide truncate">Pont Pont Admin</h1>
+                        <p id="adminBrandSubtitle" class="text-[11px] text-amber-400 font-medium truncate">မန္တလေး စတိုးဆိုင် စီမံမှု</p>
                     </div>
                 </a>
                 <a href="index.php" title="စတိုးဆိုင် ကြည့်မည်" class="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 transition">
@@ -652,6 +652,41 @@ require_once __DIR__ . '/config/db.php';
                     </form>
                 </div>
 
+                <!-- Products Filter & Search Bar -->
+                <div class="bg-white p-4 rounded-3xl border border-stone-200 shadow-sm space-y-3 text-xs">
+                    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                        <!-- Search Bar -->
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"></i>
+                            <input type="text" id="adminProductSearch" oninput="handleAdminProductFilter()" placeholder="အိတ်အမည်၊ အမျိုးအစား၊ ID ဖြင့် ရှာဖွေရန်..." class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs transition">
+                            <button type="button" id="clearAdminProductSearch" onclick="clearAdminProductSearchInput()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Category Filter Dropdown -->
+                        <div class="flex items-center gap-2">
+                            <label for="adminProductCategoryFilter" class="font-bold text-stone-700 whitespace-nowrap flex items-center gap-1.5">
+                                <i data-lucide="filter" class="w-4 h-4 text-amber-600"></i> အမျိုးအစား:
+                            </label>
+                            <select id="adminProductCategoryFilter" onchange="handleAdminProductFilter()" class="py-2.5 px-3.5 rounded-xl border border-stone-300 bg-white font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                <option value="ALL">အမျိုးအစား အားလုံး (All Categories)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Category Pills Quick Bar -->
+                    <div id="adminCategoryPills" class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- Filter Count & Status Bar -->
+                    <div class="flex items-center justify-between pt-2 border-t border-stone-100 text-[11px] text-stone-500">
+                        <span id="adminProductsCountDisplay">ပြသထားသော ကုန်ပစ္စည်း: <strong class="text-stone-800">0</strong> မျိုး</span>
+                        <span id="adminProductsFilterState" class="font-bold text-amber-700"></span>
+                    </div>
+                </div>
+
                 <!-- Products Table / List -->
                 <div id="adminProductsContainer" class="space-y-3">
                     <!-- Populated dynamically -->
@@ -906,6 +941,66 @@ require_once __DIR__ . '/config/db.php';
                 </div>
 
                 <form onsubmit="handleSaveSettings(event)" class="space-y-6">
+                    <!-- Shop Branding, Logo & Title Bar Settings -->
+                    <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4 text-xs">
+                        <h5 class="font-bold text-sm text-stone-900 flex items-center gap-2 border-b pb-3">
+                            <i data-lucide="layout" class="w-4 h-4 text-amber-600"></i> ဆိုင် Logo နှင့် Title Bar ဆက်တင်များ (Branding & Display)
+                        </h5>
+
+                        <!-- Title Bar Setting -->
+                        <div>
+                            <label class="block font-bold mb-1">ဝဘ်ဆိုက် ခေါင်းစဉ် / Title Bar (Browser Tab & Header Title)</label>
+                            <input type="text" id="setTitleBar" placeholder="Pont Pont Handbag Shop | ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး (မန္တလေး)" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-medium">
+                            <span class="text-[11px] text-stone-400">Browser tab နှင့် ဝဘ်ဆိုက် ထိပ်စီးတွင် ပြသမည့် ခေါင်းစဉ် (Title Bar)</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Shop Subtitle / Tagline -->
+                            <div>
+                                <label class="block font-bold mb-1">ဆိုင် ခေါင်းစဉ်ခွဲ (Tagline / Subtitle)</label>
+                                <input type="text" id="setShopSubtitle" placeholder="ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300">
+                                <span class="text-[11px] text-stone-400">ဆိုင် Logo/အမည်အောက်တွင် ပြသမည့် စာတန်း</span>
+                            </div>
+
+                            <!-- Shop Top Announcement Bar -->
+                            <div>
+                                <label class="block font-bold mb-1">ဆိုင် အပေါ်ဘား အသိပေးစာတန်း (Top Announcement)</label>
+                                <input type="text" id="setAnnouncement" placeholder="✨ PONTPONT10 ကူပွန်ဖြင့် 10% OFF • ၁ သိန်းအထက် Free Delivery" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300">
+                                <span class="text-[11px] text-stone-400">ဝဘ်ဆိုက်ထိပ်ဆုံး အနက်ရောင်ဘားတွင် ပြသမည့် စာတန်း</span>
+                            </div>
+                        </div>
+
+                        <!-- Shop Logo Setting -->
+                        <div class="pt-3 border-t border-stone-100">
+                            <label class="block font-bold mb-1.5">ဆိုင် Logo (Shop Logo)</label>
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <!-- Logo Preview Box -->
+                                <div id="setShopLogoPreviewBox" class="w-20 h-20 rounded-2xl border-2 border-dashed border-stone-300 flex items-center justify-center bg-stone-50 overflow-hidden flex-shrink-0 relative group">
+                                    <img id="setShopLogoPreview" src="" alt="Logo Preview" class="w-full h-full object-contain hidden p-1">
+                                    <div id="setShopLogoPlaceholder" class="text-stone-400 flex flex-col items-center justify-center text-center p-2">
+                                        <i data-lucide="image" class="w-6 h-6 mb-1 text-stone-300"></i>
+                                        <span class="text-[10px] font-bold text-stone-400">No Logo</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex-1 w-full space-y-2">
+                                    <div class="flex gap-2">
+                                        <input type="text" id="setShopLogo" placeholder="Logo ပုံ URL (https://...) သို့မဟုတ် Upload တင်ပါ" class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs font-mono" oninput="updateLogoPreview(this.value)">
+                                        <label class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition shadow-xs">
+                                            <i data-lucide="upload" class="w-4 h-4"></i>
+                                            <span>Upload Logo</span>
+                                            <input type="file" id="setLogoUploadFile" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                                        </label>
+                                        <button type="button" onclick="clearLogo()" class="px-3.5 py-2.5 bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-700 border border-stone-200 rounded-xl text-xs font-bold transition">
+                                            ဖျက်မည်
+                                        </button>
+                                    </div>
+                                    <p class="text-[11px] text-stone-400">PNG, JPG, SVG, WEBP အမျိုးအစားများ လက်ခံပါသည် (စတုရန်းပုံ သို့မဟုတ် အလျားလိုက် Transparent Logo အဆင်ပြေပါသည်)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- General Shop Contact Info -->
                     <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4 text-xs">
                         <h5 class="font-bold text-sm text-stone-900 flex items-center gap-2 border-b pb-3">
@@ -2063,28 +2158,171 @@ require_once __DIR__ . '/config/db.php';
             }
         }
 
+        let adminProductSearchQuery = '';
+        let adminSelectedCategory = 'ALL';
+
+        function handleAdminProductFilter() {
+            const searchInput = document.getElementById('adminProductSearch');
+            adminProductSearchQuery = (searchInput ? searchInput.value : '').trim().toLowerCase();
+            const catSelect = document.getElementById('adminProductCategoryFilter');
+            adminSelectedCategory = catSelect ? catSelect.value : 'ALL';
+
+            const clearBtn = document.getElementById('clearAdminProductSearch');
+            if (clearBtn) {
+                if (adminProductSearchQuery) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+
+            renderCategoryPills();
+            renderProductsList();
+        }
+
+        function clearAdminProductSearchInput() {
+            const searchInput = document.getElementById('adminProductSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                handleAdminProductFilter();
+            }
+        }
+
+        function selectAdminCategory(catId) {
+            const catSelect = document.getElementById('adminProductCategoryFilter');
+            if (catSelect) {
+                catSelect.value = catId;
+                handleAdminProductFilter();
+            }
+        }
+
+        function clearAllProductFilters() {
+            const searchInput = document.getElementById('adminProductSearch');
+            if (searchInput) searchInput.value = '';
+            const catSelect = document.getElementById('adminProductCategoryFilter');
+            if (catSelect) catSelect.value = 'ALL';
+            handleAdminProductFilter();
+        }
+
+        function renderCategoryPills() {
+            const pillsContainer = document.getElementById('adminCategoryPills');
+            if (!pillsContainer) return;
+            const cats = shopData.categories || [];
+            let html = `
+                <button type="button" onclick="selectAdminCategory('ALL')" class="px-3 py-1 rounded-full text-xs font-bold transition whitespace-nowrap ${adminSelectedCategory === 'ALL' ? 'bg-amber-600 text-white shadow-xs' : 'bg-stone-100 hover:bg-stone-200 text-stone-600'}">
+                    အားလုံး (${(shopData.products || []).length})
+                </button>
+            `;
+            cats.forEach(c => {
+                const count = (shopData.products || []).filter(p => p.category === c.id || p.category === c.labelEn || p.categoryMm === c.labelMm).length;
+                const isSelected = (adminSelectedCategory === c.id || adminSelectedCategory === c.labelEn);
+                html += `
+                    <button type="button" onclick="selectAdminCategory('${escapeHtml(c.id)}')" class="px-3 py-1 rounded-full text-xs font-bold transition whitespace-nowrap ${isSelected ? 'bg-amber-600 text-white shadow-xs' : 'bg-stone-100 hover:bg-stone-200 text-stone-600'}">
+                        ${escapeHtml(c.labelMm || c.labelEn)} (${count})
+                    </button>
+                `;
+            });
+            pillsContainer.innerHTML = html;
+        }
+
         function renderProducts() {
+            // Update Category Filter Dropdown options
+            const catSelect = document.getElementById('adminProductCategoryFilter');
+            if (catSelect) {
+                const currentVal = catSelect.value || 'ALL';
+                const cats = shopData.categories || [];
+                let optionsHtml = `<option value="ALL">အမျိုးအစား အားလုံး (All Categories)</option>`;
+                cats.forEach(c => {
+                    optionsHtml += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.labelMm ? (c.labelMm + ' - ' + c.labelEn) : c.labelEn)}</option>`;
+                });
+                catSelect.innerHTML = optionsHtml;
+                catSelect.value = currentVal;
+            }
+
+            renderCategoryPills();
+            renderProductsList();
+        }
+
+        function renderProductsList() {
             const container = document.getElementById('adminProductsContainer');
+            if (!container) return;
             container.innerHTML = '';
-            (shopData.products || []).forEach(p => {
+
+            const allProducts = shopData.products || [];
+            const filtered = allProducts.filter(p => {
+                // Category match
+                if (adminSelectedCategory !== 'ALL') {
+                    const matchCat = (p.category === adminSelectedCategory) ||
+                                     (p.category && p.category.toLowerCase() === adminSelectedCategory.toLowerCase()) ||
+                                     (p.categoryMm && p.categoryMm === adminSelectedCategory);
+                    if (!matchCat) return false;
+                }
+                // Search match
+                if (adminProductSearchQuery) {
+                    const q = adminProductSearchQuery;
+                    const matchSearch = (p.nameEn && p.nameEn.toLowerCase().includes(q)) ||
+                                        (p.nameMm && p.nameMm.toLowerCase().includes(q)) ||
+                                        (p.category && p.category.toLowerCase().includes(q)) ||
+                                        (p.categoryMm && p.categoryMm.toLowerCase().includes(q)) ||
+                                        (p.id && p.id.toLowerCase().includes(q)) ||
+                                        (p.material && p.material.toLowerCase().includes(q)) ||
+                                        (p.badge && p.badge.toLowerCase().includes(q)) ||
+                                        (p.price && p.price.toString().includes(q));
+                    if (!matchSearch) return false;
+                }
+                return true;
+            });
+
+            // Update Count display
+            const countDisplay = document.getElementById('adminProductsCountDisplay');
+            if (countDisplay) {
+                countDisplay.innerHTML = `ပြသထားသော ကုန်ပစ္စည်း: <strong class="text-stone-900 font-extrabold">${filtered.length}</strong> / စုစုပေါင်း: <strong>${allProducts.length}</strong> မျိုး`;
+            }
+            const filterState = document.getElementById('adminProductsFilterState');
+            if (filterState) {
+                if (adminSelectedCategory !== 'ALL' || adminProductSearchQuery) {
+                    filterState.innerHTML = `<button type="button" onclick="clearAllProductFilters()" class="text-amber-700 hover:text-amber-800 underline font-bold flex items-center gap-1">Filter ဖျက်မည် (Reset)</button>`;
+                } else {
+                    filterState.innerHTML = '';
+                }
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-12 rounded-3xl border border-stone-200 text-center space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                            <i data-lucide="search-x" class="w-6 h-6"></i>
+                        </div>
+                        <h5 class="font-extrabold text-stone-800 text-sm">ရှာဖွေမှုနှင့် ကိုက်ညီသော ကုန်ပစ္စည်း မရှိပါ</h5>
+                        <p class="text-xs text-stone-500">ရှာဖွေသည့် စာလုံး သို့မဟုတ် Category ကို ပြောင်းလဲ စစ်ဆေးကြည့်ပါ</p>
+                        <button type="button" onclick="clearAllProductFilters()" class="px-4 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition">
+                            Filter အားလုံး ဖျက်မည်
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            filtered.forEach(p => {
                 const div = document.createElement('div');
-                div.className = 'bg-white p-4 rounded-3xl border border-stone-200 shadow-sm flex items-center gap-4 text-xs';
+                div.className = 'bg-white p-4 rounded-3xl border border-stone-200 shadow-sm flex items-center gap-4 text-xs hover:border-amber-200 transition';
                 div.innerHTML = `
-                    <img src="${escapeHtml(p.image)}" class="w-14 h-14 rounded-2xl object-cover border border-stone-200 flex-shrink-0">
+                    <img src="${escapeHtml(p.image)}" class="w-14 h-14 rounded-2xl object-cover border border-stone-200 flex-shrink-0" onerror="this.src='https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=200'">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
                             <h5 class="font-extrabold text-stone-900 text-sm truncate">${escapeHtml(p.nameEn)}</h5>
                             ${p.badge ? `<span class="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded text-[10px]">${escapeHtml(p.badge)}</span>` : ''}
                         </div>
                         <p class="text-stone-500 mt-0.5 truncate">${escapeHtml(p.nameMm)}</p>
-                        <div class="flex items-center gap-3 mt-1.5 text-stone-600 font-semibold">
-                            <span>အမျိုးအစား: <strong>${escapeHtml(p.category)}</strong></span>
+                        <div class="flex flex-wrap items-center gap-3 mt-1.5 text-stone-600 font-semibold">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="text-stone-400">Category:</span>
+                                <span class="bg-stone-100 text-stone-800 px-2 py-0.5 rounded text-[10px] font-bold">${escapeHtml(p.category)}</span>
+                            </span>
                             <span>လက်လီ: <strong class="text-amber-700">${p.price.toLocaleString()} Ks</strong></span>
                             <span>လက်ကား: <strong>${p.wholesalePrice ? p.wholesalePrice.toLocaleString() + ' Ks' : '-'}</strong></span>
-                            <span>Stock: <strong class="${p.stock < 10 ? 'text-red-600' : 'text-emerald-700'}">${p.stock}</strong></span>
+                            <span>Stock: <strong class="${p.stock < 10 ? 'text-red-600 font-black' : 'text-emerald-700'}">${p.stock}</strong></span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-shrink-0">
                         <button onclick="editProduct('${escapeHtml(p.id)}')" class="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl font-bold transition">
                             Edit
                         </button>
@@ -2095,6 +2333,7 @@ require_once __DIR__ . '/config/db.php';
                 `;
                 container.appendChild(div);
             });
+            lucide.createIcons();
         }
 
         // ===================================================================
@@ -3289,11 +3528,20 @@ require_once __DIR__ . '/config/db.php';
         }
 
         // ===================================================================
-        // SETTINGS & TELEGRAM
+        // SETTINGS, BRANDING & TELEGRAM
         // ===================================================================
         function renderSettings() {
             const s = shopData.settings || {};
             const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+            
+            // Branding & Display
+            setIf('setTitleBar', s.title_bar || 'Pont Pont Handbag Shop | ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး (မန္တလေး)');
+            setIf('setShopSubtitle', s.shop_subtitle || 'ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး');
+            setIf('setAnnouncement', s.announcement || '✨ PONTPONT10 ကူပွန်ဖြင့် 10% OFF • ၁ သိန်းအထက် Free Delivery • နေ့ချင်း ကားဂိတ်ပို့');
+            setIf('setShopLogo', s.shop_logo);
+            updateLogoPreview(s.shop_logo);
+
+            // General Info
             setIf('setShopName', s.shop_name);
             setIf('setShopNameMm', s.shop_name_mm);
             setIf('setPhone1', s.phone_1);
@@ -3303,11 +3551,97 @@ require_once __DIR__ . '/config/db.php';
             setIf('setTelegramChatId', s.telegram_chat_id);
             const tgCheck = document.getElementById('setTelegramEnabled');
             if (tgCheck) tgCheck.checked = (s.telegram_enabled === '1');
+
+            updateBrandDisplay();
+        }
+
+        function updateBrandDisplay() {
+            const s = shopData.settings || {};
+            if (s.title_bar) {
+                document.title = 'Admin - ' + s.title_bar;
+            }
+            if (s.shop_name) {
+                const titleEl = document.getElementById('adminBrandTitle');
+                if (titleEl) titleEl.innerText = s.shop_name;
+            }
+            if (s.shop_subtitle || s.shop_name_mm) {
+                const subEl = document.getElementById('adminBrandSubtitle');
+                if (subEl) subEl.innerText = s.shop_subtitle || s.shop_name_mm;
+            }
+            const logoBox = document.getElementById('adminBrandLogoContainer');
+            if (logoBox) {
+                if (s.shop_logo && s.shop_logo.trim()) {
+                    logoBox.innerHTML = `<img src="${escapeHtml(s.shop_logo.trim())}" class="w-full h-full object-cover">`;
+                } else {
+                    logoBox.innerHTML = `<i data-lucide="shield-check" class="w-5 h-5"></i>`;
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        function updateLogoPreview(url) {
+            const img = document.getElementById('setShopLogoPreview');
+            const placeholder = document.getElementById('setShopLogoPlaceholder');
+            if (url && url.trim()) {
+                if (img) {
+                    img.src = url.trim();
+                    img.classList.remove('hidden');
+                }
+                if (placeholder) placeholder.classList.add('hidden');
+            } else {
+                if (img) {
+                    img.src = '';
+                    img.classList.add('hidden');
+                }
+                if (placeholder) placeholder.classList.remove('hidden');
+            }
+        }
+
+        function clearLogo() {
+            const input = document.getElementById('setShopLogo');
+            if (input) input.value = '';
+            updateLogoPreview('');
+        }
+
+        async function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Logo ပုံ အရွယ်အစားသည် 5MB ထက် မကျော်ရပါ');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                try {
+                    const res = await fetch('api/shop.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'UPLOAD_IMAGE', image_data: base64Data, folder: 'logos' })
+                    });
+                    const data = await res.json();
+                    if (data.ok && data.url) {
+                        const logoInput = document.getElementById('setShopLogo');
+                        if (logoInput) logoInput.value = data.url;
+                        updateLogoPreview(data.url);
+                        alert('Logo ပုံ အောင်မြင်စွာ တင်ပြီးပါပြီ! အတည်ပြု သိမ်းဆည်းရန် စာမျက်နှာအောက်ခြေရှိ "ဆက်တင်များ အားလုံး သိမ်းဆည်းမည်" ကို နှိပ်ပေးပါ။ ✅');
+                    } else {
+                        alert('Upload မအောင်မြင်ပါ: ' + (data.error || 'Unknown error'));
+                    }
+                } catch (err) {
+                    alert('Upload Error: ' + err);
+                }
+            };
+            reader.readAsDataURL(file);
         }
 
         async function handleSaveSettings(e) {
             e.preventDefault();
             const settings = {
+                title_bar: document.getElementById('setTitleBar') ? document.getElementById('setTitleBar').value.trim() : '',
+                shop_subtitle: document.getElementById('setShopSubtitle') ? document.getElementById('setShopSubtitle').value.trim() : '',
+                announcement: document.getElementById('setAnnouncement') ? document.getElementById('setAnnouncement').value.trim() : '',
+                shop_logo: document.getElementById('setShopLogo') ? document.getElementById('setShopLogo').value.trim() : '',
                 shop_name: document.getElementById('setShopName').value.trim(),
                 shop_name_mm: document.getElementById('setShopNameMm').value.trim(),
                 phone_1: document.getElementById('setPhone1').value.trim(),
@@ -3325,7 +3659,7 @@ require_once __DIR__ . '/config/db.php';
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    alert('ဆိုင် ဆက်တင်များ အားလုံး အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ! ✅');
+                    alert('ဆိုင် Logo, Title Bar နှင့် ဆက်တင်များ အားလုံး အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ! ✅');
                     loadData();
                 } else {
                     alert('Error: ' + (data.error || 'Failed to save settings'));

@@ -93,12 +93,12 @@ try {
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div class="flex items-center gap-2 overflow-hidden text-center sm:text-left">
                 <span class="bg-amber-500 text-stone-950 font-extrabold text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">Promotion</span>
-                <span class="truncate">✨ PONTPONT10 ကူပွန်ဖြင့် 10% OFF • ၁ သိန်းအထက် Free Delivery • နေ့ချင်း ကားဂိတ်ပို့</span>
+                <span id="topAnnouncementText" class="truncate">✨ PONTPONT10 ကူပွန်ဖြင့် 10% OFF • ၁ သိန်းအထက် Free Delivery • နေ့ချင်း ကားဂိတ်ပို့</span>
             </div>
             <div class="flex items-center gap-4 text-[11px] text-stone-400">
-                <a href="tel:09963000502" class="hover:text-amber-400 transition flex items-center gap-1">
+                <a id="topPhoneLink" href="tel:09963000502" class="hover:text-amber-400 transition flex items-center gap-1">
                     <i data-lucide="phone" class="w-3.5 h-3.5 text-amber-400"></i>
-                    <span>09-963000502</span>
+                    <span id="topPhoneText">09-963000502</span>
                 </a>
                 <span class="hidden md:inline">|</span>
                 <span class="hidden md:inline">မန္တလေးမြို့ ဆိုင်ခွဲ (၃) ဆိုင်</span>
@@ -111,15 +111,15 @@ try {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
             <!-- Brand Logo -->
             <a href="index.php" class="flex items-center gap-3 group flex-shrink-0">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-700 via-amber-600 to-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition">
+                <div id="brandLogoContainer" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-700 via-amber-600 to-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition overflow-hidden">
                     <i data-lucide="shopping-bag" class="w-6 h-6"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-1.5">
-                        <span class="text-xl font-extrabold tracking-tight text-stone-900">Pont Pont</span>
+                        <span id="brandShopName" class="text-xl font-extrabold tracking-tight text-stone-900">Pont Pont</span>
                         <span class="text-xs bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-md">Mandalay</span>
                     </div>
-                    <p class="text-xs text-stone-500 font-medium">ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး</p>
+                    <p id="brandShopSubtitle" class="text-xs text-stone-500 font-medium">ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး</p>
                 </div>
             </a>
 
@@ -1126,6 +1126,42 @@ try {
                 const data = await res.json();
                 shopData = data;
                 applyTheme(data.theme);
+
+                // Apply Branding, Title Bar & Settings
+                if (data.settings) {
+                    const s = data.settings;
+                    if (s.title_bar) {
+                        document.title = s.title_bar;
+                    }
+                    if (s.announcement) {
+                        const annEl = document.getElementById('topAnnouncementText');
+                        if (annEl) annEl.innerText = s.announcement;
+                    }
+                    if (s.phone_1) {
+                        const phoneEl = document.getElementById('topPhoneText');
+                        const phoneLink = document.getElementById('topPhoneLink');
+                        if (phoneEl) phoneEl.innerText = s.phone_1;
+                        if (phoneLink) phoneLink.href = 'tel:' + s.phone_1.replace(/[^0-9+]/g, '');
+                    }
+                    if (s.shop_name) {
+                        const nameEl = document.getElementById('brandShopName');
+                        if (nameEl) nameEl.innerText = s.shop_name;
+                    }
+                    if (s.shop_subtitle || s.shop_name_mm) {
+                        const subEl = document.getElementById('brandShopSubtitle');
+                        if (subEl) subEl.innerText = s.shop_subtitle || s.shop_name_mm;
+                    }
+                    const logoContainer = document.getElementById('brandLogoContainer');
+                    if (logoContainer) {
+                        if (s.shop_logo && s.shop_logo.trim()) {
+                            logoContainer.innerHTML = `<img src="${escapeHtml(s.shop_logo.trim())}" alt="Shop Logo" class="w-full h-full object-cover">`;
+                        } else {
+                            logoContainer.innerHTML = `<i data-lucide="shopping-bag" class="w-6 h-6"></i>`;
+                            lucide.createIcons();
+                        }
+                    }
+                }
+
                 renderCategories();
                 renderAnnouncements();
                 renderProducts();

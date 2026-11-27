@@ -38,9 +38,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
 define('DB_PORT', getenv('DB_PORT') ?: '3306');
-define('DB_NAME', getenv('DB_NAME') ?: 'pontpont_db');
-define('DB_USER', getenv('DB_USER') ?: 'pontpont_user');
-define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : 'PontPont2026!');
+define('DB_NAME', getenv('DB_NAME') ?: 'fgkijemy_pontpont');
+define('DB_USER', getenv('DB_USER') ?: 'fgkijemy_WPufm');
+define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : ')Hm?{qxauzp3ces=');
 define('DB_CHARSET', 'utf8mb4');
 
 // Secret key for HMAC token signing (can be customized)
