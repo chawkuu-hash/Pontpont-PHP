@@ -1100,8 +1100,9 @@ require_once __DIR__ . '/config/db.php';
                                 <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700">AI ဝန်ဆောင်မှု ပံ့ပိုးသူ (Provider)</label>
                                 <select id="adminBotProvider" onchange="handleBotProviderChange()" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white font-bold text-stone-800 focus:ring-2 focus:ring-emerald-500">
                                     <option value="gemini">Google Gemini API (အကြံပြုချက် - မြန်မာစာကျွမ်းကျင်ပြီး အခမဲ့ Key ရရှိနိုင်)</option>
-                                    <option value="openai">OpenAI (GPT-4o-mini / GPT-4o)</option>
+                                    <option value="bedrock">Amazon Bedrock (AWS Bearer Token - ABSK...)</option>
                                     <option value="groq">Groq (Llama 3.3 70B - Ultra Fast အလွန်မြန်ဆန်)</option>
+                                    <option value="openai">OpenAI (GPT-4o-mini / GPT-4o)</option>
                                     <option value="mock">Built-in Rule Engine (API Key မလိုပါ - မူလစနစ်)</option>
                                     <option value="custom">Custom OpenAI-Compatible API (OpenWebUI, Ollama, LM Studio)</option>
                                 </select>
@@ -1115,7 +1116,7 @@ require_once __DIR__ . '/config/db.php';
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex gap-2">
-                                        <input type="text" id="adminBotModel" value="gemini-flash-lite-latest" placeholder="e.g. gemini-flash-lite-latest, gpt-4o-mini" class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
+                                        <input type="text" id="adminBotModel" value="gemini-flash-lite-latest" placeholder="e.g. gemini-flash-lite-latest, amazon.nova-lite-v1:0" class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
                                         <select id="adminBotModelSelect" onchange="document.getElementById('adminBotModel').value = this.value;" class="flex-1 px-3.5 py-2.5 rounded-xl border border-emerald-400 bg-emerald-50 font-mono font-bold hidden">
                                             <!-- Dynamically populated -->
                                         </select>
@@ -1124,12 +1125,12 @@ require_once __DIR__ . '/config/db.php';
                                             <span id="btnFetchModelsText">Fetch Models</span>
                                         </button>
                                     </div>
-                                    <p class="text-[11px] text-stone-400">Gemini: <code>gemini-flash-lite-latest</code> (Free Quota အကြံပြုချက်) | OpenAI: <code>gpt-4o-mini</code> | Groq: <code>llama-3.3-70b-versatile</code></p>
+                                    <p class="text-[11px] text-stone-400">Gemini: <code>gemini-flash-lite-latest</code> | Bedrock: <code>amazon.nova-lite-v1:0</code> | Groq: <code>llama-3.3-70b-versatile</code></p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- API Key & Custom URL Containers -->
+                        <!-- API Key, Region & Custom URL Containers -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                             <div id="adminApiKeyContainer">
                                 <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700 flex items-center justify-between">
@@ -1137,15 +1138,27 @@ require_once __DIR__ . '/config/db.php';
                                     <span id="apiKeyStatusBadge" class="text-[11px] font-normal text-stone-500"></span>
                                 </label>
                                 <div class="relative">
-                                    <input type="password" id="adminBotApiKey" placeholder="AI Provider မှ API Key ထည့်ပါ" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800 pr-10">
+                                    <input type="password" id="adminBotApiKey" oninput="checkApiKeyMismatch()" placeholder="AI Provider မှ API Key ထည့်ပါ" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800 pr-10">
                                     <button type="button" onclick="toggleApiKeyVisibility()" class="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700 p-1">
                                         <i data-lucide="eye" id="apiKeyEyeIcon" class="w-4 h-4"></i>
                                     </button>
                                 </div>
+                                <div id="apiKeyMismatchWarning" class="hidden mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold leading-relaxed"></div>
                                 <div class="flex items-center justify-between text-[11px] text-stone-500 mt-1.5">
                                     <span id="apiKeyLinkText"></span>
-                                    <span class="text-stone-400">Database တွင် လုံခြုံစွာ သိမ်းဆည်းပါသည်</span>
+                                    <span class="text-stone-400">Database (fgkijemy_pontpont) တွင် လုံခြုံစွာ သိမ်းဆည်းပါသည်</span>
                                 </div>
+                            </div>
+
+                            <div id="adminBedrockRegionContainer" class="hidden">
+                                <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700">AWS Bedrock Region</label>
+                                <select id="adminBotRegion" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800 bg-white">
+                                    <option value="us-east-1">us-east-1 (N. Virginia - အကြံပြုချက်)</option>
+                                    <option value="us-west-2">us-west-2 (Oregon)</option>
+                                    <option value="ap-southeast-1">ap-southeast-1 (Singapore)</option>
+                                    <option value="eu-central-1">eu-central-1 (Frankfurt)</option>
+                                </select>
+                                <span class="text-[11px] text-stone-400 block mt-1.5">Amazon Bedrock မော်ဒယ်များ ခွင့်ပြုထားသော AWS Region</span>
                             </div>
 
                             <div id="adminApiUrlContainer" class="hidden">
@@ -3708,10 +3721,13 @@ Store Information:
         function handleBotProviderChange() {
             const prov = document.getElementById('adminBotProvider').value;
             const keyBox = document.getElementById('adminApiKeyContainer');
+            const regionBox = document.getElementById('adminBedrockRegionContainer');
             const urlBox = document.getElementById('adminApiUrlContainer');
             const modelInp = document.getElementById('adminBotModel');
             const hint = document.getElementById('providerHintText');
             const linkText = document.getElementById('apiKeyLinkText');
+
+            if (regionBox) regionBox.classList.add('hidden');
 
             if (prov === 'mock') {
                 keyBox.classList.add('hidden');
@@ -3719,6 +3735,15 @@ Store Information:
                 modelInp.value = 'built-in-rules';
                 hint.innerText = '💡 Built-in Engine သည် API Key မလိုဘဲ ဆိုင်အချက်အလက်များကို အလိုအလျောက် ဖြေကြားပေးပါသည်။';
                 linkText.innerHTML = '';
+            } else if (prov === 'bedrock') {
+                keyBox.classList.remove('hidden');
+                urlBox.classList.add('hidden');
+                if (regionBox) regionBox.classList.remove('hidden');
+                if (!modelInp.value || modelInp.value === 'built-in-rules' || modelInp.value.includes('gemini') || modelInp.value.includes('gpt')) {
+                    modelInp.value = 'amazon.nova-lite-v1:0';
+                }
+                hint.innerText = '💡 Amazon Bedrock သည် AWS API Key (Bearer Token - ABSK...) ဖြင့် Converse API ကို အသုံးပြုပါသည်။';
+                linkText.innerHTML = '<span class="text-amber-700 font-bold">AWS Bedrock API Key (ABSK...) ထည့်သွင်းပါ</span>';
             } else if (prov === 'custom') {
                 keyBox.classList.remove('hidden');
                 urlBox.classList.remove('hidden');
@@ -3729,7 +3754,9 @@ Store Information:
                 keyBox.classList.remove('hidden');
                 urlBox.classList.add('hidden');
                 if (prov === 'gemini') {
-                    if (!modelInp.value || modelInp.value === 'built-in-rules' || modelInp.value === 'gemini-1.5-flash') modelInp.value = 'gemini-flash-lite-latest';
+                    if (!modelInp.value || modelInp.value === 'built-in-rules' || modelInp.value.includes('nova') || modelInp.value.includes('llama')) {
+                        modelInp.value = 'gemini-flash-lite-latest';
+                    }
                     hint.innerText = '💡 Google Gemini သည် မြန်မာစာအထူးကျွမ်းကျင်ပြီး အခမဲ့ Rate Limits ကောင်းမွန်ပါသည်။';
                     linkText.innerHTML = '<a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 Google AI Studio တွင် အခမဲ့ Gemini Key ရယူရန်</a>';
                 } else if (prov === 'openai') {
@@ -3741,6 +3768,31 @@ Store Information:
                     hint.innerText = '💡 Groq သည် LPU chip ဖြင့် အမြန်ဆုံး အမြန်နှုန်းဖြင့် ချက်ချင်း ပြန်ဖြေပေးနိုင်ပါသည်။';
                     linkText.innerHTML = '<a href="https://console.groq.com/keys" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 Groq Console မှ API Key ရယူရန်</a>';
                 }
+            }
+            checkApiKeyMismatch();
+        }
+
+        function checkApiKeyMismatch() {
+            const key = document.getElementById('adminBotApiKey') ? document.getElementById('adminBotApiKey').value.trim() : '';
+            const prov = document.getElementById('adminBotProvider') ? document.getElementById('adminBotProvider').value : '';
+            const warningEl = document.getElementById('apiKeyMismatchWarning');
+            if (!warningEl) return;
+            
+            if (key.startsWith('ABSK') && prov !== 'bedrock') {
+                warningEl.innerHTML = `⚠️ <strong>သတိပြုရန်:</strong> ဤ Key သည် <strong>Amazon Bedrock Key</strong> ဖြစ်နေပါသည်။ Provider တွင် <strong>"Amazon Bedrock (AWS Bearer Token)"</strong> ကို ရွေးချယ်ပေးပါရှင်။`;
+                warningEl.classList.remove('hidden');
+            } else if (key.startsWith('AIzaSy') && prov !== 'gemini') {
+                warningEl.innerHTML = `⚠️ <strong>သတိပြုရန်:</strong> ဤ Key သည် <strong>Google Gemini Key</strong> ဖြစ်နေပါသည်။ Provider တွင် <strong>"Google Gemini API"</strong> ကို ရွေးချယ်ပေးပါရှင်။`;
+                warningEl.classList.remove('hidden');
+            } else if (key.startsWith('gsk_') && prov !== 'groq') {
+                warningEl.innerHTML = `⚠️ <strong>သတိပြုရန်:</strong> ဤ Key သည် <strong>Groq Key</strong> ဖြစ်နေပါသည်။ Provider တွင် <strong>"Groq"</strong> ကို ရွေးချယ်ပေးပါရှင်။`;
+                warningEl.classList.remove('hidden');
+            } else if (key.startsWith('sk-') && !key.startsWith('sk-ant-') && prov !== 'openai' && prov !== 'custom') {
+                warningEl.innerHTML = `⚠️ <strong>သတိပြုရန်:</strong> ဤ Key သည် <strong>OpenAI Key</strong> ဖြစ်နေပါသည်။ Provider တွင် <strong>"OpenAI"</strong> ကို ရွေးချယ်ပေးပါရှင်။`;
+                warningEl.classList.remove('hidden');
+            } else {
+                warningEl.classList.add('hidden');
+                warningEl.innerHTML = '';
             }
         }
 
@@ -3828,6 +3880,9 @@ Store Information:
             
             const urlEl = document.getElementById('adminBotApiUrl');
             if (urlEl) urlEl.value = cfg.apiUrl || '';
+
+            const regionEl = document.getElementById('adminBotRegion');
+            if (regionEl) regionEl.value = cfg.region || 'us-east-1';
             
             const keyEl = document.getElementById('adminBotApiKey');
             const keyBadge = document.getElementById('apiKeyStatusBadge');
@@ -3877,6 +3932,7 @@ Store Information:
             const provider = document.getElementById('adminBotProvider').value;
             const model = document.getElementById('adminBotModel').value.trim();
             const apiUrl = document.getElementById('adminBotApiUrl').value.trim();
+            const region = document.getElementById('adminBotRegion') ? document.getElementById('adminBotRegion').value : 'us-east-1';
             const apiKey = document.getElementById('adminBotApiKey').value.trim();
             const botName = document.getElementById('adminBotName').value.trim();
             const welcomeMessageMm = document.getElementById('adminBotWelcome').value.trim();
@@ -3889,6 +3945,7 @@ Store Information:
                     provider,
                     model,
                     apiUrl,
+                    region,
                     apiKey,
                     botName,
                     welcomeMessageMm,
@@ -3940,15 +3997,21 @@ Store Information:
                 const res = await fetch('api/shop.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'CHAT_MESSAGE', message: q })
+                    body: JSON.stringify({ action: 'CHAT_MESSAGE', message: q, includeDebug: true })
                 });
                 const data = await res.json();
                 let reply = data.reply;
                 let badge = '';
                 if (data.model) {
-                    badge = `<div class="mt-1 text-[10px] text-emerald-400 font-mono flex items-center gap-1"><span>✨ AI:</span><span class="bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">${escapeHtml(data.model)}</span></div>`;
+                    const provLabel = data.provider ? `[${data.provider.toUpperCase()}] ` : '';
+                    badge = `<div class="mt-1 text-[10px] text-emerald-400 font-mono flex items-center gap-1"><span>✨ AI:</span><span class="bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">${escapeHtml(provLabel + data.model)}</span></div>`;
                 } else if (data.fallback) {
                     badge = `<div class="mt-1 text-[10px] text-amber-400 font-mono flex items-center gap-1"><span>🏪 မူလဆိုင်အကူအညီ စနစ် (Built-in Knowledge)</span></div>`;
+                }
+
+                let errorNotice = '';
+                if (data.aiError) {
+                    errorNotice = `<div class="mt-2 p-2 rounded-xl bg-red-950/80 border border-red-500/50 text-red-300 text-[11px] font-mono leading-relaxed">⚠️ <strong>AI Connection Error:</strong><br>${escapeHtml(data.aiError)}</div>`;
                 }
 
                 if (!reply) {
@@ -3957,7 +4020,7 @@ Store Information:
 
                 const botMsg = document.createElement('div');
                 botMsg.className = 'flex items-start gap-2';
-                botMsg.innerHTML = `<span class="text-emerald-400 font-bold shrink-0 mt-0.5">🤖 Bot:</span><div class="bg-stone-800/90 text-stone-200 px-3.5 py-2.5 rounded-2xl border border-stone-700/80 leading-relaxed text-xs"><div class="whitespace-pre-line">${escapeHtml(reply)}</div>${badge}</div>`;
+                botMsg.innerHTML = `<span class="text-emerald-400 font-bold shrink-0 mt-0.5">🤖 Bot:</span><div class="bg-stone-800/90 text-stone-200 px-3.5 py-2.5 rounded-2xl border border-stone-700/80 leading-relaxed text-xs"><div class="whitespace-pre-line">${escapeHtml(reply)}</div>${badge}${errorNotice}</div>`;
                 output.appendChild(botMsg);
                 output.scrollTop = output.scrollHeight;
             } catch (err) {

@@ -518,6 +518,7 @@ function buildScopedResponse($pdo, $sessionUser) {
                 $chatbotConfig = [
                     'provider'         => (string)$botRow['provider'],
                     'apiUrl'           => (string)($botRow['apiUrl'] ?? ''),
+                    'region'           => (string)($botRow['region'] ?? 'us-east-1'),
                     'apiKey'           => (string)($botRow['apiKey'] ?? ''),
                     'model'            => (string)$botRow['model'],
                     'systemPrompt'     => (string)$botRow['systemPrompt'],
@@ -1311,9 +1312,11 @@ function buildLiveShopContextForAI($pdo) {
             $cleanHistory[] = ['role' => $hRole, 'text' => mb_substr($hText, 0, 1500)];
         }
 
+        $lastAiError = null;
+
         // Gemini AI Provider
         if ($provider === 'gemini' && $apiKey) {
-            $modelsToTry = array_unique([$model, 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-flash-latest']);
+            $modelsToTry = array_unique([$model, 'gemini-flash-lite-latest', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest']);
             $geminiContents = [];
             foreach ($cleanHistory as $h) {
                 $geminiContents[] = [
@@ -1358,10 +1361,64 @@ function buildLiveShopContextForAI($pdo) {
                                 $upd->execute([$tryModel]);
                             } catch (\Throwable $t) {}
                         }
-                        echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $tryModel], JSON_UNESCAPED_UNICODE);
+                        echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $tryModel, 'provider' => 'gemini'], JSON_UNESCAPED_UNICODE);
                         exit;
                     }
+                } else {
+                    $errDec = json_decode($res['body'], true);
+                    $errMsg = $errDec['error']['message'] ?? ($res['body'] ?: 'Connection failed');
+                    $lastAiError = "Google Gemini API Error (HTTP {$res['status']}): {$errMsg}";
                 }
+            }
+        }
+
+        // Amazon Bedrock Provider (Bearer Token / Converse API)
+        if ($provider === 'bedrock' && $apiKey) {
+            $bedrockRegion = !empty($cfg['region']) ? $cfg['region'] : 'us-east-1';
+            $bedrockModel = !empty($model) && $model !== 'built-in-rules' ? $model : 'amazon.nova-lite-v1:0';
+            $endpoint = "https://bedrock-runtime.{$bedrockRegion}.amazonaws.com/model/{$bedrockModel}/converse";
+
+            $bedrockMessages = [];
+            foreach ($cleanHistory as $h) {
+                $bRole = ($h['role'] === 'user') ? 'user' : 'assistant';
+                $bedrockMessages[] = [
+                    'role' => $bRole,
+                    'content' => [['text' => $h['text']]]
+                ];
+            }
+            $bedrockMessages[] = [
+                'role' => 'user',
+                'content' => [['text' => $message]]
+            ];
+
+            $payload = [
+                'system' => [
+                    ['text' => $fullSystemPrompt]
+                ],
+                'messages' => $bedrockMessages,
+                'inferenceConfig' => [
+                    'maxTokens' => 2048,
+                    'temperature' => 0.7
+                ]
+            ];
+
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Authorization' => "Bearer {$apiKey}"
+            ];
+
+            $res = makeHttpRequest($endpoint, 'POST', $headers, $payload, 25);
+            if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
+                $data = json_decode($res['body'], true);
+                $reply = $data['output']['message']['content'][0]['text'] ?? null;
+                if ($reply) {
+                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $bedrockModel, 'provider' => 'bedrock'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            } else {
+                $bodyDec = json_decode($res['body'], true);
+                $msg = $bodyDec['message'] ?? $bodyDec['Message'] ?? ($res['body'] ?: 'Request failed');
+                $lastAiError = "Amazon Bedrock Error (HTTP {$res['status']}): {$msg}";
             }
         }
 
@@ -1393,9 +1450,13 @@ function buildLiveShopContextForAI($pdo) {
                 $data = json_decode($res['body'], true);
                 $reply = $data['choices'][0]['message']['content'] ?? null;
                 if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply], JSON_UNESCAPED_UNICODE);
+                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => ($model ?: $defaultModel), 'provider' => $provider], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
+            } else {
+                $bodyDec = json_decode($res['body'], true);
+                $msg = $bodyDec['error']['message'] ?? ($res['body'] ?: 'Request failed');
+                $lastAiError = "{$provider} Error (HTTP {$res['status']}): {$msg}";
             }
         }
 
@@ -1427,15 +1488,23 @@ function buildLiveShopContextForAI($pdo) {
                 $data = json_decode($res['body'], true);
                 $reply = $data['choices'][0]['message']['content'] ?? null;
                 if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply], JSON_UNESCAPED_UNICODE);
+                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => ($model ?: 'custom'), 'provider' => 'custom'], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
+            } else {
+                $bodyDec = json_decode($res['body'], true);
+                $msg = $bodyDec['error']['message'] ?? ($res['body'] ?: 'Request failed');
+                $lastAiError = "Custom API Error (HTTP {$res['status']}): {$msg}";
             }
         }
 
         // Intelligent Myanmar Rule-based Knowledge Engine fallback
         $reply = generateIntelligentBurmeseReply($message, $pdo);
-        echo json_encode(['ok' => true, 'reply' => $reply, 'fallback' => true], JSON_UNESCAPED_UNICODE);
+        $fallbackResp = ['ok' => true, 'reply' => $reply, 'fallback' => true];
+        if (!empty($lastAiError)) {
+            $fallbackResp['aiError'] = $lastAiError;
+        }
+        echo json_encode($fallbackResp, JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -1445,6 +1514,19 @@ function buildLiveShopContextForAI($pdo) {
         $apiKey = trim($body['apiKey'] ?? '');
         $apiUrl = trim($body['apiUrl'] ?? '');
         $models = [];
+
+        if ($provider === 'bedrock') {
+            $models = [
+                'amazon.nova-lite-v1:0',
+                'amazon.nova-micro-v1:0',
+                'amazon.nova-pro-v1:0',
+                'meta.llama3-3-70b-instruct-v1:0',
+                'anthropic.claude-3-5-sonnet-20241022-v2:0',
+                'us.anthropic.claude-3-5-haiku-20241022-v1:0'
+            ];
+            echo json_encode(['ok' => true, 'models' => $models], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
 
         try {
             if ($provider === 'gemini' || (!$provider && strpos($apiKey, 'AIzaSy') === 0)) {
@@ -1468,9 +1550,8 @@ function buildLiveShopContextForAI($pdo) {
                         // Sort so proven production free-tier / fast models are at the top
                         $preferredOrder = [
                             'gemini-flash-lite-latest',
-                            'gemini-3.8-flash',
-                            'gemini-3.5-flash',
-                            'gemini-2.5-flash-lite',
+                            'gemini-2.0-flash',
+                            'gemini-1.5-flash',
                             'gemini-flash-latest',
                             'gemini-pro-latest'
                         ];
@@ -1488,6 +1569,14 @@ function buildLiveShopContextForAI($pdo) {
                         });
                         $models = array_merge($top, $rest);
                     }
+                }
+                if (empty($models)) {
+                    $models = [
+                        'gemini-flash-lite-latest',
+                        'gemini-2.0-flash',
+                        'gemini-1.5-flash',
+                        'gemini-1.5-pro'
+                    ];
                 }
             } else {
                 $url = $apiUrl;
@@ -1515,6 +1604,13 @@ function buildLiveShopContextForAI($pdo) {
                             elseif (!empty($m['name'])) $models[] = $m['name'];
                         }
                     }
+                }
+                if (empty($models) && $provider === 'groq') {
+                    $models = [
+                        'llama-3.3-70b-versatile',
+                        'llama-3.1-8b-instant',
+                        'mixtral-8x7b-32768'
+                    ];
                 }
             }
         } catch (Exception $e) {}
@@ -1843,10 +1939,11 @@ function buildLiveShopContextForAI($pdo) {
     // 21. UPDATE_CHATBOT_CONFIG (Admin Update AI Chatbot Settings)
     if ($action === 'UPDATE_CHATBOT_CONFIG') {
         $cfg = $body['chatbotConfig'] ?? [];
-        $provider = in_array($cfg['provider'] ?? '', ['mock', 'gemini', 'openai', 'groq', 'custom']) ? $cfg['provider'] : 'mock';
+        $provider = in_array($cfg['provider'] ?? '', ['mock', 'gemini', 'openai', 'groq', 'bedrock', 'custom']) ? $cfg['provider'] : 'mock';
         $apiUrl = trim($cfg['apiUrl'] ?? '');
+        $region = trim($cfg['region'] ?? 'us-east-1');
         $apiKey = trim($cfg['apiKey'] ?? '');
-        $model = trim($cfg['model'] ?? 'gemini-1.5-flash');
+        $model = trim($cfg['model'] ?? 'gemini-flash-lite-latest');
         $systemPrompt = trim($cfg['systemPrompt'] ?? '');
         $botName = trim($cfg['botName'] ?? 'ပုံ့ပုံ့ AI အကူအညီ');
         $welcomeMm = trim($cfg['welcomeMessageMm'] ?? 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။');
@@ -1859,8 +1956,9 @@ function buildLiveShopContextForAI($pdo) {
           `id` INT NOT NULL PRIMARY KEY DEFAULT 1,
           `provider` VARCHAR(50) NOT NULL DEFAULT 'mock',
           `apiUrl` TEXT DEFAULT NULL,
+          `region` VARCHAR(50) DEFAULT 'us-east-1',
           `apiKey` TEXT DEFAULT NULL,
-          `model` VARCHAR(100) NOT NULL DEFAULT 'gemini-1.5-flash',
+          `model` VARCHAR(100) NOT NULL DEFAULT 'gemini-flash-lite-latest',
           `systemPrompt` TEXT NOT NULL,
           `botName` VARCHAR(100) NOT NULL DEFAULT 'ပုံ့ပုံ့ AI အကူအညီ',
           `welcomeMessageMm` TEXT NOT NULL,
@@ -1868,6 +1966,11 @@ function buildLiveShopContextForAI($pdo) {
           `enabled` TINYINT(1) NOT NULL DEFAULT 1,
           `updatedAt` VARCHAR(50) NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        $colRegion = $pdo->query("SHOW COLUMNS FROM `chatbot_config` LIKE 'region'");
+        if (!$colRegion->fetch()) {
+            $pdo->exec("ALTER TABLE `chatbot_config` ADD COLUMN `region` VARCHAR(50) DEFAULT 'us-east-1' AFTER `apiUrl`");
+        }
 
         // If existing apiKey was not provided (empty string submitted), keep old apiKey
         if (empty($apiKey)) {
@@ -1878,10 +1981,11 @@ function buildLiveShopContextForAI($pdo) {
             }
         }
 
-        $upsert = $pdo->prepare("INSERT INTO chatbot_config (id, provider, apiUrl, apiKey, model, systemPrompt, botName, welcomeMessageMm, welcomeMessageEn, enabled, updatedAt) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE provider=VALUES(provider), apiUrl=VALUES(apiUrl), apiKey=VALUES(apiKey), model=VALUES(model), systemPrompt=VALUES(systemPrompt), botName=VALUES(botName), welcomeMessageMm=VALUES(welcomeMessageMm), welcomeMessageEn=VALUES(welcomeMessageEn), enabled=VALUES(enabled), updatedAt=VALUES(updatedAt)");
+        $upsert = $pdo->prepare("INSERT INTO chatbot_config (id, provider, apiUrl, region, apiKey, model, systemPrompt, botName, welcomeMessageMm, welcomeMessageEn, enabled, updatedAt) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE provider=VALUES(provider), apiUrl=VALUES(apiUrl), region=VALUES(region), apiKey=VALUES(apiKey), model=VALUES(model), systemPrompt=VALUES(systemPrompt), botName=VALUES(botName), welcomeMessageMm=VALUES(welcomeMessageMm), welcomeMessageEn=VALUES(welcomeMessageEn), enabled=VALUES(enabled), updatedAt=VALUES(updatedAt)");
         $upsert->execute([
             $provider,
             $apiUrl,
+            $region,
             $apiKey,
             $model,
             $systemPrompt,

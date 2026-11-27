@@ -98,6 +98,7 @@ function ensureSchemaUpdated($pdo) {
           `id` INT NOT NULL PRIMARY KEY DEFAULT 1,
           `provider` VARCHAR(50) NOT NULL DEFAULT 'mock',
           `apiUrl` TEXT DEFAULT NULL,
+          `region` VARCHAR(50) DEFAULT 'us-east-1',
           `apiKey` TEXT DEFAULT NULL,
           `model` VARCHAR(100) NOT NULL DEFAULT 'gemini-flash-lite-latest',
           `systemPrompt` TEXT NOT NULL,
@@ -108,10 +109,15 @@ function ensureSchemaUpdated($pdo) {
           `updatedAt` VARCHAR(50) NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+        $colRegion = $pdo->query("SHOW COLUMNS FROM `chatbot_config` LIKE 'region'");
+        if (!$colRegion->fetch()) {
+            $pdo->exec("ALTER TABLE `chatbot_config` ADD COLUMN `region` VARCHAR(50) DEFAULT 'us-east-1' AFTER `apiUrl`");
+        }
+
         $cntBot = $pdo->query("SELECT COUNT(*) as c FROM chatbot_config")->fetch();
         if ($cntBot && (int)$cntBot['c'] === 0) {
-            $pdo->exec("INSERT INTO `chatbot_config` (`id`, `provider`, `apiUrl`, `apiKey`, `model`, `systemPrompt`, `botName`, `welcomeMessageMm`, `welcomeMessageEn`, `enabled`, `updatedAt`) VALUES
-            (1, 'mock', '', '', 'gemini-flash-lite-latest', 'You are \"Pont Pont AI\" (ပုံ့ပုံ့ AI အကူအညီ), the polite, friendly customer assistant for \"Pont Pont Handbag Shop\" (ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး) based in Mandalay, Myanmar.', 'ပုံ့ပုံ့ AI အကူအညီ', 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။', 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.', 1, '2026-11-23T00:00:00Z')");
+            $pdo->exec("INSERT INTO `chatbot_config` (`id`, `provider`, `apiUrl`, `region`, `apiKey`, `model`, `systemPrompt`, `botName`, `welcomeMessageMm`, `welcomeMessageEn`, `enabled`, `updatedAt`) VALUES
+            (1, 'mock', '', 'us-east-1', '', 'gemini-flash-lite-latest', 'You are \"Pont Pont AI\" (ပုံ့ပုံ့ AI အကူအညီ), the polite, friendly customer assistant for \"Pont Pont Handbag Shop\" (ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး) based in Mandalay, Myanmar.', 'ပုံ့ပုံ့ AI အကူအညီ', 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။', 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.', 1, '2026-11-23T00:00:00Z')");
         }
 
         // 4. Ensure telegram and app settings exist
