@@ -1116,16 +1116,16 @@ require_once __DIR__ . '/config/db.php';
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex gap-2">
-                                        <input type="text" id="adminBotModel" value="gemini-flash-lite-latest" placeholder="e.g. gemini-flash-lite-latest, amazon.nova-lite-v1:0" class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
+                                        <input type="text" id="adminBotModel" value="" placeholder="မော်ဒယ်အမည် ရိုက်ထည့်ပါ (သို့မဟုတ် Fetch Models နှိပ်ပါ)" class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
                                         <select id="adminBotModelSelect" onchange="document.getElementById('adminBotModel').value = this.value;" class="flex-1 px-3.5 py-2.5 rounded-xl border border-emerald-400 bg-emerald-50 font-mono font-bold hidden">
-                                            <!-- Dynamically populated -->
+                                            <!-- Dynamically populated from API -->
                                         </select>
                                         <button type="button" onclick="fetchAvailableModels()" id="btnFetchModels" class="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded-xl font-bold flex items-center gap-1.5 transition shrink-0">
                                             <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="fetchModelsIcon"></i>
                                             <span id="btnFetchModelsText">Fetch Models</span>
                                         </button>
                                     </div>
-                                    <p class="text-[11px] text-stone-400">Gemini: <code>gemini-flash-lite-latest</code> | Bedrock: <code>amazon.nova-lite-v1:0</code> | Groq: <code>llama-3.3-70b-versatile</code></p>
+                                    <p class="text-[11px] text-stone-400">Fetch Models ခလုတ်ကို နှိပ်၍ Provider API မှ Live Models များကို ဆွဲယူနိုင်ပါသည် (သို့မဟုတ် မိမိစိတ်ကြိုက် မော်ဒယ်အမည် ရိုက်ထည့်နိုင်ပါသည်)</p>
                                 </div>
                             </div>
                         </div>
@@ -3723,7 +3723,6 @@ Store Information:
             const keyBox = document.getElementById('adminApiKeyContainer');
             const regionBox = document.getElementById('adminBedrockRegionContainer');
             const urlBox = document.getElementById('adminApiUrlContainer');
-            const modelInp = document.getElementById('adminBotModel');
             const hint = document.getElementById('providerHintText');
             const linkText = document.getElementById('apiKeyLinkText');
 
@@ -3732,39 +3731,29 @@ Store Information:
             if (prov === 'mock') {
                 keyBox.classList.add('hidden');
                 urlBox.classList.add('hidden');
-                modelInp.value = 'built-in-rules';
                 hint.innerText = '💡 Built-in Engine သည် API Key မလိုဘဲ ဆိုင်အချက်အလက်များကို အလိုအလျောက် ဖြေကြားပေးပါသည်။';
                 linkText.innerHTML = '';
             } else if (prov === 'bedrock') {
                 keyBox.classList.remove('hidden');
                 urlBox.classList.add('hidden');
                 if (regionBox) regionBox.classList.remove('hidden');
-                if (!modelInp.value || modelInp.value === 'built-in-rules' || modelInp.value.includes('gemini') || modelInp.value.includes('gpt')) {
-                    modelInp.value = 'amazon.nova-lite-v1:0';
-                }
                 hint.innerText = '💡 Amazon Bedrock သည် AWS API Key (Bearer Token - ABSK...) ဖြင့် Converse API ကို အသုံးပြုပါသည်။';
                 linkText.innerHTML = '<span class="text-amber-700 font-bold">AWS Bedrock API Key (ABSK...) ထည့်သွင်းပါ</span>';
             } else if (prov === 'custom') {
                 keyBox.classList.remove('hidden');
                 urlBox.classList.remove('hidden');
-                if (!modelInp.value || modelInp.value === 'built-in-rules') modelInp.value = 'gpt-3.5-turbo';
                 hint.innerText = '💡 Local LLM (Ollama, OpenWebUI, LM Studio) သို့မဟုတ် Custom Endpoint ဖြင့် ချိတ်ဆက်နိုင်ပါသည်။';
                 linkText.innerHTML = '';
             } else {
                 keyBox.classList.remove('hidden');
                 urlBox.classList.add('hidden');
                 if (prov === 'gemini') {
-                    if (!modelInp.value || modelInp.value === 'built-in-rules' || modelInp.value.includes('nova') || modelInp.value.includes('llama')) {
-                        modelInp.value = 'gemini-flash-lite-latest';
-                    }
                     hint.innerText = '💡 Google Gemini သည် မြန်မာစာအထူးကျွမ်းကျင်ပြီး အခမဲ့ Rate Limits ကောင်းမွန်ပါသည်။';
                     linkText.innerHTML = '<a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 Google AI Studio တွင် အခမဲ့ Gemini Key ရယူရန်</a>';
                 } else if (prov === 'openai') {
-                    if (!modelInp.value || modelInp.value === 'built-in-rules') modelInp.value = 'gpt-4o-mini';
                     hint.innerText = '💡 OpenAI GPT-4o-mini သည် အလွန်တိကျပြီး စကားပြော သဘာဝကျပါသည်။';
                     linkText.innerHTML = '<a href="https://platform.openai.com/api-keys" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 OpenAI Platform မှ API Key ရယူရန်</a>';
                 } else if (prov === 'groq') {
-                    if (!modelInp.value || modelInp.value === 'built-in-rules') modelInp.value = 'llama-3.3-70b-versatile';
                     hint.innerText = '💡 Groq သည် LPU chip ဖြင့် အမြန်ဆုံး အမြန်နှုန်းဖြင့် ချက်ချင်း ပြန်ဖြေပေးနိုင်ပါသည်။';
                     linkText.innerHTML = '<a href="https://console.groq.com/keys" target="_blank" class="text-emerald-600 hover:underline font-bold">👉 Groq Console မှ API Key ရယူရန်</a>';
                 }
@@ -3818,7 +3807,7 @@ Store Information:
             const select = document.getElementById('adminBotModelSelect');
             const inp = document.getElementById('adminBotModel');
 
-            if (!apiKey && prov !== 'custom') {
+            if (!apiKey && prov !== 'custom' && prov !== 'mock') {
                 const cfg = shopData.chatbotConfig || {};
                 if (!cfg.hasApiKey) {
                     alert('Models များ ဆွဲယူရန် API Key အရင် ဖြည့်သွင်းပေးပါရှင်။');
@@ -3826,8 +3815,9 @@ Store Information:
                 }
             }
 
-            btnText.innerText = 'Loading...';
-            badge.innerText = '⚡ Models ဆွဲယူနေပါသည်...';
+            btnText.innerText = 'Fetching...';
+            badge.innerText = '⚡ Provider API မှ Models တိုက်ရိုက် ဆွဲယူနေပါသည်...';
+            badge.className = 'text-[11px] text-amber-700 font-bold';
             badge.classList.remove('hidden');
 
             try {
@@ -3843,7 +3833,7 @@ Store Information:
                 });
                 const data = await res.json();
                 if (data.ok && data.models && data.models.length > 0) {
-                    select.innerHTML = '';
+                    select.innerHTML = '<option value="">-- ရရှိနိုင်သော Models များထဲမှ ရွေးပါ --</option>';
                     data.models.forEach(m => {
                         const opt = document.createElement('option');
                         opt.value = m;
@@ -3853,14 +3843,19 @@ Store Information:
                     });
                     select.classList.remove('hidden');
                     inp.classList.add('hidden');
-                    badge.innerText = `✓ Models (${data.models.length}) ခု အသင့်ရရှိပါသည်`;
+                    badge.innerText = `✓ API မှ Models (${data.models.length}) ခု တိုက်ရိုက် ရရှိပါသည်`;
                     badge.className = 'text-[11px] text-emerald-700 font-bold';
                 } else {
-                    badge.innerText = '⚠️ Models မတွေ့ပါ (Input ထဲတွင် တိုက်ရိုက် ရိုက်ထည့်နိုင်ပါသည်)';
-                    badge.className = 'text-[11px] text-amber-700 font-bold';
+                    select.classList.add('hidden');
+                    inp.classList.remove('hidden');
+                    badge.innerText = '⚠️ ' + (data.error || 'API မှ Models များ မရရှိပါ (API Key နှင့် Provider ကို စစ်ဆေးပါ)');
+                    badge.className = 'text-[11px] text-red-600 font-bold';
                 }
             } catch (err) {
-                badge.innerText = '⚠️ API ချိတ်ဆက်မှု မအောင်မြင်ပါ';
+                select.classList.add('hidden');
+                inp.classList.remove('hidden');
+                badge.innerText = '⚠️ API ချိတ်ဆက်မှု မအောင်မြင်ပါ: ' + err;
+                badge.className = 'text-[11px] text-red-600 font-bold';
             } finally {
                 btnText.innerText = 'Fetch Models';
             }

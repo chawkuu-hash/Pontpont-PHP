@@ -1508,28 +1508,38 @@ function buildLiveShopContextForAI($pdo) {
         exit;
     }
 
-    // 5.2. FETCH_AI_MODELS (Auto-discover AI Models from Provider or Custom API)
+    // 5.2. FETCH_AI_MODELS (Fetch AI Models dynamically from Provider API - No hardcoded presets)
     if ($action === 'FETCH_AI_MODELS') {
         $provider = trim($body['provider'] ?? '');
         $apiKey = trim($body['apiKey'] ?? '');
         $apiUrl = trim($body['apiUrl'] ?? '');
         $models = [];
+        $apiError = null;
 
         if ($provider === 'bedrock') {
-            $models = [
-                'amazon.nova-lite-v1:0',
-                'amazon.nova-micro-v1:0',
-                'amazon.nova-pro-v1:0',
-                'meta.llama3-3-70b-instruct-v1:0',
-                'anthropic.claude-3-5-sonnet-20241022-v2:0',
-                'us.anthropic.claude-3-5-haiku-20241022-v1:0'
-            ];
-            echo json_encode(['ok' => true, 'models' => $models], JSON_UNESCAPED_UNICODE);
+            echo json_encode([
+                'ok' => false,
+                'models' => [],
+                'error' => 'Amazon Bedrock သည် API Key (Bearer Token) ဖြင့် Models စာရင်း အလိုအလျောက် ဆွဲယူခြင်းကို မပံ့ပိုးပါ။ မော်ဒယ်အမည်ကို Input တွင် တိုက်ရိုက် ရိုက်ထည့်ပေးပါရန်။'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if ($provider === 'mock') {
+            echo json_encode([
+                'ok' => false,
+                'models' => [],
+                'error' => 'Built-in Rule Engine အတွက် ပြင်ပ AI Model မလိုအပ်ပါ။'
+            ], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
         try {
             if ($provider === 'gemini' || (!$provider && strpos($apiKey, 'AIzaSy') === 0)) {
+                if (!$apiKey) {
+                    echo json_encode(['ok' => false, 'models' => [], 'error' => 'Google Gemini API Key ဖြည့်သွင်းရန် လိုအပ်ပါသည်။'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
                 $url = $apiUrl ?: "https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}";
                 if (strpos($url, 'key=') === false) {
                     $url .= (strpos($url, '?') === false ? '?' : '&') . "key={$apiKey}";
@@ -1538,45 +1548,18 @@ function buildLiveShopContextForAI($pdo) {
                 if ($res['status'] === 200 && $res['body']) {
                     $data = json_decode($res['body'], true);
                     if (isset($data['models']) && is_array($data['models'])) {
-                        $rawModels = [];
                         foreach ($data['models'] as $m) {
                             $methods = $m['supportedGenerationMethods'] ?? [];
                             $name = $m['name'] ?? '';
                             if (in_array('generateContent', $methods) || strpos($name, 'gemini') !== false) {
                                 $cleanName = str_replace('models/', '', $name);
-                                if ($cleanName) $rawModels[] = $cleanName;
+                                if ($cleanName) $models[] = $cleanName;
                             }
                         }
-                        // Sort so proven production free-tier / fast models are at the top
-                        $preferredOrder = [
-                            'gemini-flash-lite-latest',
-                            'gemini-2.0-flash',
-                            'gemini-1.5-flash',
-                            'gemini-flash-latest',
-                            'gemini-pro-latest'
-                        ];
-                        $top = [];
-                        $rest = [];
-                        foreach ($rawModels as $rm) {
-                            if (in_array($rm, $preferredOrder)) {
-                                $top[] = $rm;
-                            } else {
-                                $rest[] = $rm;
-                            }
-                        }
-                        usort($top, function($a, $b) use ($preferredOrder) {
-                            return array_search($a, $preferredOrder) <=> array_search($b, $preferredOrder);
-                        });
-                        $models = array_merge($top, $rest);
                     }
-                }
-                if (empty($models)) {
-                    $models = [
-                        'gemini-flash-lite-latest',
-                        'gemini-2.0-flash',
-                        'gemini-1.5-flash',
-                        'gemini-1.5-pro'
-                    ];
+                } else {
+                    $errDec = json_decode($res['body'], true);
+                    $apiError = $errDec['error']['message'] ?? ("HTTP " . $res['status'] . ": " . ($res['body'] ?: 'Google Gemini API မှ Models ဆွဲယူ၍ မရရှိပါ'));
                 }
             } else {
                 $url = $apiUrl;
@@ -1604,18 +1587,22 @@ function buildLiveShopContextForAI($pdo) {
                             elseif (!empty($m['name'])) $models[] = $m['name'];
                         }
                     }
-                }
-                if (empty($models) && $provider === 'groq') {
-                    $models = [
-                        'llama-3.3-70b-versatile',
-                        'llama-3.1-8b-instant',
-                        'mixtral-8x7b-32768'
-                    ];
+                } else {
+                    $errDec = json_decode($res['body'], true);
+                    $apiError = $errDec['error']['message'] ?? ("HTTP " . $res['status'] . ": " . ($res['body'] ?: 'API မှ Models ဆွဲယူ၍ မရရှိပါ'));
                 }
             }
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+            $apiError = $e->getMessage();
+        }
 
-        echo json_encode(['ok' => true, 'models' => array_values(array_unique($models))], JSON_UNESCAPED_UNICODE);
+        $models = array_values(array_unique($models));
+
+        if (!empty($models)) {
+            echo json_encode(['ok' => true, 'models' => $models], JSON_UNESCAPED_UNICODE);
+        } else {
+            echo json_encode(['ok' => false, 'models' => [], 'error' => $apiError ?: 'API မှ Models များ မရရှိပါ (API Key နှင့် Provider ကို စစ်ဆေးပါ)'], JSON_UNESCAPED_UNICODE);
+        }
         exit;
     }
 
