@@ -109,17 +109,24 @@ try {
     <!-- Navigation Bar -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
-            <!-- Brand Logo -->
-            <a href="index.php" class="flex items-center gap-3 group flex-shrink-0">
-                <div id="brandLogoContainer" class="w-12 h-12 rounded-2xl bg-white border border-stone-200 text-amber-600 flex items-center justify-center shadow-xs group-hover:scale-105 transition overflow-hidden p-1">
-                    <i data-lucide="shopping-bag" class="w-6 h-6 text-amber-600"></i>
+            <!-- Brand Logo & Shop Name Area -->
+            <a href="index.php" id="brandHeaderLink" class="flex items-center group flex-shrink-0" title="Pont Pont Handbag Shop">
+                <!-- Wide Banner Logo (Replaces separate logo icon and text) -->
+                <div id="brandBannerWrapper" class="h-14 sm:h-16 flex items-center">
+                    <img id="brandBannerImg" src="assets/images/pontpont_logo.jpg" alt="Pont Pont Bag Shop" class="h-12 sm:h-14 w-auto max-w-[200px] sm:max-w-[280px] object-contain transition duration-200 group-hover:scale-[1.02]">
                 </div>
-                <div>
-                    <div class="flex items-center gap-1.5">
-                        <span id="brandShopName" class="text-xl font-extrabold tracking-tight text-stone-900">Pont Pont</span>
-                        <span class="text-xs bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-md">Mandalay</span>
+                <!-- Default Fallback Icon + Text (Only shown if logo image is removed) -->
+                <div id="brandDefaultWrapper" class="hidden items-center gap-3">
+                    <div id="brandLogoContainer" class="w-12 h-12 rounded-2xl bg-white border border-stone-200 text-amber-600 flex items-center justify-center shadow-xs group-hover:scale-105 transition overflow-hidden p-1">
+                        <i data-lucide="shopping-bag" class="w-6 h-6 text-amber-600"></i>
                     </div>
-                    <p id="brandShopSubtitle" class="text-xs text-stone-500 font-medium">ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး</p>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="brandShopName" class="text-xl font-extrabold tracking-tight text-stone-900">Pont Pont</span>
+                            <span class="text-xs bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-md">Mandalay</span>
+                        </div>
+                        <p id="brandShopSubtitle" class="text-xs text-stone-500 font-medium">ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး</p>
+                    </div>
                 </div>
             </a>
 
@@ -254,11 +261,10 @@ try {
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <!-- Col 1: Brand Info -->
                 <div class="space-y-3">
-                    <div class="flex items-center gap-2.5">
-                        <div id="footerBrandLogoContainer" class="w-10 h-10 rounded-xl bg-white border border-stone-700 text-amber-600 flex items-center justify-center font-bold overflow-hidden p-1">
-                            <i data-lucide="shopping-bag" class="w-5 h-5 text-amber-600"></i>
+                    <div class="flex items-center">
+                        <div id="footerBrandLogoWrapper" class="bg-white rounded-2xl p-2 shadow-xs inline-flex items-center">
+                            <img id="footerBrandLogoImg" src="assets/images/pontpont_logo.jpg" alt="Pont Pont Handbag" class="h-10 sm:h-12 w-auto max-w-[200px] object-contain">
                         </div>
-                        <span class="text-lg font-extrabold text-white">Pont Pont Handbag</span>
                     </div>
                     <p class="text-xs text-stone-400 leading-relaxed">
                         မန္တလေးမြို့၏ နာမည်ကျော် အမျိုးသမီးနှင့် အမျိုးသား လက်ကိုင်အိတ်၊ ဘေးလွယ်အိတ်၊ ကျောပိုးအိတ် လက်လီ/လက်ကား အရောင်းဆိုင်ကြီး။
@@ -1151,23 +1157,33 @@ try {
                         const subEl = document.getElementById('brandShopSubtitle');
                         if (subEl) subEl.innerText = s.shop_subtitle || s.shop_name_mm;
                     }
-                    const logoContainer = document.getElementById('brandLogoContainer');
-                    if (logoContainer) {
-                        if (s.shop_logo && s.shop_logo.trim()) {
-                            logoContainer.innerHTML = `<img src="${escapeHtml(s.shop_logo.trim())}" alt="Shop Logo" class="w-full h-full object-contain">`;
+                    
+                    const bannerWrapper = document.getElementById('brandBannerWrapper');
+                    const bannerImg = document.getElementById('brandBannerImg');
+                    const defaultWrapper = document.getElementById('brandDefaultWrapper');
+                    const logoUrl = (s.shop_logo && s.shop_logo.trim()) ? s.shop_logo.trim() : 'assets/images/pontpont_logo.jpg';
+
+                    if (bannerImg) {
+                        bannerImg.src = logoUrl;
+                    }
+
+                    if (bannerWrapper && defaultWrapper) {
+                        if (logoUrl) {
+                            bannerWrapper.classList.remove('hidden');
+                            bannerWrapper.classList.add('flex');
+                            defaultWrapper.classList.add('hidden');
+                            defaultWrapper.classList.remove('flex');
                         } else {
-                            logoContainer.innerHTML = `<i data-lucide="shopping-bag" class="w-6 h-6 text-amber-600"></i>`;
-                            lucide.createIcons();
+                            bannerWrapper.classList.add('hidden');
+                            bannerWrapper.classList.remove('flex');
+                            defaultWrapper.classList.remove('hidden');
+                            defaultWrapper.classList.add('flex');
                         }
                     }
-                    const footerLogoContainer = document.getElementById('footerBrandLogoContainer');
-                    if (footerLogoContainer) {
-                        if (s.shop_logo && s.shop_logo.trim()) {
-                            footerLogoContainer.innerHTML = `<img src="${escapeHtml(s.shop_logo.trim())}" alt="Shop Logo" class="w-full h-full object-contain">`;
-                        } else {
-                            footerLogoContainer.innerHTML = `<i data-lucide="shopping-bag" class="w-5 h-5 text-amber-600"></i>`;
-                            lucide.createIcons();
-                        }
+
+                    const footerLogoImg = document.getElementById('footerBrandLogoImg');
+                    if (footerLogoImg) {
+                        footerLogoImg.src = logoUrl;
                     }
                 }
 

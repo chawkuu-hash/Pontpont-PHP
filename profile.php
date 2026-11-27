@@ -49,16 +49,9 @@ try {
     <!-- Top Navigation Bar -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
-            <a href="index.php" class="flex items-center gap-3 group">
-                <div id="brandLogoContainer" class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white border border-stone-200 text-amber-600 flex items-center justify-center shadow-xs group-hover:scale-105 transition overflow-hidden p-1">
-                    <i data-lucide="shopping-bag" class="w-5 h-5 text-amber-600"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-lg sm:text-xl font-extrabold tracking-tight text-stone-900">Pont Pont</span>
-                        <span class="text-[10px] sm:text-xs bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-md">Profile</span>
-                    </div>
-                    <p class="text-[11px] text-stone-500 font-medium hidden sm:block">ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး</p>
+            <a href="index.php" class="flex items-center group flex-shrink-0" title="Pont Pont Handbag Shop">
+                <div class="h-12 sm:h-14 flex items-center">
+                    <img src="assets/images/pontpont_logo.jpg" alt="Pont Pont Bag Shop" class="h-10 sm:h-12 w-auto max-w-[180px] sm:max-w-[240px] object-contain transition duration-200 group-hover:scale-[1.02]">
                 </div>
             </a>
 

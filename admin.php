@@ -101,13 +101,13 @@ require_once __DIR__ . '/config/db.php';
         <div>
             <!-- Brand -->
             <div class="p-5 border-b border-stone-800 flex items-center justify-between">
-                <a href="admin.php" class="flex items-center gap-3">
-                    <div id="adminBrandLogoContainer" class="w-9 h-9 rounded-xl bg-white border border-stone-700 text-amber-600 flex items-center justify-center font-bold shadow-xs overflow-hidden flex-shrink-0 p-0.5">
-                        <i data-lucide="shield-check" class="w-5 h-5 text-amber-600"></i>
+                <a href="admin.php" class="flex flex-col gap-1.5 flex-1 min-w-0 mr-2">
+                    <div class="bg-white rounded-xl p-1.5 shadow-xs flex items-center justify-center">
+                        <img id="adminBrandBannerImg" src="assets/images/pontpont_logo.jpg" alt="Pont Pont Admin" class="h-8 w-auto max-w-full object-contain">
                     </div>
-                    <div class="min-w-0">
-                        <h1 id="adminBrandTitle" class="text-sm font-extrabold text-white tracking-wide truncate">Pont Pont Admin</h1>
-                        <p id="adminBrandSubtitle" class="text-[11px] text-amber-400 font-medium truncate">မန္တလေး စတိုးဆိုင် စီမံမှု</p>
+                    <div class="flex items-center justify-between px-0.5">
+                        <span id="adminBrandTitle" class="text-xs font-bold text-stone-300">Admin Panel</span>
+                        <span id="adminBrandSubtitle" class="text-[10px] text-amber-400 font-medium">မန္တလေး</span>
                     </div>
                 </a>
                 <a href="index.php" title="စတိုးဆိုင် ကြည့်မည်" class="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 transition">
@@ -974,10 +974,10 @@ require_once __DIR__ . '/config/db.php';
                         <div class="pt-3 border-t border-stone-100">
                             <label class="block font-bold mb-1.5">ဆိုင် Logo (Shop Logo)</label>
                             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <!-- Logo Preview Box -->
-                                <div id="setShopLogoPreviewBox" class="w-20 h-20 rounded-2xl border-2 border-dashed border-stone-300 flex items-center justify-center bg-white overflow-hidden flex-shrink-0 relative group shadow-xs">
-                                    <img id="setShopLogoPreview" src="" alt="Logo Preview" class="w-full h-full object-contain hidden p-1">
-                                    <div id="setShopLogoPlaceholder" class="text-stone-400 flex flex-col items-center justify-center text-center p-2">
+                                <!-- Logo Preview Box (Wide Horizontal Banner) -->
+                                <div id="setShopLogoPreviewBox" class="w-56 sm:w-64 h-20 rounded-2xl border-2 border-dashed border-stone-300 flex items-center justify-center bg-white overflow-hidden flex-shrink-0 relative group shadow-xs p-2">
+                                    <img id="setShopLogoPreview" src="assets/images/pontpont_logo.jpg" alt="Logo Preview" class="w-full h-full object-contain">
+                                    <div id="setShopLogoPlaceholder" class="text-stone-400 flex flex-col items-center justify-center text-center p-2 hidden">
                                         <i data-lucide="image" class="w-6 h-6 mb-1 text-stone-300"></i>
                                         <span class="text-[10px] font-bold text-stone-400">No Logo</span>
                                     </div>
@@ -3581,14 +3581,10 @@ require_once __DIR__ . '/config/db.php';
                 const subEl = document.getElementById('adminBrandSubtitle');
                 if (subEl) subEl.innerText = s.shop_subtitle || s.shop_name_mm;
             }
-            const logoBox = document.getElementById('adminBrandLogoContainer');
-            if (logoBox) {
-                if (s.shop_logo && s.shop_logo.trim()) {
-                    logoBox.innerHTML = `<img src="${escapeHtml(s.shop_logo.trim())}" class="w-full h-full object-contain">`;
-                } else {
-                    logoBox.innerHTML = `<i data-lucide="shield-check" class="w-5 h-5 text-amber-600"></i>`;
-                    lucide.createIcons();
-                }
+            const bannerImg = document.getElementById('adminBrandBannerImg');
+            if (bannerImg) {
+                const logoUrl = (s.shop_logo && s.shop_logo.trim()) ? s.shop_logo.trim() : 'assets/images/pontpont_logo.jpg';
+                bannerImg.src = logoUrl;
             }
         }
 
