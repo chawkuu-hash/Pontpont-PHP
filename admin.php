@@ -580,7 +580,7 @@ require_once __DIR__ . '/config/db.php';
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <div class="flex items-center justify-between mb-1">
                                     <label class="block font-bold">အမျိုးအစား (Category) *</label>
@@ -591,20 +591,12 @@ require_once __DIR__ . '/config/db.php';
                                 </select>
                             </div>
                             <div>
-                                <label class="block font-bold mb-1">လက်လီဈေး (Price MMK) *</label>
+                                <label class="block font-bold mb-1">ဈေးနှုန်း (Price MMK) *</label>
                                 <input type="number" id="pFormPrice" required class="w-full px-3 py-2 rounded-xl border border-stone-300">
-                            </div>
-                            <div>
-                                <label class="block font-bold mb-1">လက်ကားဈေး (Wholesale MMK)</label>
-                                <input type="number" id="pFormWholesale" class="w-full px-3 py-2 rounded-xl border border-stone-300">
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div>
-                                <label class="block font-bold mb-1">မူလဈေး (Original Strike Price)</label>
-                                <input type="number" id="pFormOriginalPrice" class="w-full px-3 py-2 rounded-xl border border-stone-300">
-                            </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="block font-bold mb-1">ပစ္စည်းအခြေအနေ (Availability)</label>
                                 <label class="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl border border-stone-300 bg-stone-50 cursor-pointer hover:bg-stone-100 transition select-none">
@@ -2314,8 +2306,6 @@ require_once __DIR__ . '/config/db.php';
             document.getElementById('pFormNameEn').value = '';
             document.getElementById('pFormNameMm').value = '';
             document.getElementById('pFormPrice').value = '';
-            document.getElementById('pFormWholesale').value = '';
-            document.getElementById('pFormOriginalPrice').value = '';
             document.getElementById('pFormOutOfStock').checked = false;
             document.getElementById('pFormIsPromotion').checked = false;
             document.getElementById('pFormBadge').value = '';
@@ -2341,8 +2331,6 @@ require_once __DIR__ . '/config/db.php';
             document.getElementById('pFormNameMm').value = p.nameMm;
             document.getElementById('pFormCategory').value = p.category;
             document.getElementById('pFormPrice').value = p.price;
-            document.getElementById('pFormWholesale').value = p.wholesalePrice || '';
-            document.getElementById('pFormOriginalPrice').value = p.originalPrice || '';
             document.getElementById('pFormOutOfStock').checked = Boolean(p.outOfStock);
             document.getElementById('pFormIsPromotion').checked = Boolean(p.isPromotion);
             document.getElementById('pFormBadge').value = p.badge || '';
@@ -2368,8 +2356,8 @@ require_once __DIR__ . '/config/db.php';
                 category: selectedCat,
                 categoryMm: categoryMm,
                 price: parseInt(document.getElementById('pFormPrice').value),
-                wholesalePrice: parseInt(document.getElementById('pFormWholesale').value) || null,
-                originalPrice: parseInt(document.getElementById('pFormOriginalPrice').value) || null,
+                wholesalePrice: null,
+                originalPrice: null,
                 outOfStock: document.getElementById('pFormOutOfStock').checked,
                 isPromotion: document.getElementById('pFormIsPromotion').checked,
                 badge: document.getElementById('pFormBadge').value || null,
@@ -2580,8 +2568,7 @@ require_once __DIR__ . '/config/db.php';
                                 <span class="text-stone-400">Category:</span>
                                 <span class="bg-stone-100 text-stone-800 px-2 py-0.5 rounded text-[10px] font-bold">${escapeHtml(p.category)}</span>
                             </span>
-                            <span>လက်လီ: <strong class="text-amber-700">${p.price.toLocaleString()} Ks</strong></span>
-                            <span>လက်ကား: <strong>${p.wholesalePrice ? p.wholesalePrice.toLocaleString() + ' Ks' : '-'}</strong></span>
+                            <span>ဈေးနှုန်း: <strong class="text-amber-700">${p.price.toLocaleString()} Ks</strong></span>
                             ${p.salesCount > 0 ? `<span>ရောင်းရ: <strong class="text-stone-900">${p.salesCount} လုံး</strong></span>` : ''}
                             ${p.outOfStock
                                 ? `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-black">Out of Stock (ပစ္စည်းပြတ်)</span>`

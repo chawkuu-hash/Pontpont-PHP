@@ -934,7 +934,7 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
                                     <input type="text" id="pFormNameMm" required class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
                                 </div>
                             </div>
-                            <div class="grid grid-cols-3 gap-3">
+                            <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block font-bold mb-1">အမျိုးအစား (Category)</label>
                                     <select id="pFormCategory" class="w-full px-3 py-1.5 rounded-xl border border-stone-300 bg-white">
@@ -946,19 +946,11 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block font-bold mb-1">လက်လီဈေး (Price MMK)</label>
+                                    <label class="block font-bold mb-1">ဈေးနှုန်း (Price MMK)</label>
                                     <input type="number" id="pFormPrice" required class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
                                 </div>
-                                <div>
-                                    <label class="block font-bold mb-1">လက်ကားဈေး (Wholesale MMK)</label>
-                                    <input type="number" id="pFormWholesale" class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
-                                </div>
                             </div>
-                            <div class="grid grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block font-bold mb-1">မူလဈေး (Original Strike Price)</label>
-                                    <input type="number" id="pFormOriginalPrice" class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
-                                </div>
+                            <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block font-bold mb-1">ပစ္စည်းအခြေအနေ</label>
                                     <label class="flex items-center gap-2 w-full px-3 py-1.5 rounded-xl border border-stone-300 bg-white cursor-pointer select-none">
@@ -3035,7 +3027,7 @@ Store Information:
                     <img src="${escapeHtml(p.image)}" class="w-12 h-12 rounded-xl object-cover border border-stone-200">
                     <div class="flex-1 min-w-0">
                         <h5 class="font-bold text-stone-900 truncate">${escapeHtml(p.nameEn)}</h5>
-                        <p class="text-stone-500">${escapeHtml(p.category)} • လက်လီ: ${p.price.toLocaleString()} Ks • လက်ကား: ${p.wholesalePrice ? p.wholesalePrice.toLocaleString() + ' Ks' : '-'} • ${p.outOfStock ? '<span class="text-red-600 font-bold">Out of Stock</span>' : '<span class="text-emerald-700 font-bold">In Stock</span>'}</p>
+                        <p class="text-stone-500">${escapeHtml(p.category)} • ဈေးနှုန်း: ${p.price.toLocaleString()} Ks • ${p.outOfStock ? '<span class="text-red-600 font-bold">Out of Stock</span>' : '<span class="text-emerald-700 font-bold">In Stock</span>'}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick="editProduct('${escapeHtml(p.id)}')" class="px-3 py-1 bg-white border border-stone-300 rounded-lg font-bold hover:bg-stone-100">Edit</button>
@@ -3052,8 +3044,6 @@ Store Information:
             document.getElementById('pFormNameEn').value = '';
             document.getElementById('pFormNameMm').value = '';
             document.getElementById('pFormPrice').value = '';
-            document.getElementById('pFormWholesale').value = '';
-            document.getElementById('pFormOriginalPrice').value = '';
             document.getElementById('pFormOutOfStock').checked = false;
             document.getElementById('pFormIsPromotion').checked = false;
             document.getElementById('pFormImage').value = '';
@@ -3082,8 +3072,6 @@ Store Information:
             document.getElementById('pFormNameMm').value = p.nameMm;
             document.getElementById('pFormCategory').value = p.category;
             document.getElementById('pFormPrice').value = p.price;
-            document.getElementById('pFormWholesale').value = p.wholesalePrice || '';
-            document.getElementById('pFormOriginalPrice').value = p.originalPrice || '';
             document.getElementById('pFormOutOfStock').checked = Boolean(p.outOfStock);
             document.getElementById('pFormIsPromotion').checked = Boolean(p.isPromotion);
             document.getElementById('pFormBadge').value = p.badge || '';
@@ -3103,8 +3091,8 @@ Store Information:
                 category: document.getElementById('pFormCategory').value,
                 categoryMm: 'အိတ်',
                 price: parseInt(document.getElementById('pFormPrice').value),
-                wholesalePrice: parseInt(document.getElementById('pFormWholesale').value) || null,
-                originalPrice: parseInt(document.getElementById('pFormOriginalPrice').value) || null,
+                wholesalePrice: null,
+                originalPrice: null,
                 outOfStock: document.getElementById('pFormOutOfStock').checked,
                 isPromotion: document.getElementById('pFormIsPromotion').checked,
                 badge: document.getElementById('pFormBadge').value || null,
