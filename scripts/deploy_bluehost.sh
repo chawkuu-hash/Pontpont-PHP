@@ -16,7 +16,7 @@ export SSHPASS="$PASS"
 
 cd "$PROJECT_ROOT"
 sshpass -e scp -r -o StrictHostKeyChecking=no \
-  index.php admin.php profile.php install.php .htaccess README.md plan.md shop_api_explain.md \
+  index.php admin.php profile.php install.php .htaccess README.md plan.md shop_api_explain.md "connect facebook developer app.md" \
   config api database assets \
   "$USER@$HOST:$REMOTE_PATH/"
 

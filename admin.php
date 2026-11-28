@@ -1314,37 +1314,8 @@ require_once __DIR__ . '/config/db.php';
                                 </button>
                             </div>
                             <div id="fbTokenTestResult" class="hidden mt-2 p-3 rounded-2xl text-xs font-semibold"></div>
-                            <span class="text-[11px] text-stone-400 block">Meta Developer > Messenger > Generate Token မှ မိမိ Page ရဲ့ Page Access Token ကို ထည့်ပါ</span>
+                            <span class="text-[11px] text-stone-400 block">Meta Developer > Messenger > Generate Token မှ မိမိ Page ရဲ့ Page Access Token ကို ထည့်ပါ (လမ်းညွှန်ကို connect facebook developer app.md တွင် ကြည့်နိုင်ပါသည်)</span>
                         </div>
-
-                        <!-- Step-by-Step Burmese Setup Guide (Collapsible) -->
-                        <details class="group bg-blue-50/50 border border-blue-200/80 rounded-2xl p-4 text-xs">
-                            <summary class="font-bold text-blue-900 cursor-pointer flex items-center justify-between select-none">
-                                <span class="flex items-center gap-2">
-                                    <i data-lucide="help-circle" class="w-4 h-4 text-blue-600"></i>
-                                    📖 Facebook Page နှင့် AI Bot ချိတ်ဆက်နည်း လမ်းညွှန် (Meta Setup Guide)
-                                </span>
-                                <span class="text-blue-600 group-open:rotate-180 transition-transform">▼</span>
-                            </summary>
-                            <div class="mt-3.5 pt-3 border-t border-blue-200/60 text-stone-700 space-y-2.5 leading-relaxed">
-                                <div class="flex items-start gap-2">
-                                    <span class="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold shrink-0 mt-0.5">အဆင့် ၁</span>
-                                    <span><a href="https://developers.facebook.com" target="_blank" class="text-blue-700 font-bold underline">developers.facebook.com</a> သို့သွား၍ Log in ဝင်ပြီး <b>"My Apps" > "Create App"</b> တွင် Business App တစ်ခု ဖန်တီးပါ။</span>
-                                </div>
-                                <div class="flex items-start gap-2">
-                                    <span class="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold shrink-0 mt-0.5">အဆင့် ၂</span>
-                                    <span>Add Products တွင် <b>"Messenger"</b> ကို Set Up လုပ်ပါ။ ဘယ်ဘက် Menu ရှိ <b>Messenger > Settings</b> သို့ သွားပါ။</span>
-                                </div>
-                                <div class="flex items-start gap-2">
-                                    <span class="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold shrink-0 mt-0.5">အဆင့် ၃</span>
-                                    <span><b>Webhooks</b> ကဏ္ဍတွင် <b>"Add Callback URL"</b> ကို နှိပ်ပြီး အထက်ပါ <b>Webhook Callback URL</b> နှင့် <b>Verify Token</b> ကို ထည့်၍ <b>"Verify and Save"</b> နှိပ်ပါ။ ထို့နောက် <b>"messages"</b> နှင့် <b>"messaging_postbacks"</b> ကို <b>Subscribe</b> လုပ်ပါ။</span>
-                                </div>
-                                <div class="flex items-start gap-2">
-                                    <span class="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold shrink-0 mt-0.5">အဆင့် ၄</span>
-                                    <span><b>"Select a Page"</b> တွင် မိမိ Pont Pont Facebook Page ကို ချိတ်ဆက်ပြီး <b>"Generate Token"</b> နှိပ်ပါ။ ရရှိလာသော Page Access Token ကို ကူးယူပြီး အထက်ပါ အကွက်တွင် ထည့်၍ <b>"သိမ်းဆည်းမည်"</b> ကို နှိပ်ပါ။</span>
-                                </div>
-                            </div>
-                        </details>
                     </div>
 
                     <!-- Submit Actions -->
