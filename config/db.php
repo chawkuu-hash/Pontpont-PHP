@@ -80,6 +80,10 @@ function ensureSchemaUpdated($pdo) {
         if (!$colIsPromo->fetch()) {
             $pdo->exec("ALTER TABLE `products` ADD COLUMN `isPromotion` TINYINT(1) NOT NULL DEFAULT 0 AFTER `outOfStock`");
         }
+        $colPromoEnd = $pdo->query("SHOW COLUMNS FROM `products` LIKE 'promotionEndDate'");
+        if (!$colPromoEnd->fetch()) {
+            $pdo->exec("ALTER TABLE `products` ADD COLUMN `promotionEndDate` VARCHAR(30) DEFAULT NULL AFTER `isPromotion`");
+        }
 
         // 2. Ensure coupons table exists
         $pdo->exec("CREATE TABLE IF NOT EXISTS `coupons` (

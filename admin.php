@@ -678,11 +678,16 @@ require_once __DIR__ . '/config/db.php';
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-3">
                             <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/70 cursor-pointer hover:bg-amber-100/70 transition select-none">
-                                <input type="checkbox" id="pFormIsPromotion" class="w-4 h-4 accent-amber-600 rounded">
+                                <input type="checkbox" id="pFormIsPromotion" onchange="togglePromotionDatePicker()" class="w-4 h-4 accent-amber-600 rounded">
                                 <span class="font-bold text-amber-900">🔥 Promotion Item စာမျက်နှာတွင် ပြသမည် (Featured Promotion)</span>
                             </label>
+                            <div id="pFormPromotionDateBox" class="hidden flex items-center gap-2 bg-rose-50/80 border border-rose-200 px-3 py-1.5 rounded-xl">
+                                <label for="pFormPromotionEndDate" class="font-bold text-rose-900 whitespace-nowrap">📅 ကုန်ဆုံးမည့်ရက်:</label>
+                                <input type="date" id="pFormPromotionEndDate" class="px-2.5 py-1 rounded-lg border border-rose-300 bg-white text-xs font-semibold text-stone-800">
+                                <span class="text-[10px] text-rose-700 font-medium">(ရက်ကျော်လွန်ပါက အလိုအလျောက် ဖယ်ရှားမည်)</span>
+                            </div>
                         </div>
 
                         <div>
@@ -2388,6 +2393,26 @@ require_once __DIR__ . '/config/db.php';
             }
         }
 
+        function togglePromotionDatePicker() {
+            const cb = document.getElementById('pFormIsPromotion');
+            const box = document.getElementById('pFormPromotionDateBox');
+            const dateInput = document.getElementById('pFormPromotionEndDate');
+            if (!cb || !box) return;
+            if (cb.checked) {
+                box.classList.remove('hidden');
+                if (dateInput && !dateInput.min) {
+                    const now = new Date();
+                    const y = now.getFullYear();
+                    const m = String(now.getMonth() + 1).padStart(2, '0');
+                    const d = String(now.getDate()).padStart(2, '0');
+                    dateInput.min = `${y}-${m}-${d}`;
+                }
+            } else {
+                box.classList.add('hidden');
+                if (dateInput) dateInput.value = '';
+            }
+        }
+
         function openProductForm() {
             populateProductCategoryDropdown();
             populateProductBadgeDropdown('');
@@ -2397,6 +2422,8 @@ require_once __DIR__ . '/config/db.php';
             document.getElementById('pFormPrice').value = '';
             document.getElementById('pFormOutOfStock').checked = false;
             document.getElementById('pFormIsPromotion').checked = false;
+            document.getElementById('pFormPromotionEndDate').value = '';
+            togglePromotionDatePicker();
             document.getElementById('pFormBadge').value = '';
             document.getElementById('pFormImage').value = '';
             updateProductImagePreview('');
@@ -2422,6 +2449,8 @@ require_once __DIR__ . '/config/db.php';
             document.getElementById('pFormPrice').value = p.price;
             document.getElementById('pFormOutOfStock').checked = Boolean(p.outOfStock);
             document.getElementById('pFormIsPromotion').checked = Boolean(p.isPromotion);
+            document.getElementById('pFormPromotionEndDate').value = p.promotionEndDate || '';
+            togglePromotionDatePicker();
             document.getElementById('pFormBadge').value = p.badge || '';
             document.getElementById('pFormImage').value = p.image;
             updateProductImagePreview(p.image);
@@ -2437,6 +2466,8 @@ require_once __DIR__ . '/config/db.php';
             const selectedCat = document.getElementById('pFormCategory').value;
             const catObj = (shopData.categories || []).find(c => c.id === selectedCat);
             const categoryMm = catObj ? (catObj.labelMm || catObj.labelEn) : 'အိတ်';
+            const isPromoChecked = document.getElementById('pFormIsPromotion').checked;
+            const promoEndVal = document.getElementById('pFormPromotionEndDate') ? document.getElementById('pFormPromotionEndDate').value : '';
 
             const product = {
                 id: id || ('pp-bag-' + Date.now()),
@@ -2448,7 +2479,8 @@ require_once __DIR__ . '/config/db.php';
                 wholesalePrice: null,
                 originalPrice: null,
                 outOfStock: document.getElementById('pFormOutOfStock').checked,
-                isPromotion: document.getElementById('pFormIsPromotion').checked,
+                isPromotion: isPromoChecked,
+                promotionEndDate: (isPromoChecked && promoEndVal) ? promoEndVal : null,
                 badge: document.getElementById('pFormBadge').value || null,
                 image: document.getElementById('pFormImage').value.trim(),
                 descriptionMm: document.getElementById('pFormDescMm').value.trim(),
@@ -2649,7 +2681,7 @@ require_once __DIR__ . '/config/db.php';
                         <div class="flex items-center gap-2">
                             <h5 class="font-extrabold text-stone-900 text-sm truncate">${escapeHtml(p.nameEn)}</h5>
                             ${p.badge ? `<span class="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded text-[10px]">${escapeHtml(p.badge)}</span>` : ''}
-                            ${p.isOnPromotion ? `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded text-[10px]">🔥 Promo</span>` : ''}
+                            ${p.isOnPromotion ? `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded text-[10px]">🔥 Promo${p.promotionEndDate ? ` (${escapeHtml(p.promotionEndDate)} ထိ)` : ''}</span>` : ''}
                         </div>
                         <p class="text-stone-500 mt-0.5 truncate">${escapeHtml(p.nameMm)}</p>
                         <div class="flex flex-wrap items-center gap-3 mt-1.5 text-stone-600 font-semibold">

@@ -41,6 +41,7 @@ CREATE TABLE `products` (
   `stock` INT NOT NULL DEFAULT 1,
   `outOfStock` TINYINT(1) NOT NULL DEFAULT 0,
   `isPromotion` TINYINT(1) NOT NULL DEFAULT 0,
+  `promotionEndDate` VARCHAR(30) DEFAULT NULL,
   `material` VARCHAR(255) NOT NULL,
   `dimensions` VARCHAR(100) NOT NULL,
   `descriptionEn` TEXT NOT NULL,

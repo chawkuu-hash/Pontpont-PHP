@@ -278,6 +278,22 @@ function handleSecureImageUpload($fileOrBase64, $subDir, $prefix = 'img') {
 
 // Helper: Build complete scoped database response
 function buildScopedResponse($pdo, $sessionUser) {
+    // 0. Auto-expire scheduled product promotions once promotionEndDate has passed (Myanmar Time UTC+6:30)
+    $mmToday = gmdate('Y-m-d', time() + 23400);
+    try {
+        $expStmt = $pdo->prepare("
+            UPDATE products
+            SET isPromotion = 0,
+                promotionEndDate = NULL,
+                badge = CASE WHEN LOWER(COALESCE(badge, '')) IN ('promotion', 'promo', 'sale') THEN NULL ELSE badge END
+            WHERE isPromotion = 1
+              AND promotionEndDate IS NOT NULL
+              AND promotionEndDate != ''
+              AND promotionEndDate < ?
+        ");
+        $expStmt->execute([$mmToday]);
+    } catch (\Throwable $e) {}
+
     // 1. Categories
     $catStmt = $pdo->query("SELECT id, labelEn, labelMm, sortOrder FROM categories ORDER BY sortOrder ASC");
     $categories = $catStmt->fetchAll();
@@ -324,9 +340,10 @@ function buildScopedResponse($pdo, $sessionUser) {
             'badge'          => $p['badge'] ?: null,
             'rating'         => (float)$p['rating'],
             'reviewsCount'   => (int)$p['reviewsCount'],
-            'outOfStock'     => $isOutOfStock,
-            'isPromotion'    => !empty($p['isPromotion']),
-            'isOnPromotion'  => $isPromotion,
+            'outOfStock'       => $isOutOfStock,
+            'isPromotion'      => !empty($p['isPromotion']),
+            'promotionEndDate' => !empty($p['promotionEndDate']) ? (string)$p['promotionEndDate'] : null,
+            'isOnPromotion'    => $isPromotion,
             'salesCount'     => (int)($salesCounts[(string)$p['id']] ?? 0),
             'stock'          => $isOutOfStock ? 0 : 1,
             'material'       => (string)$p['material'],
@@ -1406,17 +1423,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $reviewsCount = !empty($p['reviewsCount']) ? (int)$p['reviewsCount'] : 1;
         $outOfStock = !empty($p['outOfStock']) ? 1 : 0;
         $isPromotion = !empty($p['isPromotion']) ? 1 : 0;
+        $rawPromoDate = trim((string)($p['promotionEndDate'] ?? ''));
+        $promotionEndDate = ($isPromotion && preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawPromoDate)) ? $rawPromoDate : null;
         $stock = $outOfStock ? 0 : 1;
         $material = trim($p['material'] ?? 'High-Grade PU Leather');
         $dimensions = trim($p['dimensions'] ?? 'Standard');
         $descriptionEn = trim($p['descriptionEn'] ?? '');
         $descriptionMm = trim($p['descriptionMm'] ?? '');
 
-        $insProd = $pdo->prepare("INSERT INTO products (id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, image, colorsJson, badge, rating, reviewsCount, stock, outOfStock, isPromotion, material, dimensions, descriptionEn, descriptionMm, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+        $insProd = $pdo->prepare("INSERT INTO products (id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, image, colorsJson, badge, rating, reviewsCount, stock, outOfStock, isPromotion, promotionEndDate, material, dimensions, descriptionEn, descriptionMm, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
         $insProd->execute([
             $id, $nameEn, $nameMm, $category, $categoryMm, $price, $originalPrice,
             $wholesalePrice, $image, $colorsJson, $badge, $rating, $reviewsCount,
-            $stock, $outOfStock, $isPromotion, $material, $dimensions, $descriptionEn, $descriptionMm
+            $stock, $outOfStock, $isPromotion, $promotionEndDate, $material, $dimensions, $descriptionEn, $descriptionMm
         ]);
 
         echo json_encode([
@@ -1445,17 +1464,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reviewsCount = !empty($p['reviewsCount']) ? (int)$p['reviewsCount'] : 1;
             $outOfStock = !empty($p['outOfStock']) ? 1 : 0;
             $isPromotion = !empty($p['isPromotion']) ? 1 : 0;
+            $rawPromoDate = trim((string)($p['promotionEndDate'] ?? ''));
+            $promotionEndDate = ($isPromotion && preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawPromoDate)) ? $rawPromoDate : null;
             $stock = $outOfStock ? 0 : 1;
             $material = trim($p['material'] ?? '');
             $dimensions = trim($p['dimensions'] ?? '');
             $descriptionEn = trim($p['descriptionEn'] ?? '');
             $descriptionMm = trim($p['descriptionMm'] ?? '');
 
-            $updProd = $pdo->prepare("UPDATE products SET nameEn = ?, nameMm = ?, category = ?, categoryMm = ?, price = ?, originalPrice = ?, wholesalePrice = ?, image = ?, colorsJson = ?, badge = ?, rating = ?, reviewsCount = ?, stock = ?, outOfStock = ?, isPromotion = ?, material = ?, dimensions = ?, descriptionEn = ?, descriptionMm = ? WHERE id = ?");
+            $updProd = $pdo->prepare("UPDATE products SET nameEn = ?, nameMm = ?, category = ?, categoryMm = ?, price = ?, originalPrice = ?, wholesalePrice = ?, image = ?, colorsJson = ?, badge = ?, rating = ?, reviewsCount = ?, stock = ?, outOfStock = ?, isPromotion = ?, promotionEndDate = ?, material = ?, dimensions = ?, descriptionEn = ?, descriptionMm = ? WHERE id = ?");
             $updProd->execute([
                 $nameEn, $nameMm, $category, $categoryMm, $price, $originalPrice,
                 $wholesalePrice, $image, $colorsJson, $badge, $rating, $reviewsCount,
-                $stock, $outOfStock, $isPromotion, $material, $dimensions, $descriptionEn, $descriptionMm, $id
+                $stock, $outOfStock, $isPromotion, $promotionEndDate, $material, $dimensions, $descriptionEn, $descriptionMm, $id
             ]);
         }
 

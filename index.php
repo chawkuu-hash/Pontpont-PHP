@@ -1009,10 +1009,16 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
                                     </select>
                                 </div>
                             </div>
-                            <label class="inline-flex items-center gap-2 text-xs font-bold text-amber-900 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 cursor-pointer">
-                                <input type="checkbox" id="pFormIsPromotion" class="w-4 h-4 accent-amber-600 rounded">
-                                <span>🔥 Promotion Item စာမျက်နှာတွင် ပြသမည်</span>
-                            </label>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <label class="inline-flex items-center gap-2 text-xs font-bold text-amber-900 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 cursor-pointer">
+                                    <input type="checkbox" id="pFormIsPromotion" onchange="toggleInlinePromoDatePicker()" class="w-4 h-4 accent-amber-600 rounded">
+                                    <span>🔥 Promotion Item စာမျက်နှာတွင် ပြသမည်</span>
+                                </label>
+                                <div id="pFormPromotionDateBox" class="hidden flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl text-xs">
+                                    <label for="pFormPromotionEndDate" class="font-bold text-rose-900">ကုန်ဆုံးရက်:</label>
+                                    <input type="date" id="pFormPromotionEndDate" class="px-2 py-0.5 rounded-lg border border-rose-300 bg-white text-xs">
+                                </div>
+                            </div>
                             <div>
                                 <label class="block font-bold mb-1">ဓာတ်ပုံ URL (Image URL)</label>
                                 <input type="url" id="pFormImage" required class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
@@ -3216,6 +3222,19 @@ Store Information:
             });
         }
 
+        function toggleInlinePromoDatePicker() {
+            const cb = document.getElementById('pFormIsPromotion');
+            const box = document.getElementById('pFormPromotionDateBox');
+            const inp = document.getElementById('pFormPromotionEndDate');
+            if (!cb || !box) return;
+            if (cb.checked) {
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+                if (inp) inp.value = '';
+            }
+        }
+
         function openAddProductForm() {
             populateInlineBadgeSelect('');
             document.getElementById('pFormId').value = '';
@@ -3224,6 +3243,8 @@ Store Information:
             document.getElementById('pFormPrice').value = '';
             document.getElementById('pFormOutOfStock').checked = false;
             document.getElementById('pFormIsPromotion').checked = false;
+            if (document.getElementById('pFormPromotionEndDate')) document.getElementById('pFormPromotionEndDate').value = '';
+            toggleInlinePromoDatePicker();
             document.getElementById('pFormImage').value = '';
             document.getElementById('pFormDescMm').value = '';
             document.getElementById('productFormTitle').innerText = 'ပစ္စည်းအသစ် ထည့်သွင်းခြင်း';
@@ -3252,6 +3273,8 @@ Store Information:
             document.getElementById('pFormPrice').value = p.price;
             document.getElementById('pFormOutOfStock').checked = Boolean(p.outOfStock);
             document.getElementById('pFormIsPromotion').checked = Boolean(p.isPromotion);
+            if (document.getElementById('pFormPromotionEndDate')) document.getElementById('pFormPromotionEndDate').value = p.promotionEndDate || '';
+            toggleInlinePromoDatePicker();
             document.getElementById('pFormBadge').value = p.badge || '';
             document.getElementById('pFormImage').value = p.image;
             document.getElementById('pFormDescMm').value = p.descriptionMm;
@@ -3262,6 +3285,8 @@ Store Information:
         async function handleSaveProduct(e) {
             e.preventDefault();
             const id = document.getElementById('pFormId').value;
+            const isPromoChecked = document.getElementById('pFormIsPromotion').checked;
+            const promoEndVal = document.getElementById('pFormPromotionEndDate') ? document.getElementById('pFormPromotionEndDate').value : '';
             const product = {
                 id: id || ('pp-bag-' + Date.now()),
                 nameEn: document.getElementById('pFormNameEn').value.trim(),
@@ -3272,7 +3297,8 @@ Store Information:
                 wholesalePrice: null,
                 originalPrice: null,
                 outOfStock: document.getElementById('pFormOutOfStock').checked,
-                isPromotion: document.getElementById('pFormIsPromotion').checked,
+                isPromotion: isPromoChecked,
+                promotionEndDate: (isPromoChecked && promoEndVal) ? promoEndVal : null,
                 badge: document.getElementById('pFormBadge').value || null,
                 image: document.getElementById('pFormImage').value.trim(),
                 descriptionMm: document.getElementById('pFormDescMm').value.trim(),
