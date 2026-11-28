@@ -562,6 +562,26 @@ Content-Type: application/json
   ```
 - **Response:** အက်ပ်ဗားရှင်း အသစ်ထွက်ရှိမှု ရှိမရှိ (`hasUpdate`)၊ မဖြစ်မနေ Update လုပ်ရမည်လား (`forceUpdate`) နှင့် ဒေါင်းလုဒ်လင့်ခ် (`downloadUrl`) တို့ကို ပြန်လည်ပေးပို့ခြင်း။
 
+#### 34. `TEST_FACEBOOK_CONNECTION` (Facebook Page Access Token စစ်ဆေးခြင်း)
+- **ခွင့်ပြုချက်:** စီမံခန့်ခွဲသူ (Admin သာ)
+- **Request Parameters:**
+  ```json
+  {
+    "action": "TEST_FACEBOOK_CONNECTION",
+    "token": "EAA..." // စစ်ဆေးလိုသော Page Access Token (ချန်လှပ်ထားပါက Database မှ Token ကို စစ်ဆေးပါမည်)
+  }
+  ```
+- **Response:** Meta Graph API မှ ချိတ်ဆက်ထားသော Page ID, အမည် (`name`), နှင့် Category တို့ကို အောင်မြင်စွာ ပြန်လည်ပေးပို့ခြင်း။
+
+---
+
+### အပိုင်း (ဍ) — Meta Facebook Messenger Webhook စနစ် (`api/webhook_facebook.php`)
+
+Facebook Page Messenger မှ Customer များ၏ မေးမြန်းချက်များကို AI Live Chatbot ဖြင့် ၂၄ နာရီ Auto-Reply ပေးနိုင်ရန် ဤ Webhook Endpoint ကို ဖန်တီးထားပါသည်:
+- **Endpoint URL:** `https://pontpontbagshop.com/api/webhook_facebook.php`
+- **GET Request:** Meta Webhook Verification (`hub.mode=subscribe`, `hub.verify_token`, `hub.challenge`) ကို စစ်ဆေးပြီး Handshake လုပ်ဆောင်ပေးခြင်း။
+- **POST Request:** Facebook Page Messenger မှ ဝင်ရောက်လာသော Messaging Events များကို ဖတ်ယူပြီး Live Store Context ပါဝင်သော AI Engine ဖြင့် Auto-Reply ပြန်ကြားပေးခြင်း။ Customer များက အိတ်ပုံ/ဒီဇိုင်းများ တောင်းဆိုပါက MySQL `products` စာရင်းထဲမှ အိတ်ဓာတ်ပုံ၊ ဈေးနှုန်းနှင့် Shop Link ပါဝင်သော Interactive Generic Template Carousel ကတ်များဖြင့် ပေးပို့ပေးခြင်း။
+
 ---
 
 ## ၄။ API Response နှင့် Error Status Codes များ

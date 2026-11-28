@@ -120,11 +120,15 @@ function ensureSchemaUpdated($pdo) {
             (1, 'mock', '', 'us-east-1', '', 'gemini-flash-lite-latest', 'You are \"Pont Pont AI\" (ပုံ့ပုံ့ AI အကူအညီ), the polite, friendly customer assistant for \"Pont Pont Handbag Shop\" (ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး) based in Mandalay, Myanmar.', 'ပုံ့ပုံ့ AI အကူအညီ', 'မင်္ဂလာပါရှင် 👋 ပုံ့ပုံ့ အိတ်ဆိုင် (မန္တလေး) မှ ကြိုဆိုပါတယ်။ ဘာများ ကူညီပေးရမလဲရှင်။', 'Hello! Welcome to Pont Pont Handbag Shop Mandalay.', 1, '2026-11-23T00:00:00Z')");
         }
 
-        // 4. Ensure telegram and app settings exist
+        // 4. Ensure telegram, facebook and app settings exist
         $pdo->exec("INSERT IGNORE INTO `settings` (`key`, `value`) VALUES 
             ('telegram_bot_token', ''),
             ('telegram_chat_id', ''),
             ('telegram_enabled', '0'),
+            ('facebook_messenger_enabled', '0'),
+            ('facebook_page_access_token', ''),
+            ('facebook_verify_token', 'pontpont_fb_verify_2026'),
+            ('facebook_app_secret', ''),
             ('app_version', '1.2.0'),
             ('app_min_version', '1.0.0'),
             ('app_download_url', 'https://pontpont.com/download')");

@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/ai_helper.php';
 
 $SESSION_COOKIE_NAME = 'pontpont_session';
 
@@ -510,7 +511,7 @@ function buildScopedResponse($pdo, $sessionUser) {
     try {
         $setStmt = $pdo->query("SELECT `key`, `value` FROM settings");
         while ($sRow = $setStmt->fetch()) {
-            if (!$isAdmin && in_array($sRow['key'], ['telegram_bot_token', 'telegram_chat_id'])) {
+            if (!$isAdmin && in_array($sRow['key'], ['telegram_bot_token', 'telegram_chat_id', 'facebook_page_access_token', 'facebook_app_secret'])) {
                 continue;
             }
             $settings[$sRow['key']] = $sRow['value'];
@@ -1289,52 +1290,6 @@ function buildLiveShopContextForAI($pdo) {
             exit;
         }
 
-        // Get bot config from database
-        $cfg = null;
-        try {
-            $cfgStmt = $pdo->query("SELECT * FROM chatbot_config WHERE id = 1 LIMIT 1");
-            $cfg = $cfgStmt->fetch();
-        } catch (Exception $e) {}
-
-        if (!$cfg || empty($cfg['enabled'])) {
-            echo json_encode([
-                'ok' => true,
-                'reply' => 'Chatbot ဝန်ဆောင်မှု ခေတ္တပိတ်ထားပါသည်ရှင်။'
-            ], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-
-        $provider = $cfg['provider'] ?? 'mock';
-        $apiKey = trim($cfg['apiKey'] ?? '');
-        $apiUrl = trim($cfg['apiUrl'] ?? '');
-        $model = trim($cfg['model'] ?? 'gemini-1.5-flash');
-        $systemPrompt = trim($cfg['systemPrompt'] ?? '');
-        $liveShopContext = buildLiveShopContextForAI($pdo);
-
-        // Look up matching products in database for bag/picture queries
-        $matchingProducts = [];
-        if (preg_match('/(အိတ်|ပုံ|photo|pic|image|ဒီဇိုင်း|design|တုတ်|tote|sling|လွယ်အိတ်|ကျောပိုး|backpack|wallet|ပိုက်ဆံအိတ်|clutch|ပစ္စည်း|ကြည့်|ရှာ|ဈေး|price|ရောင်းအား|best|အသစ်)/iu', $message)) {
-            try {
-                $catWhere = '';
-                if (preg_match('/(tote|တုတ်|ရုံးတက်|လက်ဆွဲ)/iu', $message)) {
-                    $catWhere = "WHERE category LIKE '%Tote%' OR categoryMm LIKE '%လက်ဆွဲ%'";
-                } elseif (preg_match('/(sling|crossbody|ဘေးလွယ်)/iu', $message)) {
-                    $catWhere = "WHERE category LIKE '%Crossbody%' OR categoryMm LIKE '%ဘေးလွယ်%'";
-                } elseif (preg_match('/(shoulder|ပုခုံး)/iu', $message)) {
-                    $catWhere = "WHERE category LIKE '%Shoulder%' OR categoryMm LIKE '%ပုခုံး%'";
-                } elseif (preg_match('/(backpack|ကျောပိုး)/iu', $message)) {
-                    $catWhere = "WHERE category LIKE '%Backpack%' OR categoryMm LIKE '%ကျောပိုး%'";
-                } elseif (preg_match('/(wallet|clutch|ပိုက်ဆံအိတ်|ပွဲတက်)/iu', $message)) {
-                    $catWhere = "WHERE category LIKE '%Clutch%' OR category LIKE '%Wallet%' OR categoryMm LIKE '%ပိုက်ဆံအိတ်%'";
-                }
-                $mStmt = $pdo->query("SELECT id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, image, badge FROM products {$catWhere} ORDER BY sortOrder ASC LIMIT 4");
-                $matchingProducts = $mStmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (\Throwable $t) {}
-        }
-
-        $imageInstructions = "\n\nPRODUCT IMAGES INSTRUCTION:\nWhen the customer asks to see bag pictures, photos, or designs (e.g. 'အိတ်ပုံ', 'ဒီဇိုင်းတွေ', 'ပုံပြပါ'), you MUST display the matching bag pictures using Markdown syntax: ![Bag Name](image_url)\nThe chat UI will render the images directly to the user.";
-        $fullSystemPrompt = ($systemPrompt !== '' ? $systemPrompt . "\n\n" : '') . $liveShopContext . $imageInstructions;
-
         // Sanitize optional temporary chat history (max last 8 turns)
         $rawHistory = is_array($body['history'] ?? null) ? array_slice($body['history'], -8) : [];
         $cleanHistory = [];
@@ -1346,201 +1301,12 @@ function buildLiveShopContextForAI($pdo) {
             $cleanHistory[] = ['role' => $hRole, 'text' => mb_substr($hText, 0, 1500)];
         }
 
-        $lastAiError = null;
-
-        // Gemini AI Provider
-        if ($provider === 'gemini' && $apiKey) {
-            $modelsToTry = array_unique([$model, 'gemini-flash-lite-latest', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest']);
-            $geminiContents = [];
-            foreach ($cleanHistory as $h) {
-                $geminiContents[] = [
-                    'role' => $h['role'] === 'user' ? 'user' : 'model',
-                    'parts' => [['text' => $h['text']]]
-                ];
-            }
-            $geminiContents[] = [
-                'role' => 'user',
-                'parts' => [['text' => $message]]
-            ];
-
-            $payload = [
-                'systemInstruction' => [
-                    'parts' => [['text' => $fullSystemPrompt]]
-                ],
-                'contents' => $geminiContents,
-                'generationConfig' => [
-                    'temperature' => 0.7,
-                    'maxOutputTokens' => 4096
-                ]
-            ];
-
-            foreach ($modelsToTry as $tryModel) {
-                if (empty($tryModel)) continue;
-                $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$tryModel}:generateContent?key={$apiKey}";
-                $res = makeHttpRequest($geminiUrl, 'POST', ['Content-Type' => 'application/json'], $payload, 20);
-                if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
-                    $data = json_decode($res['body'], true);
-                    $parts = $data['candidates'][0]['content']['parts'] ?? [];
-                    $replyParts = [];
-                    foreach ($parts as $part) {
-                        if (empty($part['thought']) && isset($part['text'])) {
-                            $replyParts[] = $part['text'];
-                        }
-                    }
-                    $reply = !empty($replyParts) ? implode('', $replyParts) : null;
-                    if ($reply) {
-                        if ($tryModel !== $model) {
-                            try {
-                                $upd = $pdo->prepare("UPDATE chatbot_config SET model = ? WHERE id = 1");
-                                $upd->execute([$tryModel]);
-                            } catch (\Throwable $t) {}
-                        }
-                        echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $tryModel, 'provider' => 'gemini', 'products' => $matchingProducts], JSON_UNESCAPED_UNICODE);
-                        exit;
-                    }
-                } else {
-                    $errDec = json_decode($res['body'], true);
-                    $errMsg = $errDec['error']['message'] ?? ($res['body'] ?: 'Connection failed');
-                    $lastAiError = "Google Gemini API Error (HTTP {$res['status']}): {$errMsg}";
-                }
-            }
-        }
-
-        // Amazon Bedrock Provider (Bearer Token / Converse API)
-        if ($provider === 'bedrock' && $apiKey) {
-            $bedrockRegion = !empty($cfg['region']) ? $cfg['region'] : 'us-east-1';
-            $bedrockModel = !empty($model) && $model !== 'built-in-rules' ? $model : 'amazon.nova-lite-v1:0';
-            $endpoint = "https://bedrock-runtime.{$bedrockRegion}.amazonaws.com/model/{$bedrockModel}/converse";
-
-            $bedrockMessages = [];
-            foreach ($cleanHistory as $h) {
-                $bRole = ($h['role'] === 'user') ? 'user' : 'assistant';
-                $bedrockMessages[] = [
-                    'role' => $bRole,
-                    'content' => [['text' => $h['text']]]
-                ];
-            }
-            $bedrockMessages[] = [
-                'role' => 'user',
-                'content' => [['text' => $message]]
-            ];
-
-            $payload = [
-                'system' => [
-                    ['text' => $fullSystemPrompt]
-                ],
-                'messages' => $bedrockMessages,
-                'inferenceConfig' => [
-                    'maxTokens' => 2048,
-                    'temperature' => 0.7
-                ]
-            ];
-
-            $headers = [
-                'Content-Type' => 'application/json',
-                'Authorization' => "Bearer {$apiKey}"
-            ];
-
-            $res = makeHttpRequest($endpoint, 'POST', $headers, $payload, 25);
-            if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
-                $data = json_decode($res['body'], true);
-                $reply = $data['output']['message']['content'][0]['text'] ?? null;
-                if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => $bedrockModel, 'provider' => 'bedrock', 'products' => $matchingProducts], JSON_UNESCAPED_UNICODE);
-                    exit;
-                }
-            } else {
-                $bodyDec = json_decode($res['body'], true);
-                $msg = $bodyDec['message'] ?? $bodyDec['Message'] ?? ($res['body'] ?: 'Request failed');
-                $lastAiError = "Amazon Bedrock Error (HTTP {$res['status']}): {$msg}";
-            }
-        }
-
-        // OpenAI or Groq AI Provider
-        if (($provider === 'openai' || $provider === 'groq') && $apiKey) {
-            $endpoint = ($provider === 'groq')
-                ? 'https://api.groq.com/openai/v1/chat/completions'
-                : 'https://api.openai.com/v1/chat/completions';
-
-            $defaultModel = ($provider === 'groq') ? 'llama-3.3-70b-versatile' : 'gpt-4o-mini';
-            $openAiMessages = [['role' => 'system', 'content' => $fullSystemPrompt]];
-            foreach ($cleanHistory as $h) {
-                $openAiMessages[] = ['role' => $h['role'] === 'user' ? 'user' : 'assistant', 'content' => $h['text']];
-            }
-            $openAiMessages[] = ['role' => 'user', 'content' => $message];
-
-            $payload = [
-                'model' => $model ?: $defaultModel,
-                'messages' => $openAiMessages,
-                'temperature' => 0.7,
-                'max_tokens' => 2048
-            ];
-            $headers = [
-                'Content-Type' => 'application/json',
-                'Authorization' => "Bearer {$apiKey}"
-            ];
-            $res = makeHttpRequest($endpoint, 'POST', $headers, $payload, 20);
-            if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
-                $data = json_decode($res['body'], true);
-                $reply = $data['choices'][0]['message']['content'] ?? null;
-                if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => ($model ?: $defaultModel), 'provider' => $provider, 'products' => $matchingProducts], JSON_UNESCAPED_UNICODE);
-                    exit;
-                }
-            } else {
-                $bodyDec = json_decode($res['body'], true);
-                $msg = $bodyDec['error']['message'] ?? ($res['body'] ?: 'Request failed');
-                $lastAiError = "{$provider} Error (HTTP {$res['status']}): {$msg}";
-            }
-        }
-
-        // Custom OpenAI-Compatible Provider (OpenWebUI, Ollama, LM Studio, etc.)
-        if ($provider === 'custom' && $apiUrl) {
-            $endpoint = (substr($apiUrl, -17) === '/chat/completions')
-                ? $apiUrl
-                : rtrim($apiUrl, '/') . '/chat/completions';
-
-            $headers = ['Content-Type' => 'application/json'];
-            if ($apiKey) {
-                $headers['Authorization'] = "Bearer {$apiKey}";
-            }
-
-            $customMessages = [['role' => 'system', 'content' => $fullSystemPrompt]];
-            foreach ($cleanHistory as $h) {
-                $customMessages[] = ['role' => $h['role'] === 'user' ? 'user' : 'assistant', 'content' => $h['text']];
-            }
-            $customMessages[] = ['role' => 'user', 'content' => $message];
-
-            $payload = [
-                'model' => $model ?: 'gpt-3.5-turbo',
-                'messages' => $customMessages,
-                'temperature' => 0.7,
-                'max_tokens' => 2048
-            ];
-            $res = makeHttpRequest($endpoint, 'POST', $headers, $payload, 25);
-            if ($res['status'] >= 200 && $res['status'] < 300 && $res['body']) {
-                $data = json_decode($res['body'], true);
-                $reply = $data['choices'][0]['message']['content'] ?? null;
-                if ($reply) {
-                    echo json_encode(['ok' => true, 'reply' => $reply, 'model' => ($model ?: 'custom'), 'provider' => 'custom', 'products' => $matchingProducts], JSON_UNESCAPED_UNICODE);
-                    exit;
-                }
-            } else {
-                $bodyDec = json_decode($res['body'], true);
-                $msg = $bodyDec['error']['message'] ?? ($res['body'] ?: 'Request failed');
-                $lastAiError = "Custom API Error (HTTP {$res['status']}): {$msg}";
-            }
-        }
-
-        // Intelligent Myanmar Rule-based Knowledge Engine fallback
-        $reply = generateIntelligentBurmeseReply($message, $pdo);
-        $fallbackResp = ['ok' => true, 'reply' => $reply, 'fallback' => true, 'products' => $matchingProducts];
-        if (!empty($lastAiError)) {
-            $fallbackResp['aiError'] = $lastAiError;
-        }
-        echo json_encode($fallbackResp, JSON_UNESCAPED_UNICODE);
+        $res = processAiChatbotQuery($pdo, $message, $cleanHistory);
+        echo json_encode($res, JSON_UNESCAPED_UNICODE);
         exit;
     }
+
+
 
     // 5.2. FETCH_AI_MODELS (Fetch AI Models dynamically from Provider API - No hardcoded presets)
     if ($action === 'FETCH_AI_MODELS') {
@@ -1954,6 +1720,7 @@ function buildLiveShopContextForAI($pdo) {
             $allowedKeys = [
                 'shop_name', 'shop_name_mm', 'phone_1', 'phone_2', 'kpay_account',
                 'telegram_bot_token', 'telegram_chat_id', 'telegram_enabled',
+                'facebook_messenger_enabled', 'facebook_page_access_token', 'facebook_verify_token', 'facebook_app_secret',
                 'app_version', 'app_min_version', 'app_download_url',
                 'shop_logo', 'title_bar', 'shop_subtitle', 'announcement'
             ];
@@ -2122,6 +1889,27 @@ function buildLiveShopContextForAI($pdo) {
         ];
         sendTelegramOrderAlert($pdo, $testOrder);
         echo json_encode(['ok' => true, 'message' => 'Telegram စမ်းသပ်အကြောင်းကြားချက် ပေးပို့ပြီးပါပြီ']);
+        exit;
+    }
+
+    // 26. TEST_FACEBOOK_CONNECTION (Verify Meta Facebook Page Token & Status)
+    if ($action === 'TEST_FACEBOOK_CONNECTION') {
+        $token = trim($body['token'] ?? '');
+        if (!$token) {
+            $st = $pdo->prepare("SELECT `value` FROM settings WHERE `key` = 'facebook_page_access_token' LIMIT 1");
+            $st->execute();
+            $r = $st->fetch();
+            $token = $r ? trim($r['value']) : '';
+        }
+
+        if (!$token) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'ကျေးဇူးပြု၍ Facebook Page Access Token ထည့်သွင်းပါ'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $verifyRes = verifyFacebookPageAccessToken($token);
+        echo json_encode($verifyRes, JSON_UNESCAPED_UNICODE);
         exit;
     }
     http_response_code(400);

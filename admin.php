@@ -1252,6 +1252,101 @@ require_once __DIR__ . '/config/db.php';
                         </div>
                     </div>
 
+                    <!-- Facebook Messenger Integration Card -->
+                    <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-5 text-xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
+                            <div>
+                                <h5 class="font-bold text-sm text-stone-900 flex items-center gap-2">
+                                    <span class="p-1.5 bg-blue-600 text-white rounded-xl shadow-xs"><i data-lucide="facebook" class="w-4 h-4"></i></span>
+                                    📱 Facebook Page Auto Messaging (Messenger AI ချိတ်ဆက်မှု)
+                                </h5>
+                                <p class="text-xs text-stone-500 mt-1">
+                                    Facebook Page Messenger သို့ customer များ လာရောက်မေးမြန်းသမျှကို ဤ Live Chatbot AI ဖြင့် ၂၄ နာရီ Auto-Reply ပေးမည်။ အိတ်ပုံတောင်းပါကလည်း ဓာတ်ပုံနှင့်ဈေးနှုန်းများကို Carousel ဖြင့် အလိုအလျောက် ပြသပေးပါမည်။
+                                </p>
+                            </div>
+                            <label class="flex items-center gap-2.5 text-xs font-bold text-blue-900 cursor-pointer bg-blue-50/80 px-4 py-2.5 rounded-2xl border border-blue-200 shadow-xs shrink-0">
+                                <input type="checkbox" id="adminFbEnabled" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                                <span>Facebook Auto-Reply ဖွင့်မည်</span>
+                            </label>
+                        </div>
+
+                        <!-- Webhook URL & Verify Token (Meta App Setup) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700 flex items-center justify-between">
+                                    <span>Webhook Callback URL (Meta Portal တွင် ထည့်ရန်)</span>
+                                </label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="adminFbWebhookUrl" readonly class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800 bg-stone-50 text-[11px]" value="https://fgk.ije.mybluehost.me/api/webhook_facebook.php">
+                                    <button type="button" onclick="copyFbWebhookUrl()" class="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded-xl font-bold flex items-center gap-1.5 transition shrink-0">
+                                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                        <span>Copy</span>
+                                    </button>
+                                </div>
+                                <span class="text-[11px] text-stone-500 block mt-1.5">
+                                    💡 Meta App Webhook Callback URL: <code>https://fgk.ije.mybluehost.me/api/webhook_facebook.php</code> (Bluehost Direct Server) သို့မဟုတ် <code>https://pontpontbagshop.com/api/webhook_facebook.php</code> ကို ထည့်သွင်းနိုင်ပါသည်
+                                </span>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold mb-1.5 uppercase tracking-wider text-stone-700">Verify Token (Meta Verify စစ်ဆေးရန် ကုဒ်)</label>
+                                <input type="text" id="adminFbVerifyToken" value="pontpont_fb_verify_2026" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800">
+                                <span class="text-[11px] text-stone-400 block mt-1.5">Meta Portal တွင် Webhook Verify Token အဖြစ် ဤကုဒ်ကို ထည့်ပေးပါ</span>
+                            </div>
+                        </div>
+
+                        <!-- Facebook Page Access Token & Verify Button -->
+                        <div class="space-y-2">
+                            <label class="block font-bold uppercase tracking-wider text-stone-700 flex items-center justify-between">
+                                <span>Facebook Page Access Token (Page ချိတ်ဆက်မှု Token)</span>
+                                <span id="fbTokenStatusBadge" class="text-[11px] font-normal text-stone-500"></span>
+                            </label>
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <input type="password" id="adminFbToken" placeholder="EAA... (Meta Developer မှ Page Access Token ထည့်ပါ)" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-stone-800 pr-10 text-[11px]">
+                                    <button type="button" onclick="toggleFbTokenVisibility()" class="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700 p-1">
+                                        <i data-lucide="eye" id="fbTokenEyeIcon" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                                <button type="button" onclick="testFacebookTokenConnection()" id="btnTestFbToken" class="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl font-bold flex items-center gap-1.5 transition shrink-0">
+                                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                                    <span id="btnTestFbTokenText">ချိတ်ဆက်မှု စစ်ဆေးမည်</span>
+                                </button>
+                            </div>
+                            <div id="fbTokenTestResult" class="hidden mt-2 p-3 rounded-2xl text-xs font-semibold"></div>
+                            <span class="text-[11px] text-stone-400 block">Meta Developer > Messenger > Generate Token မှ မိမိ Page ရဲ့ Page Access Token ကို ထည့်ပါ</span>
+                        </div>
+
+                        <!-- Step-by-Step Burmese Setup Guide (Collapsible) -->
+                        <details class="group bg-blue-50/50 border border-blue-200/80 rounded-2xl p-4 text-xs">
+                            <summary class="font-bold text-blue-900 cursor-pointer flex items-center justify-between select-none">
+                                <span class="flex items-center gap-2">
+                                    <i data-lucide="help-circle" class="w-4 h-4 text-blue-600"></i>
+                                    📖 Facebook Page နှင့် AI Bot ချိတ်ဆက်နည်း လမ်းညွှန် (Meta Setup Guide)
+                                </span>
+                                <span class="text-blue-600 group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <div class="mt-3.5 pt-3 border-t border-blue-200/60 text-stone-700 space-y-2.5 leading-relaxed">
+                                <div class="flex items-start gap-2">
+                                    <span class="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold shrink-0 mt-0.5">အဆင့် ၁</span>
+                                    <span><a href="https://developers.facebook.com" target="_blank" class="text-blue-700 font-bold underline">developers.facebook.com</a> သို့သွား၍ Log in ဝင်ပြီး <b>"My Apps" > "Create App"</b> တွင် Business App တစ်ခု ဖန်တီးပါ။</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <span class="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold shrink-0 mt-0.5">အဆင့် ၂</span>
+                                    <span>Add Products တွင် <b>"Messenger"</b> ကို Set Up လုပ်ပါ။ ဘယ်ဘက် Menu ရှိ <b>Messenger > Settings</b> သို့ သွားပါ။</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <span class="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold shrink-0 mt-0.5">အဆင့် ၃</span>
+                                    <span><b>Webhooks</b> ကဏ္ဍတွင် <b>"Add Callback URL"</b> ကို နှိပ်ပြီး အထက်ပါ <b>Webhook Callback URL</b> နှင့် <b>Verify Token</b> ကို ထည့်၍ <b>"Verify and Save"</b> နှိပ်ပါ။ ထို့နောက် <b>"messages"</b> နှင့် <b>"messaging_postbacks"</b> ကို <b>Subscribe</b> လုပ်ပါ။</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <span class="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold shrink-0 mt-0.5">အဆင့် ၄</span>
+                                    <span><b>"Select a Page"</b> တွင် မိမိ Pont Pont Facebook Page ကို ချိတ်ဆက်ပြီး <b>"Generate Token"</b> နှိပ်ပါ။ ရရှိလာသော Page Access Token ကို ကူးယူပြီး အထက်ပါ အကွက်တွင် ထည့်၍ <b>"သိမ်းဆည်းမည်"</b> ကို နှိပ်ပါ။</span>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
                     <!-- Submit Actions -->
                     <div class="text-right">
                         <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-7 rounded-2xl text-xs transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 ml-auto">
@@ -4085,6 +4180,34 @@ Store Information:
             }
 
             handleBotProviderChange();
+
+            // Populate Facebook Messenger settings
+            const sets = shopData.settings || {};
+            const fbEnabledEl = document.getElementById('adminFbEnabled');
+            if (fbEnabledEl) {
+                fbEnabledEl.checked = (sets.facebook_messenger_enabled === '1');
+            }
+
+            const fbTokenEl = document.getElementById('adminFbToken');
+            const fbBadge = document.getElementById('fbTokenStatusBadge');
+            if (fbTokenEl) {
+                fbTokenEl.value = sets.facebook_page_access_token || '';
+                if (sets.facebook_page_access_token) {
+                    if (fbBadge) fbBadge.innerHTML = '<span class="text-blue-700 font-bold">✓ Token ထည့်သွင်းထားပြီး</span>';
+                } else {
+                    if (fbBadge) fbBadge.innerHTML = '<span class="text-amber-700">Token မထည့်ရသေးပါ</span>';
+                }
+            }
+
+            const fbVerifyEl = document.getElementById('adminFbVerifyToken');
+            if (fbVerifyEl) {
+                fbVerifyEl.value = sets.facebook_verify_token || 'pontpont_fb_verify_2026';
+            }
+
+            const webhookEl = document.getElementById('adminFbWebhookUrl');
+            if (webhookEl) {
+                webhookEl.value = 'https://fgk.ije.mybluehost.me/api/webhook_facebook.php';
+            }
         }
 
         async function handleSaveChatbot(e) {
@@ -4116,20 +4239,108 @@ Store Information:
             };
 
             try {
+                // Save AI Chatbot Configuration
                 const res = await fetch('api/shop.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
+
+                // Save Facebook Messenger settings
+                const fbEnabled = document.getElementById('adminFbEnabled')?.checked ? '1' : '0';
+                const fbToken = document.getElementById('adminFbToken')?.value.trim() || '';
+                const fbVerifyToken = document.getElementById('adminFbVerifyToken')?.value.trim() || 'pontpont_fb_verify_2026';
+
+                await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'UPDATE_SETTINGS',
+                        settings: {
+                            facebook_messenger_enabled: fbEnabled,
+                            facebook_page_access_token: fbToken,
+                            facebook_verify_token: fbVerifyToken
+                        }
+                    })
+                });
+
                 if (data.ok) {
-                    alert('AI Chatbot ဆက်တင်များ အားလုံး အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ! ✅');
+                    alert('AI Chatbot နှင့် Facebook Messenger ဆက်တင်များ အားလုံး အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ! ✅');
                     loadData();
                 } else {
                     alert('Error: ' + (data.error || 'Failed to update chatbot config'));
                 }
             } catch (err) {
                 alert('Chatbot ဆက်တင် သိမ်းဆည်းမှု မအောင်မြင်ပါ: ' + err);
+            }
+        }
+
+        function toggleFbTokenVisibility() {
+            const tokenInput = document.getElementById('adminFbToken');
+            const eyeIcon = document.getElementById('fbTokenEyeIcon');
+            if (!tokenInput) return;
+            if (tokenInput.type === 'password') {
+                tokenInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                tokenInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function copyFbWebhookUrl() {
+            const urlInput = document.getElementById('adminFbWebhookUrl');
+            if (!urlInput) return;
+            navigator.clipboard.writeText(urlInput.value).then(() => {
+                alert('Facebook Webhook Callback URL ကို Clipboard သို့ ကူးယူပြီးပါပြီ! 📋\n\n' + urlInput.value);
+            }).catch(() => {
+                urlInput.select();
+                document.execCommand('copy');
+                alert('Facebook Webhook Callback URL ကို ကူးယူပြီးပါပြီ!');
+            });
+        }
+
+        async function testFacebookTokenConnection() {
+            const tokenInput = document.getElementById('adminFbToken');
+            const token = tokenInput ? tokenInput.value.trim() : '';
+            const resultBox = document.getElementById('fbTokenTestResult');
+            const btn = document.getElementById('btnTestFbToken');
+            const btnText = document.getElementById('btnTestFbTokenText');
+
+            if (!token) {
+                alert('ကျေးဇူးပြု၍ Facebook Page Access Token အရင် ထည့်သွင်းပေးပါရှင်။');
+                return;
+            }
+
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.innerText = 'စစ်ဆေးနေသည်...';
+            if (resultBox) {
+                resultBox.className = 'mt-2 p-3 rounded-2xl text-xs font-semibold bg-stone-100 text-stone-700 block';
+                resultBox.innerHTML = 'Meta Graph API သို့ ချိတ်ဆက်စစ်ဆေးနေပါသည်...';
+            }
+
+            try {
+                const res = await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'TEST_FACEBOOK_CONNECTION', token })
+                });
+                const data = await res.json();
+                if (data.ok && data.page) {
+                    resultBox.className = 'mt-2 p-3 rounded-2xl text-xs font-semibold bg-emerald-50 border border-emerald-300 text-emerald-900 block';
+                    resultBox.innerHTML = `✓ ချိတ်ဆက်မှု အောင်မြင်ပါသည်! 🎉<br><b>Page အမည်:</b> ${escapeHtml(data.page.name)}<br><b>Page ID:</b> ${escapeHtml(data.page.id)}<br><b>Category:</b> ${escapeHtml(data.page.category || 'Shop')}`;
+                } else {
+                    resultBox.className = 'mt-2 p-3 rounded-2xl text-xs font-semibold bg-rose-50 border border-rose-300 text-rose-900 block';
+                    resultBox.innerHTML = `✗ ချိတ်ဆက်မှု မအောင်မြင်ပါ: ${escapeHtml(data.error || 'Token မမှန်ကန်ပါ သို့မဟုတ် သက်တမ်းကုန်ဆုံးသွားပါပြီ')}`;
+                }
+            } catch (err) {
+                resultBox.className = 'mt-2 p-3 rounded-2xl text-xs font-semibold bg-rose-50 border border-rose-300 text-rose-900 block';
+                resultBox.innerHTML = `✗ Error: ${escapeHtml(err.message || err)}`;
+            } finally {
+                if (btn) btn.disabled = false;
+                if (btnText) btnText.innerText = 'ချိတ်ဆက်မှု စစ်ဆေးမည်';
             }
         }
 
