@@ -4298,7 +4298,14 @@ Store Information:
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'TEST_FACEBOOK_CONNECTION', token })
                 });
-                const data = await res.json();
+                const text = await res.text();
+                let data = {};
+                try {
+                    data = JSON.parse(text);
+                } catch (pe) {
+                    throw new Error(`Server status ${res.status}: ${text.slice(0, 150) || 'Empty response'}`);
+                }
+
                 if (data.ok && data.page) {
                     resultBox.className = 'mt-2 p-3 rounded-2xl text-xs font-semibold bg-emerald-50 border border-emerald-300 text-emerald-900 block';
                     resultBox.innerHTML = `✓ ချိတ်ဆက်မှု အောင်မြင်ပါသည်! 🎉<br><b>Page အမည်:</b> ${escapeHtml(data.page.name)}<br><b>Page ID:</b> ${escapeHtml(data.page.id)}<br><b>Category:</b> ${escapeHtml(data.page.category || 'Shop')}`;
