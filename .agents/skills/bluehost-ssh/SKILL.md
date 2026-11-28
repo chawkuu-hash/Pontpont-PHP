@@ -35,16 +35,13 @@ This skill provides verified connection configurations and procedures for managi
 
 ### 1. Fast Deploy / Sync Files to Bluehost
 
-To deploy updated code from `Pontpont-PHP` directly into `public_html/`:
+To deploy updated code directly into `public_html/`:
 
 ```bash
 export SSHPASS='}b3N{Al&p}gp;lv1'
 
-cd /home/ubuntu/pontpontbagshop/Pontpont-PHP
-sshpass -e scp -r -o StrictHostKeyChecking=no \
-  index.php admin.php profile.php install.php .htaccess README.md plan.md \
-  config api database assets \
-  fgkijemy@50.6.52.211:public_html/
+cd /home/ubuntu/pontpontbagshop
+./scripts/deploy_bluehost.sh
 ```
 
 ### 2. Inspect Remote Directory via SFTP
