@@ -282,13 +282,33 @@ function buildScopedResponse($pdo, $sessionUser) {
     $catStmt = $pdo->query("SELECT id, labelEn, labelMm, sortOrder FROM categories ORDER BY sortOrder ASC");
     $categories = $catStmt->fetchAll();
 
-    // 2. Products
+    // 2. Products + aggregated order sales counts for Best Sellers
+    $salesCounts = [];
+    try {
+        $salesStmt = $pdo->query("SELECT itemsJson FROM orders WHERE LOWER(status) != 'cancelled'");
+        while ($oRow = $salesStmt->fetch()) {
+            $items = json_decode($oRow['itemsJson'] ?: '[]', true);
+            if (!is_array($items)) continue;
+            foreach ($items as $it) {
+                $pid = (string)($it['productId'] ?? '');
+                if ($pid !== '') {
+                    $salesCounts[$pid] = ($salesCounts[$pid] ?? 0) + max(1, (int)($it['quantity'] ?? 1));
+                }
+            }
+        }
+    } catch (\Throwable $e) {}
+
     $prodStmt = $pdo->query("SELECT * FROM products ORDER BY sortOrder ASC");
     $rawProducts = $prodStmt->fetchAll();
     $products = [];
     foreach ($rawProducts as $p) {
         $colors = json_decode($p['colorsJson'] ?: '[]', true);
         if (!is_array($colors)) $colors = [];
+
+        $isOutOfStock = isset($p['outOfStock']) ? ((int)$p['outOfStock'] === 1) : ((int)$p['stock'] <= 0);
+        $isPromotion = !empty($p['isPromotion'])
+            || ($p['originalPrice'] !== null && (int)$p['originalPrice'] > (int)$p['price'])
+            || in_array(strtolower(trim((string)($p['badge'] ?? ''))), ['sale', 'promotion', 'promo'], true);
 
         $products[] = [
             'id'             => (string)$p['id'],
@@ -304,7 +324,11 @@ function buildScopedResponse($pdo, $sessionUser) {
             'badge'          => $p['badge'] ?: null,
             'rating'         => (float)$p['rating'],
             'reviewsCount'   => (int)$p['reviewsCount'],
-            'stock'          => (int)$p['stock'],
+            'outOfStock'     => $isOutOfStock,
+            'isPromotion'    => !empty($p['isPromotion']),
+            'isOnPromotion'  => $isPromotion,
+            'salesCount'     => (int)($salesCounts[(string)$p['id']] ?? 0),
+            'stock'          => $isOutOfStock ? 0 : 1,
             'material'       => (string)$p['material'],
             'dimensions'     => (string)$p['dimensions'],
             'descriptionEn'  => (string)$p['descriptionEn'],
@@ -867,10 +891,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $unitPrice = $product ? (int)$product['price'] : max(0, (int)($item['price'] ?? 0));
                 $calculatedSubtotal += $unitPrice * $qty;
 
-                // Decrement stock if product exists
+                // Reject out-of-stock products (stock quantities are no longer tracked)
                 if ($product) {
-                    $dec = $pdo->prepare("UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?");
-                    $dec->execute([$qty, $productId]);
+                    $isOutOfStock = isset($product['outOfStock'])
+                        ? ((int)$product['outOfStock'] === 1)
+                        : ((int)$product['stock'] <= 0);
+                    if ($isOutOfStock) {
+                        $pdo->rollBack();
+                        http_response_code(400);
+                        $pName = $product['nameMm'] ?: $product['nameEn'];
+                        echo json_encode([
+                            'ok' => false,
+                            'error' => "{$pName} သည် လက်ရှိ ပစ္စည်းပြတ် (Out of Stock) ဖြစ်နေပါသည်"
+                        ], JSON_UNESCAPED_UNICODE);
+                        exit;
+                    }
                 }
 
                 $verifiedItems[] = [
@@ -1262,17 +1297,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $badge = !empty($p['badge']) ? trim($p['badge']) : null;
         $rating = !empty($p['rating']) ? (float)$p['rating'] : 5.0;
         $reviewsCount = !empty($p['reviewsCount']) ? (int)$p['reviewsCount'] : 1;
-        $stock = max(0, (int)($p['stock'] ?? 0));
+        $outOfStock = !empty($p['outOfStock']) ? 1 : 0;
+        $isPromotion = !empty($p['isPromotion']) ? 1 : 0;
+        $stock = $outOfStock ? 0 : 1;
         $material = trim($p['material'] ?? 'High-Grade PU Leather');
         $dimensions = trim($p['dimensions'] ?? 'Standard');
         $descriptionEn = trim($p['descriptionEn'] ?? '');
         $descriptionMm = trim($p['descriptionMm'] ?? '');
 
-        $insProd = $pdo->prepare("INSERT INTO products (id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, image, colorsJson, badge, rating, reviewsCount, stock, material, dimensions, descriptionEn, descriptionMm, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+        $insProd = $pdo->prepare("INSERT INTO products (id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, image, colorsJson, badge, rating, reviewsCount, stock, outOfStock, isPromotion, material, dimensions, descriptionEn, descriptionMm, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
         $insProd->execute([
             $id, $nameEn, $nameMm, $category, $categoryMm, $price, $originalPrice,
             $wholesalePrice, $image, $colorsJson, $badge, $rating, $reviewsCount,
-            $stock, $material, $dimensions, $descriptionEn, $descriptionMm
+            $stock, $outOfStock, $isPromotion, $material, $dimensions, $descriptionEn, $descriptionMm
         ]);
 
         echo json_encode([
@@ -1299,20 +1336,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $badge = !empty($p['badge']) ? trim($p['badge']) : null;
             $rating = !empty($p['rating']) ? (float)$p['rating'] : 5.0;
             $reviewsCount = !empty($p['reviewsCount']) ? (int)$p['reviewsCount'] : 1;
-            $stock = max(0, (int)($p['stock'] ?? 0));
+            $outOfStock = !empty($p['outOfStock']) ? 1 : 0;
+            $isPromotion = !empty($p['isPromotion']) ? 1 : 0;
+            $stock = $outOfStock ? 0 : 1;
             $material = trim($p['material'] ?? '');
             $dimensions = trim($p['dimensions'] ?? '');
             $descriptionEn = trim($p['descriptionEn'] ?? '');
             $descriptionMm = trim($p['descriptionMm'] ?? '');
 
-            $updProd = $pdo->prepare("UPDATE products SET nameEn = ?, nameMm = ?, category = ?, categoryMm = ?, price = ?, originalPrice = ?, wholesalePrice = ?, image = ?, colorsJson = ?, badge = ?, rating = ?, reviewsCount = ?, stock = ?, material = ?, dimensions = ?, descriptionEn = ?, descriptionMm = ? WHERE id = ?");
+            $updProd = $pdo->prepare("UPDATE products SET nameEn = ?, nameMm = ?, category = ?, categoryMm = ?, price = ?, originalPrice = ?, wholesalePrice = ?, image = ?, colorsJson = ?, badge = ?, rating = ?, reviewsCount = ?, stock = ?, outOfStock = ?, isPromotion = ?, material = ?, dimensions = ?, descriptionEn = ?, descriptionMm = ? WHERE id = ?");
             $updProd->execute([
                 $nameEn, $nameMm, $category, $categoryMm, $price, $originalPrice,
                 $wholesalePrice, $image, $colorsJson, $badge, $rating, $reviewsCount,
-                $stock, $material, $dimensions, $descriptionEn, $descriptionMm, $id
+                $stock, $outOfStock, $isPromotion, $material, $dimensions, $descriptionEn, $descriptionMm, $id
             ]);
         }
 
+        echo json_encode([
+            'ok' => true,
+            'db' => buildScopedResponse($pdo, $sessionUser)
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 8b. TOGGLE_PRODUCT_OUT_OF_STOCK
+    if ($action === 'TOGGLE_PRODUCT_OUT_OF_STOCK') {
+        $productId = trim($body['productId'] ?? '');
+        $outOfStock = !empty($body['outOfStock']) ? 1 : 0;
+        $stock = $outOfStock ? 0 : 1;
+        if ($productId) {
+            $upd = $pdo->prepare("UPDATE products SET outOfStock = ?, stock = ? WHERE id = ?");
+            $upd->execute([$outOfStock, $stock, $productId]);
+        }
         echo json_encode([
             'ok' => true,
             'db' => buildScopedResponse($pdo, $sessionUser)
@@ -1537,7 +1592,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'telegram_bot_token', 'telegram_chat_id', 'telegram_enabled',
                 'facebook_messenger_enabled', 'facebook_page_access_token', 'facebook_verify_token', 'facebook_app_secret',
                 'app_version', 'app_min_version', 'app_download_url',
-                'shop_logo', 'title_bar', 'shop_subtitle', 'announcement'
+                'shop_logo', 'title_bar', 'shop_subtitle', 'announcement',
+                'tiktok_enabled', 'tiktok_videos', 'contact_phones', 'social_links', 'product_badges'
             ];
             $stmt = $pdo->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?");
             foreach ($incomingSettings as $k => $v) {

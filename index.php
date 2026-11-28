@@ -15,13 +15,15 @@ try {
     header("Location: install.php");
     exit;
 }
+
+$isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotions';
 ?>
 <!DOCTYPE html>
 <html lang="my" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pont Pont Handbag Shop | ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး (မန္တလေး)</title>
+    <title><?php echo $isPromoPage ? 'Promotions & Special Deals | Pont Pont Handbag Shop' : 'Pont Pont Handbag Shop | ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး (မန္တလေး)'; ?></title>
     <meta name="description" content="မန္တလေးမြို့၏ နာမည်ကျော် အမျိုးသမီးနှင့် အမျိုးသား လက်ကိုင်အိတ်၊ ဘေးလွယ်အိတ်၊ ကျောပိုးအိတ် လက်လီ/လက်ကား ရောင်းဝယ်ရေး">
 
     <!-- Tailwind CSS -->
@@ -140,6 +142,23 @@ try {
 
             <!-- Action Buttons -->
             <div class="flex items-center gap-2 sm:gap-3">
+                <?php if ($isPromoPage): ?>
+                <a href="index.php" class="px-3 sm:px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition flex items-center gap-1.5 border border-stone-200">
+                    <i data-lucide="home" class="w-4 h-4 text-amber-600"></i>
+                    <span>Home</span>
+                </a>
+                <span class="hidden sm:inline-flex px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white text-xs font-extrabold items-center gap-1.5 shadow-md shadow-rose-600/20">
+                    <i data-lucide="flame" class="w-4 h-4"></i>
+                    <span>Promotions</span>
+                </span>
+                <?php else: ?>
+                <!-- Promotion Items Page Link -->
+                <a href="promotions.php" class="px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white text-xs font-extrabold transition flex items-center gap-1.5 shadow-md shadow-rose-600/20">
+                    <i data-lucide="flame" class="w-4 h-4"></i>
+                    <span>Promotions</span>
+                </a>
+                <?php endif; ?>
+
                 <!-- Admin Dashboard Button (shown when admin logged in) -->
                 <a id="adminBtn" href="admin.php" class="hidden px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-black text-amber-400 text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
                     <i data-lucide="shield-check" class="w-4 h-4"></i>
@@ -174,6 +193,30 @@ try {
     <!-- Main Content Area -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
 
+        <?php if ($isPromoPage): ?>
+        <!-- Promotion Hero Banner -->
+        <div id="heroBanner" class="rounded-3xl p-6 sm:p-10 text-white relative overflow-hidden shadow-2xl bg-gradient-to-r from-rose-950 via-stone-900 to-amber-950">
+            <div class="relative z-10 max-w-3xl space-y-4">
+                <div class="inline-flex items-center gap-2 bg-rose-500/25 text-rose-200 border border-rose-400/40 px-3 py-1 rounded-full text-xs font-bold">
+                    <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-300"></i>
+                    <span>အထူး Promotion နှင့် Discount ပစ္စည်းများ</span>
+                </div>
+                <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+                    🔥 Promotion Items &amp; Special Deals
+                </h1>
+                <p class="text-stone-300 text-sm sm:text-base leading-relaxed">
+                    လျှော့ဈေးပေးထားသော အိတ်များနှင့် Promotion ပစ္စည်းများအားလုံးကို တစ်နေရာတည်းတွင် ရွေးချယ်မှာယူနိုင်ပါပြီ။ Checkout တွင် Active Coupon ကုဒ်များကိုလည်း ထပ်မံအသုံးပြုနိုင်ပါသည်။
+                </p>
+                <div id="promoActiveCouponsBar" class="flex flex-wrap gap-2 pt-1"></div>
+                <div class="pt-1">
+                    <a href="index.php" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold border border-white/20 transition">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> ပင်မစာမျက်နှာ (ပစ္စည်းအားလုံး) သို့ ပြန်သွားမည်
+                    </a>
+                </div>
+            </div>
+            <div class="absolute -right-10 -bottom-10 w-80 h-80 bg-rose-500/15 rounded-full blur-3xl pointer-events-none"></div>
+        </div>
+        <?php else: ?>
         <!-- Hero Section -->
         <div id="heroBanner" class="rounded-3xl p-6 sm:p-10 text-white relative overflow-hidden shadow-2xl bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950">
             <div class="relative z-10 max-w-2xl space-y-4">
@@ -196,6 +239,14 @@ try {
                     <span class="inline-flex items-center gap-1.5 bg-stone-800/80 px-3 py-1.5 rounded-xl text-xs text-amber-200">
                         <i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-400"></i> KPay / WavePay / COD
                     </span>
+                </div>
+                <div class="flex flex-wrap gap-3 pt-2">
+                    <a href="promotions.php" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white text-xs sm:text-sm font-extrabold shadow-lg transition">
+                        <i data-lucide="flame" class="w-4 h-4"></i> Promotion ပစ္စည်းများ ကြည့်မည်
+                    </a>
+                    <a href="#bestSellersSection" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs sm:text-sm font-bold backdrop-blur-xs transition">
+                        <i data-lucide="award" class="w-4 h-4 text-amber-300"></i> အရောင်းရဆုံး အိတ်များ
+                    </a>
                 </div>
             </div>
             <!-- Decorative circle -->
@@ -233,12 +284,55 @@ try {
             </div>
         </div>
 
+        <!-- Best Selling Products Showcase -->
+        <section id="bestSellersSection" class="space-y-4 hidden">
+            <div class="flex items-center justify-between flex-wrap gap-3 bg-gradient-to-r from-amber-50 via-white to-rose-50 p-4 sm:p-5 rounded-3xl border border-amber-200/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-600/20">
+                        <i data-lucide="award" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-extrabold text-stone-900">🔥 အရောင်းရဆုံး အိတ်များ (Best Sellers)</h2>
+                        <p class="text-xs text-stone-500 font-medium">ဝယ်ယူအားပေးမှု အများဆုံးနှင့် လူကြိုက်အများဆုံး ဒီဇိုင်းများ</p>
+                    </div>
+                </div>
+                <a href="promotions.php" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-900 hover:bg-black text-amber-300 text-xs font-bold transition">
+                    <i data-lucide="flame" class="w-3.5 h-3.5"></i> Promotion စာမျက်နှာသို့
+                </a>
+            </div>
+            <div id="bestSellersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Best sellers injected dynamically -->
+            </div>
+        </section>
+
+        <!-- TikTok Videos Showcase -->
+        <section id="tiktokSection" class="space-y-4 hidden">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-stone-900 text-pink-400 flex items-center justify-center shadow-md">
+                        <i data-lucide="video" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-extrabold text-stone-900">🎵 TikTok ဗီဒီယိုများ</h2>
+                        <p class="text-xs text-stone-500 font-medium">အိတ်ဒီဇိုင်းအသစ်များနှင့် အပြင်ပုံစံ ဗီဒီယိုများကို တိုက်ရိုက်ကြည့်ရှုပါ</p>
+                    </div>
+                </div>
+                <a id="tiktokProfileFollowBtn" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold transition shadow-sm">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> TikTok Follow လုပ်မည်
+                </a>
+            </div>
+            <div id="tiktokVideosGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <!-- TikTok embeds injected dynamically -->
+            </div>
+        </section>
+        <?php endif; ?>
+
         <!-- Categories Filter Tabs -->
         <div class="space-y-4">
             <div class="flex items-center justify-between flex-wrap gap-3">
                 <div class="flex items-center gap-2">
-                    <i data-lucide="layout-grid" class="w-5 h-5 text-amber-600"></i>
-                    <h2 class="text-xl font-extrabold text-stone-900">ပစ္စည်းအမျိုးအစားများ</h2>
+                    <i data-lucide="<?php echo $isPromoPage ? 'flame' : 'layout-grid'; ?>" class="w-5 h-5 <?php echo $isPromoPage ? 'text-rose-600' : 'text-amber-600'; ?>"></i>
+                    <h2 class="text-xl font-extrabold text-stone-900"><?php echo $isPromoPage ? 'Promotion ပေးထားသော ကုန်ပစ္စည်းများ' : 'ပစ္စည်းအမျိုးအစားများ'; ?></h2>
                 </div>
                 <div class="flex items-center gap-2">
                     <label class="text-xs text-stone-500 font-medium">အစီအစဉ် -</label>
@@ -311,13 +405,17 @@ try {
                     </ul>
                 </div>
 
-                <!-- Col 3: Contact & Payments -->
+                <!-- Col 3: Contact, Social & Payments -->
                 <div class="space-y-3">
                     <h4 class="text-sm font-bold text-white uppercase tracking-wider">ဆက်သွယ်ရန် ဖုန်းနံပါတ်များ</h4>
-                    <div class="space-y-1.5 text-xs">
+                    <div id="footerPhonesList" class="space-y-1.5 text-xs">
                         <a href="tel:09963000502" class="block text-amber-400 font-bold hover:underline">📞 09-963000502</a>
                         <a href="tel:09750072752" class="block text-stone-300 hover:text-white">📞 09-750072752</a>
                         <a href="tel:09404448881" class="block text-stone-300 hover:text-white">📞 09-404448881</a>
+                    </div>
+                    <div id="footerSocialLinksSection" class="pt-2 hidden">
+                        <h5 class="text-xs font-semibold text-stone-300 mb-2">Social Media Accounts</h5>
+                        <div id="footerSocialLinks" class="flex flex-wrap gap-2"></div>
                     </div>
                     <div class="pt-2">
                         <h5 class="text-xs font-semibold text-stone-300 mb-1.5">ငွေပေးချေမှု နည်းလမ်းများ</h5>
@@ -396,7 +494,7 @@ try {
                         <div class="text-xs space-y-1 text-stone-600 bg-stone-50 p-3 rounded-xl border border-stone-200/60">
                             <p><strong>သားရေအမျိုးအစား:</strong> <span id="modalProductMaterial"></span></p>
                             <p><strong>ဆိုဒ်အတိုင်းအတာ:</strong> <span id="modalProductDimensions"></span></p>
-                            <p><strong>လက်ကျန်ပစ္စည်း:</strong> <span id="modalProductStock" class="font-bold text-emerald-600"></span></p>
+                            <p><strong>ပစ္စည်းအခြေအနေ:</strong> <span id="modalProductStock" class="font-bold text-emerald-600"></span></p>
                         </div>
 
                         <!-- Description -->
@@ -404,11 +502,11 @@ try {
 
                         <!-- Actions -->
                         <div class="flex gap-2 pt-2">
-                            <button onclick="addModalProductToCart()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition shadow-md shadow-amber-600/20 flex items-center justify-center gap-2">
+                            <button id="modalAddToCartBtn" onclick="addModalProductToCart()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition shadow-md shadow-amber-600/20 flex items-center justify-center gap-2">
                                 <i data-lucide="shopping-cart" class="w-4 h-4"></i>
                                 <span>ခြင်းတောင်းထဲ ထည့်မည်</span>
                             </button>
-                            <button onclick="buyNowModalProduct()" class="px-5 bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl text-xs transition">
+                            <button id="modalBuyNowBtn" onclick="buyNowModalProduct()" class="px-5 bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl text-xs transition">
                                 တန်းဝယ်မည်
                             </button>
                         </div>
@@ -862,8 +960,11 @@ try {
                                     <input type="number" id="pFormOriginalPrice" class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
                                 </div>
                                 <div>
-                                    <label class="block font-bold mb-1">လက်ကျန် (Stock)</label>
-                                    <input type="number" id="pFormStock" value="20" class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
+                                    <label class="block font-bold mb-1">ပစ္စည်းအခြေအနေ</label>
+                                    <label class="flex items-center gap-2 w-full px-3 py-1.5 rounded-xl border border-stone-300 bg-white cursor-pointer select-none">
+                                        <input type="checkbox" id="pFormOutOfStock" class="w-4 h-4 accent-red-600 rounded">
+                                        <span class="font-bold text-stone-700 text-xs">Out of Stock</span>
+                                    </label>
                                 </div>
                                 <div>
                                     <label class="block font-bold mb-1">Badge</label>
@@ -873,9 +974,14 @@ try {
                                         <option value="Wholesale Hot">Wholesale Hot</option>
                                         <option value="New Arrival">New Arrival</option>
                                         <option value="Sale">Sale</option>
+                                        <option value="Promotion">Promotion</option>
                                     </select>
                                 </div>
                             </div>
+                            <label class="inline-flex items-center gap-2 text-xs font-bold text-amber-900 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 cursor-pointer">
+                                <input type="checkbox" id="pFormIsPromotion" class="w-4 h-4 accent-amber-600 rounded">
+                                <span>🔥 Promotion Item စာမျက်နှာတွင် ပြသမည်</span>
+                            </label>
                             <div>
                                 <label class="block font-bold mb-1">ဓာတ်ပုံ URL (Image URL)</label>
                                 <input type="url" id="pFormImage" required class="w-full px-3 py-1.5 rounded-xl border border-stone-300">
@@ -1135,6 +1241,7 @@ try {
             theme: 'luxury-gold'
         };
 
+        const IS_PROMO_PAGE = <?php echo $isPromoPage ? 'true' : 'false'; ?>;
         let activeCategory = 'All';
         let searchQuery = '';
         let cart = []; // Array of { productId, quantity, selectedColor }
@@ -1166,18 +1273,13 @@ try {
                 if (data.settings) {
                     const s = data.settings;
                     if (s.title_bar) {
-                        document.title = s.title_bar;
+                        document.title = IS_PROMO_PAGE ? ('Promotions - ' + s.title_bar) : s.title_bar;
                     }
                     if (s.announcement) {
                         const annEl = document.getElementById('topAnnouncementText');
                         if (annEl) annEl.innerText = s.announcement;
                     }
-                    if (s.phone_1) {
-                        const phoneEl = document.getElementById('topPhoneText');
-                        const phoneLink = document.getElementById('topPhoneLink');
-                        if (phoneEl) phoneEl.innerText = s.phone_1;
-                        if (phoneLink) phoneLink.href = 'tel:' + s.phone_1.replace(/[^0-9+]/g, '');
-                    }
+                    applyDynamicContactsAndSocials(s);
                     if (s.shop_name) {
                         const nameEl = document.getElementById('brandShopName');
                         if (nameEl) nameEl.innerText = s.shop_name;
@@ -1217,7 +1319,13 @@ try {
                 }
 
                 renderCategories();
-                renderAnnouncements();
+                if (IS_PROMO_PAGE) {
+                    renderPromoCouponsBar();
+                } else {
+                    renderAnnouncements();
+                    renderBestSellers();
+                    renderTiktokVideos();
+                }
                 renderProducts();
                 renderCheckoutPaymentMethods();
                 updateUserUI();
@@ -1316,8 +1424,8 @@ try {
                             ${escapeHtml(ann.content)}
                         </p>
                         <div class="pt-2 flex items-center gap-3 flex-wrap">
-                            <a href="tel:09963000502" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md transition active:scale-95">
-                                <i data-lucide="phone-call" class="w-3.5 h-3.5"></i> 09-963000502 သို့ ဖုန်းခေါ်မည်
+                            <a href="tel:${escapeHtml(getPrimaryShopPhone().replace(/[^0-9+]/g, ''))}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md transition active:scale-95">
+                                <i data-lucide="phone-call" class="w-3.5 h-3.5"></i> ${escapeHtml(getPrimaryShopPhone())} သို့ ဖုန်းခေါ်မည်
                             </a>
                             <button onclick="toggleChatbot()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-xs transition">
                                 <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> Live Chat မေးမြန်းမည်
@@ -1448,6 +1556,270 @@ try {
             renderProducts();
         }
 
+        function safeParseJsonArray(raw, fallback = []) {
+            if (!raw) return fallback;
+            try {
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : fallback;
+            } catch (e) {
+                return fallback;
+            }
+        }
+
+        function getPrimaryShopPhone() {
+            const s = shopData.settings || {};
+            const phones = safeParseJsonArray(s.contact_phones, []);
+            if (phones.length > 0 && phones[0].number) return phones[0].number;
+            return s.phone_1 || '09-963000502';
+        }
+
+        function normalizeSocialUrl(platform, rawUrl) {
+            const val = String(rawUrl || '').trim();
+            if (!val) return '#';
+            if (/^https?:\/\//i.test(val) || val.startsWith('viber://') || val.startsWith('tg://')) return val;
+            const clean = val.replace(/^@/, '');
+            if (platform === 'Telegram') return 'https://t.me/' + clean;
+            if (platform === 'TikTok') return 'https://www.tiktok.com/@' + clean;
+            if (platform === 'Viber') return 'viber://chat?number=' + encodeURIComponent(val);
+            if (platform === 'Messenger') return 'https://m.me/' + clean;
+            return 'https://' + val;
+        }
+
+        function applyDynamicContactsAndSocials(s) {
+            const phones = safeParseJsonArray(s.contact_phones, []);
+            const finalPhones = phones.length > 0 ? phones : [
+                ...(s.phone_1 ? [{ label: '', number: s.phone_1 }] : []),
+                ...(s.phone_2 ? [{ label: '', number: s.phone_2 }] : [])
+            ];
+
+            if (finalPhones.length > 0) {
+                const primary = finalPhones[0].number;
+                const phoneEl = document.getElementById('topPhoneText');
+                const phoneLink = document.getElementById('topPhoneLink');
+                if (phoneEl) phoneEl.innerText = primary;
+                if (phoneLink) phoneLink.href = 'tel:' + primary.replace(/[^0-9+]/g, '');
+
+                const footerPhones = document.getElementById('footerPhonesList');
+                if (footerPhones) {
+                    footerPhones.innerHTML = finalPhones.map((ph, idx) => {
+                        const cleanTel = String(ph.number || '').replace(/[^0-9+]/g, '');
+                        const labelHtml = ph.label ? `<span class="text-stone-400 font-normal">(${escapeHtml(ph.label)})</span> ` : '';
+                        return `<a href="tel:${escapeHtml(cleanTel)}" class="block ${idx === 0 ? 'text-amber-400 font-bold' : 'text-stone-300'} hover:text-white hover:underline">📞 ${labelHtml}${escapeHtml(ph.number)}</a>`;
+                    }).join('');
+                }
+            }
+
+            const socials = safeParseJsonArray(s.social_links, []);
+            const socialSection = document.getElementById('footerSocialLinksSection');
+            const socialBox = document.getElementById('footerSocialLinks');
+            if (socialSection && socialBox) {
+                if (socials.length === 0) {
+                    socialSection.classList.add('hidden');
+                } else {
+                    socialSection.classList.remove('hidden');
+                    const styleMap = {
+                        Facebook: 'bg-blue-600/20 text-blue-300 border-blue-500/40 hover:bg-blue-600 hover:text-white',
+                        TikTok: 'bg-pink-600/20 text-pink-300 border-pink-500/40 hover:bg-pink-600 hover:text-white',
+                        Viber: 'bg-purple-600/20 text-purple-300 border-purple-500/40 hover:bg-purple-600 hover:text-white',
+                        Telegram: 'bg-sky-600/20 text-sky-300 border-sky-500/40 hover:bg-sky-600 hover:text-white',
+                        Messenger: 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 hover:bg-indigo-600 hover:text-white',
+                        Instagram: 'bg-rose-600/20 text-rose-300 border-rose-500/40 hover:bg-rose-600 hover:text-white',
+                        YouTube: 'bg-red-600/20 text-red-300 border-red-500/40 hover:bg-red-600 hover:text-white'
+                    };
+                    socialBox.innerHTML = socials.map(item => {
+                        const cls = styleMap[item.platform] || 'bg-stone-800 text-stone-200 border-stone-700 hover:bg-stone-700';
+                        const href = normalizeSocialUrl(item.platform, item.url);
+                        const txt = item.label ? `${item.platform}: ${item.label}` : item.platform;
+                        return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${cls}">${escapeHtml(txt)}</a>`;
+                    }).join('');
+                }
+            }
+
+            // Update TikTok profile follow CTA if configured
+            const tiktokAccount = socials.find(item => item.platform === 'TikTok' && item.url);
+            const ttFollowBtn = document.getElementById('tiktokProfileFollowBtn');
+            if (ttFollowBtn) {
+                if (tiktokAccount) {
+                    ttFollowBtn.href = normalizeSocialUrl('TikTok', tiktokAccount.url);
+                    ttFollowBtn.classList.remove('hidden');
+                } else {
+                    ttFollowBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        function extractTiktokVideoId(url) {
+            const match = String(url || '').match(/\/video\/(\d+)/);
+            return match ? match[1] : null;
+        }
+
+        function renderTiktokVideos() {
+            const section = document.getElementById('tiktokSection');
+            const grid = document.getElementById('tiktokVideosGrid');
+            if (!section || !grid) return;
+
+            const s = shopData.settings || {};
+            if (s.tiktok_enabled === '0') {
+                section.classList.add('hidden');
+                return;
+            }
+            const videos = safeParseJsonArray(s.tiktok_videos, []).filter(v => v && v.url);
+            if (videos.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            grid.innerHTML = videos.map(v => {
+                const videoId = extractTiktokVideoId(v.url);
+                if (videoId) {
+                    return `
+                        <div class="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-lg transition flex flex-col">
+                            <div class="relative w-full aspect-[9/16] bg-stone-950">
+                                <iframe src="https://www.tiktok.com/embed/v2/${escapeHtml(videoId)}" class="w-full h-full border-0" allow="encrypted-media;" allowfullscreen loading="lazy"></iframe>
+                            </div>
+                            <div class="p-3 flex items-center justify-between gap-2 border-t border-stone-100">
+                                <span class="text-xs font-bold text-stone-800 truncate">${escapeHtml(v.title || 'Pont Pont TikTok')}</span>
+                                <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="text-[11px] font-bold text-pink-600 hover:underline whitespace-nowrap">TikTok ↗</a>
+                            </div>
+                        </div>
+                    `;
+                }
+                return `
+                    <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="bg-gradient-to-br from-stone-900 via-stone-800 to-pink-950 text-white rounded-3xl p-6 flex flex-col items-center justify-center text-center gap-3 aspect-[9/12] shadow-md hover:shadow-xl transition group">
+                        <div class="w-14 h-14 rounded-2xl bg-pink-600/25 border border-pink-400/40 flex items-center justify-center group-hover:scale-110 transition">
+                            <i data-lucide="play" class="w-7 h-7 text-pink-300"></i>
+                        </div>
+                        <p class="font-extrabold text-sm">${escapeHtml(v.title || 'TikTok ဗီဒီယို ကြည့်ရှုရန်')}</p>
+                        <span class="text-xs text-pink-300 font-semibold">TikTok တွင် ဖွင့်ကြည့်မည် ↗</span>
+                    </a>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function buildProductCard(p, options = {}) {
+            const card = document.createElement('div');
+            card.className = 'group bg-white rounded-3xl border border-stone-200/80 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between';
+
+            const colorsDots = (p.colors || []).map(c => `
+                <span class="w-3.5 h-3.5 rounded-full border border-stone-300 inline-block" style="background-color: ${escapeHtml(c.hex)};" title="${escapeHtml(c.name)}"></span>
+            `).join('');
+
+            const isOutOfStock = Boolean(p.outOfStock);
+            const hasDiscount = p.originalPrice && p.originalPrice > p.price;
+            const discountPct = hasDiscount ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
+            const rankTag = options.rankLabel
+                ? `<span class="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black text-[10px] px-2.5 py-1 rounded-full shadow-md uppercase tracking-wider">${escapeHtml(options.rankLabel)}</span>`
+                : (discountPct > 0 && IS_PROMO_PAGE
+                    ? `<span class="absolute top-3 left-3 bg-rose-600 text-white font-black text-[10px] px-2.5 py-1 rounded-full shadow-md uppercase tracking-wider">-${discountPct}% OFF</span>`
+                    : (p.badge ? `<span class="absolute top-3 left-3 bg-amber-500 text-stone-950 font-black text-[10px] px-2.5 py-1 rounded-full shadow-md uppercase tracking-wider">${escapeHtml(p.badge)}</span>` : ''));
+
+            card.innerHTML = `
+                <div>
+                    <!-- Image Container -->
+                    <div class="relative h-60 w-full bg-stone-100 overflow-hidden cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">
+                        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.nameEn)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 ${isOutOfStock ? 'opacity-65 grayscale-[25%]' : ''}">
+                        ${rankTag}
+                        ${isOutOfStock ? `<span class="absolute top-3 right-3 bg-red-600 text-white font-black text-[10px] px-2.5 py-1 rounded-full shadow-md uppercase tracking-wider">Out of Stock</span>` : ''}
+                        <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded-lg text-[10px] font-bold text-stone-800 flex items-center gap-1 shadow-xs">
+                            <i data-lucide="star" class="w-3 h-3 text-amber-500 fill-amber-500"></i> ${p.rating} (${p.reviewsCount})
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-4 space-y-2">
+                        <div class="flex items-center justify-between gap-1.5">
+                            <div class="flex items-center gap-1.5">${colorsDots}</div>
+                            ${options.showSalesCount && p.salesCount > 0 ? `<span class="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">🔥 ${p.salesCount} လုံး ရောင်းရပြီး</span>` : ''}
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-stone-900 text-sm line-clamp-1 group-hover:text-amber-700 transition cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">${escapeHtml(p.nameEn)}</h3>
+                            <p class="text-xs text-stone-500 line-clamp-1 font-medium">${escapeHtml(p.nameMm)}</p>
+                        </div>
+
+                        <div class="pt-1">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-lg font-black text-amber-900">${p.price.toLocaleString()} Ks</span>
+                                ${p.originalPrice ? `<span class="text-xs text-stone-400 line-through">${p.originalPrice.toLocaleString()} Ks</span>` : ''}
+                            </div>
+                            ${p.wholesalePrice ? `
+                                <div class="text-[11px] font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block mt-1">
+                                    လက်ကား: ${p.wholesalePrice.toLocaleString()} Ks (၅ လုံး+)
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Action -->
+                <div class="p-4 pt-0">
+                    ${isOutOfStock ? `
+                        <button disabled class="w-full py-2.5 px-3 rounded-xl bg-stone-200 text-stone-500 text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed">
+                            <i data-lucide="ban" class="w-4 h-4"></i>
+                            <span>Out of Stock (ပစ္စည်းပြတ်)</span>
+                        </button>
+                    ` : `
+                        <button onclick="quickAddToCart('${escapeHtml(p.id)}')" class="w-full py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                            <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
+                            <span>ခြင်းတောင်းထဲ ထည့်မည်</span>
+                        </button>
+                    `}
+                </div>
+            `;
+            return card;
+        }
+
+        function renderBestSellers() {
+            const section = document.getElementById('bestSellersSection');
+            const grid = document.getElementById('bestSellersGrid');
+            if (!section || !grid) return;
+
+            const products = [...(shopData.products || [])].filter(p => !p.outOfStock);
+            if (products.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            const ranked = products.sort((a, b) => {
+                const salesDiff = (b.salesCount || 0) - (a.salesCount || 0);
+                if (salesDiff !== 0) return salesDiff;
+                const aBest = (a.badge || '').toLowerCase() === 'best seller' ? 1 : 0;
+                const bBest = (b.badge || '').toLowerCase() === 'best seller' ? 1 : 0;
+                if (bBest !== aBest) return bBest - aBest;
+                return (b.reviewsCount || 0) - (a.reviewsCount || 0);
+            }).slice(0, 4);
+
+            section.classList.remove('hidden');
+            grid.innerHTML = '';
+            ranked.forEach((p, idx) => {
+                grid.appendChild(buildProductCard(p, {
+                    rankLabel: `#${idx + 1} Best Seller`,
+                    showSalesCount: true
+                }));
+            });
+            lucide.createIcons();
+        }
+
+        function renderPromoCouponsBar() {
+            const bar = document.getElementById('promoActiveCouponsBar');
+            if (!bar) return;
+            const activeCoupons = (shopData.coupons || []).filter(c => c.isActive);
+            if (activeCoupons.length === 0) {
+                bar.innerHTML = '';
+                return;
+            }
+            bar.innerHTML = activeCoupons.map(c => {
+                const disc = c.discountType === 'percent' ? `${c.discountValue}% OFF` : `${Number(c.discountValue).toLocaleString()} Ks OFF`;
+                return `
+                    <button type="button" onclick="navigator.clipboard && navigator.clipboard.writeText('${escapeHtml(c.code)}'); alert('ကူပွန်ကုဒ် ${escapeHtml(c.code)} ကို Copy ကူးပြီးပါပြီ! Checkout တွင် ထည့်သုံးနိုင်ပါသည်။');" class="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-amber-300/40 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-200 transition" title="Copy coupon code">
+                        <span class="bg-amber-400 text-stone-950 px-2 py-0.5 rounded font-mono font-black">${escapeHtml(c.code)}</span>
+                        <span>${escapeHtml(disc)}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
         // Render Products Grid
         function renderProducts() {
             const container = document.getElementById('productsGrid');
@@ -1455,6 +1827,9 @@ try {
             const sortBy = document.getElementById('sortBy').value;
 
             let filtered = [...(shopData.products || [])];
+            if (IS_PROMO_PAGE) {
+                filtered = filtered.filter(p => Boolean(p.isOnPromotion));
+            }
 
             // Filter by Category
             if (activeCategory !== 'All') {
@@ -1489,57 +1864,7 @@ try {
             }
 
             filtered.forEach(p => {
-                const card = document.createElement('div');
-                card.className = 'group bg-white rounded-3xl border border-stone-200/80 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between';
-
-                const colorsDots = (p.colors || []).map(c => `
-                    <span class="w-3.5 h-3.5 rounded-full border border-stone-300 inline-block" style="background-color: ${escapeHtml(c.hex)};" title="${escapeHtml(c.name)}"></span>
-                `).join('');
-
-                card.innerHTML = `
-                    <div>
-                        <!-- Image Container -->
-                        <div class="relative h-60 w-full bg-stone-100 overflow-hidden cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">
-                            <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.nameEn)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                            ${p.badge ? `<span class="absolute top-3 left-3 bg-amber-500 text-stone-950 font-black text-[10px] px-2.5 py-1 rounded-full shadow-md uppercase tracking-wider">${escapeHtml(p.badge)}</span>` : ''}
-                            <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded-lg text-[10px] font-bold text-stone-800 flex items-center gap-1 shadow-xs">
-                                <i data-lucide="star" class="w-3 h-3 text-amber-500 fill-amber-500"></i> ${p.rating} (${p.reviewsCount})
-                            </div>
-                        </div>
-
-                        <!-- Content -->
-                        <div class="p-4 space-y-2">
-                            <div class="flex items-center gap-1.5">
-                                ${colorsDots}
-                            </div>
-                            <div>
-                                <h3 class="font-extrabold text-stone-900 text-sm line-clamp-1 group-hover:text-amber-700 transition cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">${escapeHtml(p.nameEn)}</h3>
-                                <p class="text-xs text-stone-500 line-clamp-1 font-medium">${escapeHtml(p.nameMm)}</p>
-                            </div>
-
-                            <div class="pt-1">
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-black text-amber-900">${p.price.toLocaleString()} Ks</span>
-                                    ${p.originalPrice ? `<span class="text-xs text-stone-400 line-through">${p.originalPrice.toLocaleString()} Ks</span>` : ''}
-                                </div>
-                                ${p.wholesalePrice ? `
-                                    <div class="text-[11px] font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block mt-1">
-                                        လက်ကား: ${p.wholesalePrice.toLocaleString()} Ks (၅ လုံး+)
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Footer Action -->
-                    <div class="p-4 pt-0">
-                        <button onclick="quickAddToCart('${escapeHtml(p.id)}')" class="w-full py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
-                            <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
-                            <span>ခြင်းတောင်းထဲ ထည့်မည်</span>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(card);
+                container.appendChild(buildProductCard(p));
             });
 
             lucide.createIcons();
@@ -1562,7 +1887,34 @@ try {
             document.getElementById('modalProductOriginalPrice').innerText = p.originalPrice ? (p.originalPrice.toLocaleString() + ' Ks') : '';
             document.getElementById('modalProductMaterial').innerText = p.material;
             document.getElementById('modalProductDimensions').innerText = p.dimensions;
-            document.getElementById('modalProductStock').innerText = p.stock + ' လုံး အသင့်ရှိ';
+            const modalStockEl = document.getElementById('modalProductStock');
+            const addBtn = document.getElementById('modalAddToCartBtn');
+            const buyBtn = document.getElementById('modalBuyNowBtn');
+            if (p.outOfStock) {
+                modalStockEl.innerText = 'Out of Stock (ပစ္စည်းပြတ်နေပါသည်)';
+                modalStockEl.className = 'font-bold text-red-600';
+                if (addBtn) {
+                    addBtn.disabled = true;
+                    addBtn.className = 'flex-1 bg-stone-200 text-stone-500 font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-not-allowed';
+                    addBtn.innerHTML = '<i data-lucide="ban" class="w-4 h-4"></i><span>Out of Stock (ပစ္စည်းပြတ်)</span>';
+                }
+                if (buyBtn) {
+                    buyBtn.disabled = true;
+                    buyBtn.className = 'px-5 bg-stone-200 text-stone-400 font-bold py-3 rounded-xl text-xs cursor-not-allowed';
+                }
+            } else {
+                modalStockEl.innerText = 'ပစ္စည်းအသင့်ရှိပါသည် (In Stock)';
+                modalStockEl.className = 'font-bold text-emerald-600';
+                if (addBtn) {
+                    addBtn.disabled = false;
+                    addBtn.className = 'flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition shadow-md shadow-amber-600/20 flex items-center justify-center gap-2';
+                    addBtn.innerHTML = '<i data-lucide="shopping-cart" class="w-4 h-4"></i><span>ခြင်းတောင်းထဲ ထည့်မည်</span>';
+                }
+                if (buyBtn) {
+                    buyBtn.disabled = false;
+                    buyBtn.className = 'px-5 bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl text-xs transition';
+                }
+            }
             document.getElementById('modalProductDescMm').innerText = p.descriptionMm;
             document.getElementById('selectedColorName').innerText = selectedColorForModal;
 
@@ -1600,21 +1952,21 @@ try {
         // Add to Cart
         function quickAddToCart(productId) {
             const p = shopData.products.find(item => item.id === productId);
-            if (!p) return;
+            if (!p || p.outOfStock) return;
             const defaultColor = (p.colors && p.colors[0]) ? p.colors[0].name : 'Default';
             addToCart(p, defaultColor, 1);
             toggleCartDrawer(true);
         }
 
         function addModalProductToCart() {
-            if (!selectedProductForModal) return;
+            if (!selectedProductForModal || selectedProductForModal.outOfStock) return;
             addToCart(selectedProductForModal, selectedColorForModal, 1);
             closeProductModal();
             toggleCartDrawer(true);
         }
 
         function buyNowModalProduct() {
-            if (!selectedProductForModal) return;
+            if (!selectedProductForModal || selectedProductForModal.outOfStock) return;
             addToCart(selectedProductForModal, selectedColorForModal, 1);
             closeProductModal();
             toggleCartDrawer(true);
@@ -2683,7 +3035,7 @@ Store Information:
                     <img src="${escapeHtml(p.image)}" class="w-12 h-12 rounded-xl object-cover border border-stone-200">
                     <div class="flex-1 min-w-0">
                         <h5 class="font-bold text-stone-900 truncate">${escapeHtml(p.nameEn)}</h5>
-                        <p class="text-stone-500">${escapeHtml(p.category)} • လက်လီ: ${p.price.toLocaleString()} Ks • လက်ကား: ${p.wholesalePrice ? p.wholesalePrice.toLocaleString() + ' Ks' : '-'} • Stock: ${p.stock}</p>
+                        <p class="text-stone-500">${escapeHtml(p.category)} • လက်လီ: ${p.price.toLocaleString()} Ks • လက်ကား: ${p.wholesalePrice ? p.wholesalePrice.toLocaleString() + ' Ks' : '-'} • ${p.outOfStock ? '<span class="text-red-600 font-bold">Out of Stock</span>' : '<span class="text-emerald-700 font-bold">In Stock</span>'}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick="editProduct('${escapeHtml(p.id)}')" class="px-3 py-1 bg-white border border-stone-300 rounded-lg font-bold hover:bg-stone-100">Edit</button>
@@ -2695,22 +3047,36 @@ Store Information:
         }
 
         function openAddProductForm() {
+            populateInlineBadgeSelect('');
             document.getElementById('pFormId').value = '';
             document.getElementById('pFormNameEn').value = '';
             document.getElementById('pFormNameMm').value = '';
             document.getElementById('pFormPrice').value = '';
             document.getElementById('pFormWholesale').value = '';
             document.getElementById('pFormOriginalPrice').value = '';
-            document.getElementById('pFormStock').value = '30';
+            document.getElementById('pFormOutOfStock').checked = false;
+            document.getElementById('pFormIsPromotion').checked = false;
             document.getElementById('pFormImage').value = '';
             document.getElementById('pFormDescMm').value = '';
             document.getElementById('productFormTitle').innerText = 'ပစ္စည်းအသစ် ထည့်သွင်းခြင်း';
             document.getElementById('productFormContainer').classList.remove('hidden');
         }
 
+        function populateInlineBadgeSelect(selectedVal = '') {
+            const sel = document.getElementById('pFormBadge');
+            if (!sel) return;
+            const defaults = ['Best Seller', 'Wholesale Hot', 'New Arrival', 'Sale', 'Promotion'];
+            const fromSettings = safeParseJsonArray(shopData.settings && shopData.settings.product_badges, defaults);
+            const badges = fromSettings.length ? [...fromSettings] : [...defaults];
+            (shopData.products || []).forEach(p => { if (p.badge && !badges.includes(p.badge)) badges.push(p.badge); });
+            if (selectedVal && !badges.includes(selectedVal)) badges.push(selectedVal);
+            sel.innerHTML = `<option value="">None</option>` + badges.map(b => `<option value="${escapeHtml(b)}" ${b === selectedVal ? 'selected' : ''}>${escapeHtml(b)}</option>`).join('');
+        }
+
         function editProduct(productId) {
             const p = shopData.products.find(item => item.id === productId);
             if (!p) return;
+            populateInlineBadgeSelect(p.badge || '');
             document.getElementById('pFormId').value = p.id;
             document.getElementById('pFormNameEn').value = p.nameEn;
             document.getElementById('pFormNameMm').value = p.nameMm;
@@ -2718,7 +3084,8 @@ Store Information:
             document.getElementById('pFormPrice').value = p.price;
             document.getElementById('pFormWholesale').value = p.wholesalePrice || '';
             document.getElementById('pFormOriginalPrice').value = p.originalPrice || '';
-            document.getElementById('pFormStock').value = p.stock;
+            document.getElementById('pFormOutOfStock').checked = Boolean(p.outOfStock);
+            document.getElementById('pFormIsPromotion').checked = Boolean(p.isPromotion);
             document.getElementById('pFormBadge').value = p.badge || '';
             document.getElementById('pFormImage').value = p.image;
             document.getElementById('pFormDescMm').value = p.descriptionMm;
@@ -2738,7 +3105,8 @@ Store Information:
                 price: parseInt(document.getElementById('pFormPrice').value),
                 wholesalePrice: parseInt(document.getElementById('pFormWholesale').value) || null,
                 originalPrice: parseInt(document.getElementById('pFormOriginalPrice').value) || null,
-                stock: parseInt(document.getElementById('pFormStock').value) || 0,
+                outOfStock: document.getElementById('pFormOutOfStock').checked,
+                isPromotion: document.getElementById('pFormIsPromotion').checked,
                 badge: document.getElementById('pFormBadge').value || null,
                 image: document.getElementById('pFormImage').value.trim(),
                 descriptionMm: document.getElementById('pFormDescMm').value.trim(),

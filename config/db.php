@@ -70,6 +70,17 @@ function ensureSchemaUpdated($pdo) {
             $pdo->exec("ALTER TABLE `users` ADD COLUMN `avatar` VARCHAR(255) DEFAULT NULL AFTER `address`");
         }
 
+        // 1c. Ensure outOfStock and isPromotion columns exist in products table
+        $colOutOfStock = $pdo->query("SHOW COLUMNS FROM `products` LIKE 'outOfStock'");
+        if (!$colOutOfStock->fetch()) {
+            $pdo->exec("ALTER TABLE `products` ADD COLUMN `outOfStock` TINYINT(1) NOT NULL DEFAULT 0 AFTER `stock`");
+            $pdo->exec("UPDATE `products` SET `outOfStock` = 1 WHERE `stock` <= 0");
+        }
+        $colIsPromo = $pdo->query("SHOW COLUMNS FROM `products` LIKE 'isPromotion'");
+        if (!$colIsPromo->fetch()) {
+            $pdo->exec("ALTER TABLE `products` ADD COLUMN `isPromotion` TINYINT(1) NOT NULL DEFAULT 0 AFTER `outOfStock`");
+        }
+
         // 2. Ensure coupons table exists
         $pdo->exec("CREATE TABLE IF NOT EXISTS `coupons` (
             `id` VARCHAR(50) NOT NULL PRIMARY KEY,
@@ -131,7 +142,24 @@ function ensureSchemaUpdated($pdo) {
             ('facebook_app_secret', ''),
             ('app_version', '1.2.0'),
             ('app_min_version', '1.0.0'),
-            ('app_download_url', 'https://pontpont.com/download')");
+            ('app_download_url', 'https://pontpont.com/download'),
+            ('tiktok_enabled', '1'),
+            ('tiktok_videos', '[]'),
+            ('social_links', '[]')");
+
+        $seedSettingsStmt = $pdo->prepare("INSERT IGNORE INTO `settings` (`key`, `value`) VALUES (?, ?)");
+        $seedSettingsStmt->execute([
+            'contact_phones',
+            json_encode([
+                ['label' => 'ပင်မဖုန်း (၁)', 'number' => '09-963000502'],
+                ['label' => 'ဆိုင်ဖုန်း (၂)', 'number' => '09-750072752'],
+                ['label' => 'ဆိုင်ဖုန်း (၃)', 'number' => '09-404448881'],
+            ], JSON_UNESCAPED_UNICODE)
+        ]);
+        $seedSettingsStmt->execute([
+            'product_badges',
+            json_encode(['Best Seller', 'Wholesale Hot', 'New Arrival', 'Sale', 'Promotion'], JSON_UNESCAPED_UNICODE)
+        ]);
 
         // 5. Ensure payment_methods table exists
         $pdo->exec("CREATE TABLE IF NOT EXISTS `payment_methods` (

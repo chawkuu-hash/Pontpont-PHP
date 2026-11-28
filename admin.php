@@ -551,7 +551,7 @@ require_once __DIR__ . '/config/db.php';
                 <div class="flex items-center justify-between">
                     <div>
                         <h4 class="font-extrabold text-stone-900 text-sm">ကုန်ပစ္စည်းများ စီမံခြင်း</h4>
-                        <p class="text-xs text-stone-500">ပစ္စည်းအသစ်ထည့်သွင်းခြင်း၊ ဈေးနှုန်းနှင့် Stock ပြင်ဆင်ခြင်း</p>
+                        <p class="text-xs text-stone-500">ပစ္စည်းအသစ်ထည့်သွင်းခြင်း၊ ဈေးနှုန်းနှင့် ပစ္စည်းအခြေအနေ (Out of Stock) စီမံခြင်း</p>
                     </div>
                     <button onclick="openProductForm()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-amber-600/20">
                         <i data-lucide="plus" class="w-4 h-4"></i> ပစ္စည်းအသစ် ထည့်မည်
@@ -606,19 +606,35 @@ require_once __DIR__ . '/config/db.php';
                                 <input type="number" id="pFormOriginalPrice" class="w-full px-3 py-2 rounded-xl border border-stone-300">
                             </div>
                             <div>
-                                <label class="block font-bold mb-1">လက်ကျန် (Stock) *</label>
-                                <input type="number" id="pFormStock" value="20" required class="w-full px-3 py-2 rounded-xl border border-stone-300">
+                                <label class="block font-bold mb-1">ပစ္စည်းအခြေအနေ (Availability)</label>
+                                <label class="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl border border-stone-300 bg-stone-50 cursor-pointer hover:bg-stone-100 transition select-none">
+                                    <input type="checkbox" id="pFormOutOfStock" class="w-4 h-4 accent-red-600 rounded">
+                                    <span class="font-bold text-stone-700">Out of Stock (ပစ္စည်းပြတ်)</span>
+                                </label>
                             </div>
                             <div>
-                                <label class="block font-bold mb-1">Badge (အမှတ်တံဆိပ်)</label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block font-bold">Badge (အမှတ်တံဆိပ်)</label>
+                                    <button type="button" onclick="toggleAddBadgeBox()" class="text-amber-600 hover:underline text-[11px] font-bold">+ Badge အသစ်ထည့်ရန်</button>
+                                </div>
                                 <select id="pFormBadge" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white">
-                                    <option value="">None</option>
-                                    <option value="Best Seller">Best Seller</option>
-                                    <option value="Wholesale Hot">Wholesale Hot</option>
-                                    <option value="New Arrival">New Arrival</option>
-                                    <option value="Sale">Sale</option>
+                                    <!-- Populated dynamically from shopData.settings.product_badges -->
                                 </select>
+                                <div id="addBadgeInlineBox" class="hidden mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
+                                    <div class="flex gap-1.5">
+                                        <input type="text" id="newBadgeNameInput" placeholder="Badge အမည် (ဥပမာ- VIP Luxury)" class="flex-1 px-2.5 py-1.5 rounded-lg border border-stone-300 bg-white text-xs">
+                                        <button type="button" onclick="handleAddCustomBadge()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs whitespace-nowrap">ထည့်မည်</button>
+                                    </div>
+                                    <div id="customBadgesChips" class="flex flex-wrap gap-1.5"></div>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/70 cursor-pointer hover:bg-amber-100/70 transition select-none">
+                                <input type="checkbox" id="pFormIsPromotion" class="w-4 h-4 accent-amber-600 rounded">
+                                <span class="font-bold text-amber-900">🔥 Promotion Item စာမျက်နှာတွင် ပြသမည် (Featured Promotion)</span>
+                            </label>
                         </div>
 
                         <div>
@@ -1025,10 +1041,10 @@ require_once __DIR__ . '/config/db.php';
                         </div>
                     </div>
 
-                    <!-- General Shop Contact Info -->
-                    <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4 text-xs">
+                    <!-- General Shop Contact Info & Social Media -->
+                    <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-5 text-xs">
                         <h5 class="font-bold text-sm text-stone-900 flex items-center gap-2 border-b pb-3">
-                            <i data-lucide="store" class="w-4 h-4 text-amber-600"></i> ဆိုင် ဆက်သွယ်ရန် အချက်အလက်များ
+                            <i data-lucide="store" class="w-4 h-4 text-amber-600"></i> ဆိုင် ဆက်သွယ်ရန် အချက်အလက်များ နှင့် Social Media
                         </h5>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -1040,20 +1056,56 @@ require_once __DIR__ . '/config/db.php';
                                 <input type="text" id="setShopNameMm" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300">
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block font-bold mb-1">ဖုန်းနံပါတ် (၁)</label>
-                                <input type="text" id="setPhone1" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300">
-                            </div>
-                            <div>
-                                <label class="block font-bold mb-1">ဖုန်းနံပါတ် (၂)</label>
-                                <input type="text" id="setPhone2" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300">
-                            </div>
-                        </div>
                         <div>
                             <label class="block font-bold mb-1">KPay / WavePay အကောင့် အချက်အလက်</label>
                             <input type="text" id="setKpayAccount" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300">
                         </div>
+
+                        <!-- Dynamic Contact Phones -->
+                        <div class="pt-3 border-t border-stone-100 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label class="font-bold text-stone-800 block">📞 ဆက်သွယ်ရန် ဖုန်းနံပါတ်များ (Contact Phones)</label>
+                                    <span class="text-[11px] text-stone-400">Website ထိပ်ဘားနှင့် Footer တွင် ပြသမည့် ဖုန်းနံပါတ်များကို စိတ်ကြိုက် ထည့်/ဖျက်နိုင်ပါသည်</span>
+                                </div>
+                                <button type="button" onclick="addContactPhoneRow()" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl font-bold flex items-center gap-1 transition">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> ဖုန်းနံပါတ် ထည့်မည်
+                                </button>
+                            </div>
+                            <div id="contactPhonesList" class="space-y-2"></div>
+                        </div>
+
+                        <!-- Dynamic Social Media Accounts -->
+                        <div class="pt-3 border-t border-stone-100 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label class="font-bold text-stone-800 block">🌐 Social Media Accounts (Facebook, TikTok, Viber, Telegram...)</label>
+                                    <span class="text-[11px] text-stone-400">ဝဘ်ဆိုက် Footer နှင့် ဆက်သွယ်ရန်နေရာများတွင် Social Icon များဖြင့် ပြသပေးပါမည်</span>
+                                </div>
+                                <button type="button" onclick="addSocialLinkRow()" class="px-3 py-1.5 bg-stone-900 hover:bg-black text-white rounded-xl font-bold flex items-center gap-1 transition">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Social Account ထည့်မည်
+                                </button>
+                            </div>
+                            <div id="socialLinksList" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- TikTok Videos Showcase Settings -->
+                    <div class="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4 text-xs">
+                        <div class="flex items-center justify-between border-b pb-3">
+                            <h5 class="font-bold text-sm text-stone-900 flex items-center gap-2">
+                                <i data-lucide="video" class="w-4 h-4 text-pink-600"></i> TikTok ဗီဒီယိုများ (Home Page Showcase)
+                            </h5>
+                            <button type="button" onclick="addTiktokVideoRow()" class="px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-xl font-bold flex items-center gap-1 transition">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> TikTok Video ထည့်မည်
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="setTiktokEnabled" class="w-4 h-4 rounded text-pink-600 focus:ring-pink-500">
+                            <label for="setTiktokEnabled" class="font-bold text-stone-800 cursor-pointer">Home Page တွင် TikTok ဗီဒီယိုများကို ပြသမည်</label>
+                        </div>
+                        <p class="text-[11px] text-stone-400">TikTok Video URL အပြည့်အစုံ (ဥပမာ - <code class="bg-stone-100 px-1.5 py-0.5 rounded">https://www.tiktok.com/@username/video/7123456789012345678</code>) ကို ထည့်သွင်းပါက Home Page တွင် ဗီဒီယို Player ဖြင့် တိုက်ရိုက် ကြည့်ရှုနိုင်ပါမည်။</p>
+                        <div id="tiktokVideosList" class="space-y-2.5"></div>
                     </div>
 
                     <!-- Telegram Notification Settings -->
@@ -1824,7 +1876,7 @@ require_once __DIR__ . '/config/db.php';
             const titles = {
                 'overview': ['ခြုံငုံသုံးသပ်ချက် (Overview)', 'အရောင်းအချက်အလက်များနှင့် လုပ်ငန်းအကျဉ်းချုပ်'],
                 'orders': ['အော်ဒါများ စီမံခန့်ခွဲမှု (Orders)', 'မှာယူထားသော အော်ဒါများကို အတည်ပြုခြင်းနှင့် ပို့ဆောင်ခြင်း'],
-                'products': ['ကုန်ပစ္စည်းများ စီမံခြင်း (Products)', 'ပစ္စည်းအသစ်ထည့်သွင်းခြင်း၊ ဈေးနှုန်းနှင့် Stock ပြင်ဆင်ခြင်း'],
+                'products': ['ကုန်ပစ္စည်းများ စီမံခြင်း (Products)', 'ပစ္စည်းအသစ်ထည့်သွင်းခြင်း၊ ဈေးနှုန်းနှင့် ပစ္စည်းအခြေအနေ (Out of Stock) စီမံခြင်း'],
                 'categories': ['အမျိုးအစားများ စီမံခန့်ခွဲမှု (Categories)', 'အိတ်အမျိုးအစား အသစ်ထည့်သွင်းခြင်းနှင့် စီမံခြင်း'],
                 'announcements': ['သတင်းနှင့် ပရိုးမိုးရှင်းများ (News)', 'စတိုးဆိုင် ကြေညာချက်များနှင့် Discount ကူပွန်များ'],
                 'users': ['အသုံးပြုသူ စာရင်း (Users)', 'အကောင့်ဖွင့်ထားသူများနှင့် Role သတ်မှတ်ခြင်း'],
@@ -2166,15 +2218,106 @@ require_once __DIR__ . '/config/db.php';
             reader.readAsDataURL(file);
         }
 
+        const DEFAULT_BADGES = ['Best Seller', 'Wholesale Hot', 'New Arrival', 'Sale', 'Promotion'];
+
+        function getConfiguredBadges() {
+            const raw = shopData.settings && shopData.settings.product_badges;
+            let list = [...DEFAULT_BADGES];
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        list = parsed.map(b => String(b).trim()).filter(Boolean);
+                    }
+                } catch (e) {}
+            }
+            (shopData.products || []).forEach(p => {
+                if (p.badge && !list.includes(p.badge)) list.push(p.badge);
+            });
+            return list;
+        }
+
+        function populateProductBadgeDropdown(selectedVal = '') {
+            const select = document.getElementById('pFormBadge');
+            if (!select) return;
+            const badges = getConfiguredBadges();
+            if (selectedVal && !badges.includes(selectedVal)) badges.push(selectedVal);
+            select.innerHTML = `<option value="">None</option>` + badges.map(b => `
+                <option value="${escapeHtml(b)}" ${b === selectedVal ? 'selected' : ''}>${escapeHtml(b)}</option>
+            `).join('');
+            renderCustomBadgesChips();
+        }
+
+        function renderCustomBadgesChips() {
+            const box = document.getElementById('customBadgesChips');
+            if (!box) return;
+            const badges = getConfiguredBadges();
+            box.innerHTML = badges.map(b => `
+                <span class="inline-flex items-center gap-1 bg-white border border-amber-200 text-stone-700 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                    ${escapeHtml(b)}
+                    <button type="button" onclick="removeCustomBadge('${escapeHtml(b).replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 ml-0.5" title="ဖျက်မည်">&times;</button>
+                </span>
+            `).join('');
+        }
+
+        function toggleAddBadgeBox() {
+            const box = document.getElementById('addBadgeInlineBox');
+            if (!box) return;
+            box.classList.toggle('hidden');
+            renderCustomBadgesChips();
+        }
+
+        async function saveProductBadgesList(badges) {
+            const jsonStr = JSON.stringify(badges);
+            if (!shopData.settings) shopData.settings = {};
+            shopData.settings.product_badges = jsonStr;
+            await fetch('api/shop.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'UPDATE_SETTINGS', settings: { product_badges: jsonStr } })
+            });
+        }
+
+        async function handleAddCustomBadge() {
+            const input = document.getElementById('newBadgeNameInput');
+            const name = input ? input.value.trim() : '';
+            if (!name) return;
+            const badges = getConfiguredBadges();
+            if (!badges.includes(name)) {
+                badges.push(name);
+                try {
+                    await saveProductBadgesList(badges);
+                } catch (err) {
+                    alert('Badge သိမ်းဆည်းမှု မအောင်မြင်ပါ: ' + err);
+                    return;
+                }
+            }
+            if (input) input.value = '';
+            populateProductBadgeDropdown(name);
+        }
+
+        async function removeCustomBadge(name) {
+            const badges = getConfiguredBadges().filter(b => b !== name);
+            try {
+                await saveProductBadgesList(badges);
+                const cur = document.getElementById('pFormBadge').value;
+                populateProductBadgeDropdown(cur === name ? '' : cur);
+            } catch (err) {
+                alert('Badge ဖျက်မှု မအောင်မြင်ပါ: ' + err);
+            }
+        }
+
         function openProductForm() {
             populateProductCategoryDropdown();
+            populateProductBadgeDropdown('');
             document.getElementById('pFormId').value = '';
             document.getElementById('pFormNameEn').value = '';
             document.getElementById('pFormNameMm').value = '';
             document.getElementById('pFormPrice').value = '';
             document.getElementById('pFormWholesale').value = '';
             document.getElementById('pFormOriginalPrice').value = '';
-            document.getElementById('pFormStock').value = '20';
+            document.getElementById('pFormOutOfStock').checked = false;
+            document.getElementById('pFormIsPromotion').checked = false;
             document.getElementById('pFormBadge').value = '';
             document.getElementById('pFormImage').value = '';
             updateProductImagePreview('');
@@ -2192,6 +2335,7 @@ require_once __DIR__ . '/config/db.php';
             const p = (shopData.products || []).find(item => item.id === productId);
             if (!p) return;
             populateProductCategoryDropdown(p.category);
+            populateProductBadgeDropdown(p.badge || '');
             document.getElementById('pFormId').value = p.id;
             document.getElementById('pFormNameEn').value = p.nameEn;
             document.getElementById('pFormNameMm').value = p.nameMm;
@@ -2199,7 +2343,8 @@ require_once __DIR__ . '/config/db.php';
             document.getElementById('pFormPrice').value = p.price;
             document.getElementById('pFormWholesale').value = p.wholesalePrice || '';
             document.getElementById('pFormOriginalPrice').value = p.originalPrice || '';
-            document.getElementById('pFormStock').value = p.stock;
+            document.getElementById('pFormOutOfStock').checked = Boolean(p.outOfStock);
+            document.getElementById('pFormIsPromotion').checked = Boolean(p.isPromotion);
             document.getElementById('pFormBadge').value = p.badge || '';
             document.getElementById('pFormImage').value = p.image;
             updateProductImagePreview(p.image);
@@ -2225,7 +2370,8 @@ require_once __DIR__ . '/config/db.php';
                 price: parseInt(document.getElementById('pFormPrice').value),
                 wholesalePrice: parseInt(document.getElementById('pFormWholesale').value) || null,
                 originalPrice: parseInt(document.getElementById('pFormOriginalPrice').value) || null,
-                stock: parseInt(document.getElementById('pFormStock').value) || 0,
+                outOfStock: document.getElementById('pFormOutOfStock').checked,
+                isPromotion: document.getElementById('pFormIsPromotion').checked,
                 badge: document.getElementById('pFormBadge').value || null,
                 image: document.getElementById('pFormImage').value.trim(),
                 descriptionMm: document.getElementById('pFormDescMm').value.trim(),
@@ -2244,6 +2390,19 @@ require_once __DIR__ . '/config/db.php';
                 loadData();
             } catch (err) {
                 alert('သိမ်းဆည်းမှု မအောင်မြင်ပါ: ' + err);
+            }
+        }
+
+        async function toggleProductOutOfStock(productId, outOfStock) {
+            try {
+                await fetch('api/shop.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'TOGGLE_PRODUCT_OUT_OF_STOCK', productId, outOfStock })
+                });
+                loadData();
+            } catch (err) {
+                alert('အခြေအနေ ပြောင်းလဲမှု မအောင်မြင်ပါ: ' + err);
             }
         }
 
@@ -2413,6 +2572,7 @@ require_once __DIR__ . '/config/db.php';
                         <div class="flex items-center gap-2">
                             <h5 class="font-extrabold text-stone-900 text-sm truncate">${escapeHtml(p.nameEn)}</h5>
                             ${p.badge ? `<span class="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded text-[10px]">${escapeHtml(p.badge)}</span>` : ''}
+                            ${p.isOnPromotion ? `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded text-[10px]">🔥 Promo</span>` : ''}
                         </div>
                         <p class="text-stone-500 mt-0.5 truncate">${escapeHtml(p.nameMm)}</p>
                         <div class="flex flex-wrap items-center gap-3 mt-1.5 text-stone-600 font-semibold">
@@ -2422,10 +2582,17 @@ require_once __DIR__ . '/config/db.php';
                             </span>
                             <span>လက်လီ: <strong class="text-amber-700">${p.price.toLocaleString()} Ks</strong></span>
                             <span>လက်ကား: <strong>${p.wholesalePrice ? p.wholesalePrice.toLocaleString() + ' Ks' : '-'}</strong></span>
-                            <span>Stock: <strong class="${p.stock < 10 ? 'text-red-600 font-black' : 'text-emerald-700'}">${p.stock}</strong></span>
+                            ${p.salesCount > 0 ? `<span>ရောင်းရ: <strong class="text-stone-900">${p.salesCount} လုံး</strong></span>` : ''}
+                            ${p.outOfStock
+                                ? `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-black">Out of Stock (ပစ္စည်းပြတ်)</span>`
+                                : `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">In Stock</span>`
+                            }
                         </div>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
+                        <button onclick="toggleProductOutOfStock('${escapeHtml(p.id)}', ${!p.outOfStock})" class="px-3 py-1.5 ${p.outOfStock ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'} border rounded-xl font-bold transition">
+                            ${p.outOfStock ? 'In Stock ထားမည်' : 'Out of Stock'}
+                        </button>
                         <button onclick="editProduct('${escapeHtml(p.id)}')" class="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl font-bold transition">
                             Edit
                         </button>
@@ -3776,8 +3943,104 @@ require_once __DIR__ . '/config/db.php';
         }
 
         // ===================================================================
-        // SETTINGS, BRANDING & TELEGRAM
+        // SETTINGS, BRANDING, CONTACT PHONES, SOCIAL, TIKTOK & TELEGRAM
         // ===================================================================
+        let adminContactPhones = [];
+        let adminSocialLinks = [];
+        let adminTiktokVideos = [];
+
+        function safeParseJsonArray(raw, fallback = []) {
+            if (!raw) return fallback;
+            try {
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : fallback;
+            } catch (e) {
+                return fallback;
+            }
+        }
+
+        function renderContactPhonesEditor() {
+            const box = document.getElementById('contactPhonesList');
+            if (!box) return;
+            if (adminContactPhones.length === 0) {
+                box.innerHTML = `<p class="text-[11px] text-stone-400 italic py-1">ဖုန်းနံပါတ် မရှိသေးပါ။ "+ ဖုန်းနံပါတ် ထည့်မည်" ကို နှိပ်ပါ။</p>`;
+                return;
+            }
+            box.innerHTML = adminContactPhones.map((item, idx) => `
+                <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-stone-50 p-2 rounded-xl border border-stone-200">
+                    <input type="text" value="${escapeHtml(item.label || '')}" oninput="adminContactPhones[${idx}].label = this.value" placeholder="အမည် (ဥပမာ- ဆိုင်ခွဲ ၁)" class="sm:w-44 px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs">
+                    <input type="text" value="${escapeHtml(item.number || '')}" oninput="adminContactPhones[${idx}].number = this.value" placeholder="09-xxxxxxxxx" class="flex-1 px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs font-mono">
+                    <button type="button" onclick="removeContactPhoneRow(${idx})" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-bold text-xs">ဖျက်မည်</button>
+                </div>
+            `).join('');
+        }
+
+        function addContactPhoneRow() {
+            adminContactPhones.push({ label: '', number: '' });
+            renderContactPhonesEditor();
+        }
+
+        function removeContactPhoneRow(idx) {
+            adminContactPhones.splice(idx, 1);
+            renderContactPhonesEditor();
+        }
+
+        function renderSocialLinksEditor() {
+            const box = document.getElementById('socialLinksList');
+            if (!box) return;
+            if (adminSocialLinks.length === 0) {
+                box.innerHTML = `<p class="text-[11px] text-stone-400 italic py-1">Social Media Account မထည့်ရသေးပါ။ "+ Social Account ထည့်မည်" ကို နှိပ်ပါ။</p>`;
+                return;
+            }
+            const platforms = ['Facebook', 'TikTok', 'Viber', 'Telegram', 'Messenger', 'Instagram', 'YouTube'];
+            box.innerHTML = adminSocialLinks.map((item, idx) => `
+                <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-stone-50 p-2 rounded-xl border border-stone-200">
+                    <select onchange="adminSocialLinks[${idx}].platform = this.value" class="sm:w-36 px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs font-bold">
+                        ${platforms.map(pl => `<option value="${pl}" ${(item.platform === pl) ? 'selected' : ''}>${pl}</option>`).join('')}
+                    </select>
+                    <input type="text" value="${escapeHtml(item.label || '')}" oninput="adminSocialLinks[${idx}].label = this.value" placeholder="ပြသမည့်အမည် (ဥပမာ- Pont Pont Page)" class="sm:w-48 px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs">
+                    <input type="text" value="${escapeHtml(item.url || '')}" oninput="adminSocialLinks[${idx}].url = this.value" placeholder="https://... သို့မဟုတ် @username / 09..." class="flex-1 px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs font-mono">
+                    <button type="button" onclick="removeSocialLinkRow(${idx})" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-bold text-xs">ဖျက်မည်</button>
+                </div>
+            `).join('');
+        }
+
+        function addSocialLinkRow() {
+            adminSocialLinks.push({ platform: 'Facebook', label: '', url: '' });
+            renderSocialLinksEditor();
+        }
+
+        function removeSocialLinkRow(idx) {
+            adminSocialLinks.splice(idx, 1);
+            renderSocialLinksEditor();
+        }
+
+        function renderTiktokVideosEditor() {
+            const box = document.getElementById('tiktokVideosList');
+            if (!box) return;
+            if (adminTiktokVideos.length === 0) {
+                box.innerHTML = `<p class="text-[11px] text-stone-400 italic py-1">TikTok ဗီဒီယို မထည့်ရသေးပါ။ "+ TikTok Video ထည့်မည်" ကို နှိပ်ပါ။</p>`;
+                return;
+            }
+            box.innerHTML = adminTiktokVideos.map((item, idx) => `
+                <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-pink-50/50 p-2.5 rounded-xl border border-pink-200/70">
+                    <input type="text" value="${escapeHtml(item.title || '')}" oninput="adminTiktokVideos[${idx}].title = this.value" placeholder="ဗီဒီယို ခေါင်းစဉ် (ဥပမာ- New Tote Review)" class="sm:w-52 px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs">
+                    <input type="url" value="${escapeHtml(item.url || '')}" oninput="adminTiktokVideos[${idx}].url = this.value" placeholder="https://www.tiktok.com/@.../video/..." class="flex-1 px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs font-mono">
+                    <button type="button" onclick="removeTiktokVideoRow(${idx})" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-bold text-xs">ဖျက်မည်</button>
+                </div>
+            `).join('');
+        }
+
+        function addTiktokVideoRow() {
+            adminTiktokVideos.push({ title: '', url: '' });
+            renderTiktokVideosEditor();
+        }
+
+        function removeTiktokVideoRow(idx) {
+            adminTiktokVideos.splice(idx, 1);
+            renderTiktokVideosEditor();
+        }
+
         function renderSettings() {
             const s = shopData.settings || {};
             const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
@@ -3792,9 +4055,27 @@ require_once __DIR__ . '/config/db.php';
             // General Info
             setIf('setShopName', s.shop_name);
             setIf('setShopNameMm', s.shop_name_mm);
-            setIf('setPhone1', s.phone_1);
-            setIf('setPhone2', s.phone_2);
             setIf('setKpayAccount', s.kpay_account);
+
+            // Dynamic Phones (fallback to phone_1 / phone_2)
+            adminContactPhones = safeParseJsonArray(s.contact_phones, []);
+            if (adminContactPhones.length === 0) {
+                if (s.phone_1) adminContactPhones.push({ label: 'ပင်မဖုန်း (၁)', number: s.phone_1 });
+                if (s.phone_2) adminContactPhones.push({ label: 'ဆိုင်ဖုန်း (၂)', number: s.phone_2 });
+            }
+            renderContactPhonesEditor();
+
+            // Dynamic Social Links
+            adminSocialLinks = safeParseJsonArray(s.social_links, []);
+            renderSocialLinksEditor();
+
+            // TikTok Videos
+            const ttCheck = document.getElementById('setTiktokEnabled');
+            if (ttCheck) ttCheck.checked = (s.tiktok_enabled !== '0');
+            adminTiktokVideos = safeParseJsonArray(s.tiktok_videos, []);
+            renderTiktokVideosEditor();
+
+            // Telegram
             setIf('setTelegramBotToken', s.telegram_bot_token);
             setIf('setTelegramChatId', s.telegram_chat_id);
             const tgCheck = document.getElementById('setTelegramEnabled');
@@ -3881,6 +4162,16 @@ require_once __DIR__ . '/config/db.php';
 
         async function handleSaveSettings(e) {
             e.preventDefault();
+            const cleanPhones = adminContactPhones
+                .map(p => ({ label: String(p.label || '').trim(), number: String(p.number || '').trim() }))
+                .filter(p => p.number !== '');
+            const cleanSocials = adminSocialLinks
+                .map(s => ({ platform: String(s.platform || 'Facebook').trim(), label: String(s.label || '').trim(), url: String(s.url || '').trim() }))
+                .filter(s => s.url !== '');
+            const cleanTiktoks = adminTiktokVideos
+                .map(v => ({ title: String(v.title || '').trim(), url: String(v.url || '').trim() }))
+                .filter(v => v.url !== '');
+
             const settings = {
                 title_bar: document.getElementById('setTitleBar') ? document.getElementById('setTitleBar').value.trim() : '',
                 shop_subtitle: document.getElementById('setShopSubtitle') ? document.getElementById('setShopSubtitle').value.trim() : '',
@@ -3888,8 +4179,12 @@ require_once __DIR__ . '/config/db.php';
                 shop_logo: document.getElementById('setShopLogo') ? document.getElementById('setShopLogo').value.trim() : '',
                 shop_name: document.getElementById('setShopName').value.trim(),
                 shop_name_mm: document.getElementById('setShopNameMm').value.trim(),
-                phone_1: document.getElementById('setPhone1').value.trim(),
-                phone_2: document.getElementById('setPhone2').value.trim(),
+                phone_1: cleanPhones[0] ? cleanPhones[0].number : '',
+                phone_2: cleanPhones[1] ? cleanPhones[1].number : '',
+                contact_phones: JSON.stringify(cleanPhones),
+                social_links: JSON.stringify(cleanSocials),
+                tiktok_enabled: document.getElementById('setTiktokEnabled') && document.getElementById('setTiktokEnabled').checked ? '1' : '0',
+                tiktok_videos: JSON.stringify(cleanTiktoks),
                 kpay_account: document.getElementById('setKpayAccount').value.trim(),
                 telegram_bot_token: document.getElementById('setTelegramBotToken').value.trim(),
                 telegram_chat_id: document.getElementById('setTelegramChatId').value.trim(),

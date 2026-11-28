@@ -97,11 +97,11 @@ if (!function_exists('getShopBaseUrl')) {
  */
 if (!function_exists('buildLiveShopContextForAI')) {
     function buildLiveShopContextForAI($pdo) {
-        $lines = ["[LIVE SHOP DATABASE - ALWAYS USE THESE EXACT PRICES, STOCK & DETAILS]"];
+        $lines = ["[LIVE SHOP DATABASE - ALWAYS USE THESE EXACT PRICES, AVAILABILITY & DETAILS]"];
 
         // 1. Live Products
         try {
-            $stmt = $pdo->query("SELECT id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, colorsJson, stock, material, dimensions, image FROM products ORDER BY sortOrder ASC");
+            $stmt = $pdo->query("SELECT id, nameEn, nameMm, category, categoryMm, price, originalPrice, wholesalePrice, colorsJson, stock, outOfStock, material, dimensions, image FROM products ORDER BY sortOrder ASC");
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (!empty($products)) {
                 $lines[] = "\nProducts (" . count($products) . " items):";
@@ -114,11 +114,11 @@ if (!function_exists('buildLiveShopContextForAI')) {
                         }
                     }
                     $colorsStr = !empty($colorNames) ? implode(', ', $colorNames) : 'Standard';
-                    $stockNum = (int)$p['stock'];
-                    $stockStr = $stockNum > 0 ? "{$stockNum} available" : "OUT OF STOCK";
+                    $isOutOfStock = isset($p['outOfStock']) ? ((int)$p['outOfStock'] === 1) : ((int)$p['stock'] <= 0);
+                    $stockStr = $isOutOfStock ? "OUT OF STOCK" : "In Stock (Available)";
                     $origStr = !empty($p['originalPrice']) ? " (Original: " . number_format((int)$p['originalPrice']) . " Ks)" : "";
                     $wsStr = !empty($p['wholesalePrice']) ? " | Wholesale (5+ pcs): " . number_format((int)$p['wholesalePrice']) . " Ks" : "";
-                    $lines[] = "- [{$p['id']}] {$p['nameEn']} ({$p['nameMm']}) | Category: {$p['category']} ({$p['categoryMm']}) | Retail: " . number_format((int)$p['price']) . " Ks{$origStr}{$wsStr} | Stock: {$stockStr} | Colors: {$colorsStr} | Material: {$p['material']} | Size: {$p['dimensions']} | Image: {$p['image']}";
+                    $lines[] = "- [{$p['id']}] {$p['nameEn']} ({$p['nameMm']}) | Category: {$p['category']} ({$p['categoryMm']}) | Retail: " . number_format((int)$p['price']) . " Ks{$origStr}{$wsStr} | Availability: {$stockStr} | Colors: {$colorsStr} | Material: {$p['material']} | Size: {$p['dimensions']} | Image: {$p['image']}";
                 }
             }
         } catch (\Throwable $e) {}
