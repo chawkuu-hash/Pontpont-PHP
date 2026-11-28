@@ -285,6 +285,62 @@ require_once __DIR__ . '/config/db.php';
                     </div>
                 </div>
 
+                <!-- Web Traffic & Visitor Analytics -->
+                <div class="bg-white rounded-3xl border border-stone-200 shadow-sm p-5 sm:p-6 space-y-4">
+                    <div class="flex items-center justify-between flex-wrap gap-2 border-b border-stone-100 pb-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+                                <i data-lucide="globe" class="w-5 h-5"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-black text-sm text-stone-900">🌐 Website ဝင်ရောက်ကြည့်ရှုမှု (Web Traffic)</h4>
+                                <p class="text-[11px] text-stone-500">ဝဘ်ဆိုက်သို့ ဝင်ရောက်ကြည့်ရှုသူ အရေအတွက်နှင့် စာမျက်နှာ ကြည့်ရှုမှု မှတ်တမ်း</p>
+                            </div>
+                        </div>
+                        <span id="statTrafficSplit" class="text-[11px] font-bold text-stone-600 bg-stone-100 px-3 py-1 rounded-full">Home: 0 • Promotions: 0</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80">
+                            <span class="text-[11px] font-bold text-sky-700 block">ယနေ့ ကြည့်ရှုသူ (Today)</span>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <h4 id="statTrafficTodayVisitors" class="text-xl font-black text-stone-900">0 ဦး</h4>
+                                <span id="statTrafficTodayViews" class="text-[11px] font-semibold text-stone-500">(0 ကြိမ်)</span>
+                            </div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80">
+                            <span class="text-[11px] font-bold text-indigo-700 block">၇ ရက်အတွင်း (7 Days)</span>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <h4 id="statTrafficWeekVisitors" class="text-xl font-black text-stone-900">0 ဦး</h4>
+                                <span id="statTrafficWeekViews" class="text-[11px] font-semibold text-stone-500">(0 ကြိမ်)</span>
+                            </div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/80">
+                            <span class="text-[11px] font-bold text-teal-700 block">ဒီလ (This Month)</span>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <h4 id="statTrafficMonthVisitors" class="text-xl font-black text-stone-900">0 ဦး</h4>
+                                <span id="statTrafficMonthViews" class="text-[11px] font-semibold text-stone-500">(0 ကြိမ်)</span>
+                            </div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80">
+                            <span class="text-[11px] font-bold text-amber-800 block">စုစုပေါင်း (All-Time)</span>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <h4 id="statTrafficTotalVisitors" class="text-xl font-black text-stone-900">0 ဦး</h4>
+                                <span id="statTrafficTotalViews" class="text-[11px] font-semibold text-stone-500">(0 ကြိမ်)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7-Day Daily Traffic Mini Chart -->
+                    <div>
+                        <div class="flex items-center justify-between text-[11px] font-bold text-stone-500 mb-2">
+                            <span>နောက်ဆုံး ၇ ရက်အတွင်း နေ့အလိုက် ဝင်ရောက်ကြည့်ရှုမှု</span>
+                            <span class="text-sky-700">Unique Visitors / Page Views</span>
+                        </div>
+                        <div id="overviewTrafficChart" class="grid grid-cols-7 gap-2 items-end h-28 bg-stone-50 rounded-2xl p-3 border border-stone-200/70"></div>
+                    </div>
+                </div>
+
                 <!-- Weekly & Monthly Quick Accounting Summary Banner -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- This Week Card -->
@@ -1911,6 +1967,39 @@ require_once __DIR__ . '/config/db.php';
             document.getElementById('statOrders').innerText = orders.length;
             document.getElementById('statProducts').innerText = (shopData.products || []).length;
             document.getElementById('statUsers').innerText = shopData.usersCount || 0;
+
+            // Web Traffic Stats
+            const t = shopData.traffic || {};
+            const setTxtIf = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setTxtIf('statTrafficTodayVisitors', Number(t.todayVisitors || 0).toLocaleString() + ' ဦး');
+            setTxtIf('statTrafficTodayViews', `(${Number(t.todayViews || 0).toLocaleString()} ကြိမ်)`);
+            setTxtIf('statTrafficWeekVisitors', Number(t.weekVisitors || 0).toLocaleString() + ' ဦး');
+            setTxtIf('statTrafficWeekViews', `(${Number(t.weekViews || 0).toLocaleString()} ကြိမ်)`);
+            setTxtIf('statTrafficMonthVisitors', Number(t.monthVisitors || 0).toLocaleString() + ' ဦး');
+            setTxtIf('statTrafficMonthViews', `(${Number(t.monthViews || 0).toLocaleString()} ကြိမ်)`);
+            setTxtIf('statTrafficTotalVisitors', Number(t.totalVisitors || 0).toLocaleString() + ' ဦး');
+            setTxtIf('statTrafficTotalViews', `(${Number(t.totalViews || 0).toLocaleString()} ကြိမ်)`);
+            setTxtIf('statTrafficSplit', `Home: ${Number(t.homeViews || 0).toLocaleString()} • Promotions: ${Number(t.promoViews || 0).toLocaleString()}`);
+
+            const chartEl = document.getElementById('overviewTrafficChart');
+            if (chartEl) {
+                const daily = Array.isArray(t.daily) ? t.daily : [];
+                const maxViews = Math.max(1, ...daily.map(d => Number(d.pageViews || 0)));
+                chartEl.innerHTML = daily.map(d => {
+                    const pv = Number(d.pageViews || 0);
+                    const uv = Number(d.uniqueVisitors || 0);
+                    const pct = pv > 0 ? Math.max(12, Math.round((pv / maxViews) * 100)) : 4;
+                    return `
+                        <div class="flex flex-col items-center justify-end h-full gap-1" title="${escapeHtml(d.date)}: ${uv} visitors / ${pv} views">
+                            <span class="text-[10px] font-bold text-stone-600 leading-none">${uv}/${pv}</span>
+                            <div class="w-full max-w-[34px] bg-sky-200/60 rounded-t-lg overflow-hidden flex items-end h-14">
+                                <div class="w-full bg-gradient-to-t from-sky-600 to-sky-400 rounded-t-lg transition-all duration-300" style="height:${pct}%"></div>
+                            </div>
+                            <span class="text-[10px] font-semibold text-stone-500 leading-none">${escapeHtml(d.label)}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
 
             document.getElementById('badgeOrdersCount').innerText = orders.length;
             document.getElementById('badgeProductsCount').innerText = (shopData.products || []).length;

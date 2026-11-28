@@ -186,6 +186,22 @@ function ensureSchemaUpdated($pdo) {
             ('pm-cod', 'COD', 'Cash on Delivery', 'အိမ်အရောက်ငွေချေ (COD)', 'cod', '', '', 'မန္တလေးမြို့တွင်း ပစ္စည်းရောက်မှ ငွေချေစနစ် ဖြစ်ပါသည်', NULL, 0, 1, 3, '2026-11-23T00:00:00Z'),
             ('pm-aya', 'AYAPay', 'AYA Pay / Banking', 'AYA Pay / ဘဏ်ငွေလွှဲ', 'banking', 'Daw Pont Pont', '09963000502', 'AYA Pay သို့မဟုတ် AYA Bank ဖြင့် လွှဲပေးနိုင်ပါသည်', NULL, 1, 1, 4, '2026-11-23T00:00:00Z')");
         }
+
+        // 6. Ensure web traffic analytics tables exist
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `traffic_daily` (
+          `visitDate` DATE NOT NULL PRIMARY KEY,
+          `pageViews` INT NOT NULL DEFAULT 0,
+          `uniqueVisitors` INT NOT NULL DEFAULT 0,
+          `homeViews` INT NOT NULL DEFAULT 0,
+          `promoViews` INT NOT NULL DEFAULT 0
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `traffic_visitors` (
+          `visitDate` DATE NOT NULL,
+          `visitorHash` VARCHAR(64) NOT NULL,
+          `firstSeenAt` VARCHAR(50) NOT NULL,
+          PRIMARY KEY (`visitDate`, `visitorHash`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     } catch (\Throwable $e) {
         // Silently skip if database or tables do not exist yet (e.g. before install)
     }

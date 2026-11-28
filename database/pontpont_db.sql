@@ -168,6 +168,26 @@ CREATE TABLE `payment_methods` (
   `createdAt` VARCHAR(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+-- Table structure for `traffic_daily` & `traffic_visitors`
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `traffic_daily`;
+CREATE TABLE `traffic_daily` (
+  `visitDate` DATE NOT NULL PRIMARY KEY,
+  `pageViews` INT NOT NULL DEFAULT 0,
+  `uniqueVisitors` INT NOT NULL DEFAULT 0,
+  `homeViews` INT NOT NULL DEFAULT 0,
+  `promoViews` INT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `traffic_visitors`;
+CREATE TABLE `traffic_visitors` (
+  `visitDate` DATE NOT NULL,
+  `visitorHash` VARCHAR(64) NOT NULL,
+  `firstSeenAt` VARCHAR(50) NOT NULL,
+  PRIMARY KEY (`visitDate`, `visitorHash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================
 -- Dumping Data for Tables
 -- ============================================================

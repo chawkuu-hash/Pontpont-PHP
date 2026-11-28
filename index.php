@@ -1273,6 +1273,7 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
         };
 
         const IS_PROMO_PAGE = <?php echo $isPromoPage ? 'true' : 'false'; ?>;
+        let hasTrackedVisit = false;
         let activeCategory = 'All';
         let searchQuery = '';
         let cart = []; // Array of { productId, quantity, selectedColor }
@@ -1295,7 +1296,9 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
         // Fetch Shop Data from REST API
         async function loadShopData() {
             try {
-                const res = await fetch('api/shop.php');
+                const trackParam = !hasTrackedVisit ? ('?track=' + (IS_PROMO_PAGE ? 'promotions' : 'home')) : '';
+                hasTrackedVisit = true;
+                const res = await fetch('api/shop.php' + trackParam);
                 const data = await res.json();
                 shopData = data;
                 applyTheme(data.theme);

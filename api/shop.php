@@ -483,6 +483,76 @@ function buildScopedResponse($pdo, $sessionUser) {
         'settings'      => $settings,
         'currentUser'   => sanitizeUser($sessionUser),
         'theme'         => $theme,
+        'traffic'       => (function() use ($pdo, $isAdmin) {
+            if (!$isAdmin) return null;
+            $mmNow = time() + 23400; // UTC+6:30 Myanmar Time
+            $today = gmdate('Y-m-d', $mmNow);
+            $weekStart = gmdate('Y-m-d', $mmNow - (6 * 86400));
+            $monthStart = gmdate('Y-m-01', $mmNow);
+
+            $summary = [
+                'todayViews'    => 0,
+                'todayVisitors' => 0,
+                'weekViews'     => 0,
+                'weekVisitors'  => 0,
+                'monthViews'    => 0,
+                'monthVisitors' => 0,
+                'totalViews'    => 0,
+                'totalVisitors' => 0,
+                'homeViews'     => 0,
+                'promoViews'    => 0,
+                'daily'         => [],
+            ];
+
+            try {
+                $totStmt = $pdo->query("SELECT COALESCE(SUM(pageViews),0) AS pv, COALESCE(SUM(uniqueVisitors),0) AS uv, COALESCE(SUM(homeViews),0) AS hv, COALESCE(SUM(promoViews),0) AS prv FROM traffic_daily");
+                if ($tot = $totStmt->fetch()) {
+                    $summary['totalViews'] = (int)$tot['pv'];
+                    $summary['totalVisitors'] = (int)$tot['uv'];
+                    $summary['homeViews'] = (int)$tot['hv'];
+                    $summary['promoViews'] = (int)$tot['prv'];
+                }
+
+                $moStmt = $pdo->prepare("SELECT COALESCE(SUM(pageViews),0) AS pv, COALESCE(SUM(uniqueVisitors),0) AS uv FROM traffic_daily WHERE visitDate >= ?");
+                $moStmt->execute([$monthStart]);
+                if ($mo = $moStmt->fetch()) {
+                    $summary['monthViews'] = (int)$mo['pv'];
+                    $summary['monthVisitors'] = (int)$mo['uv'];
+                }
+
+                $wkStmt = $pdo->prepare("SELECT COALESCE(SUM(pageViews),0) AS pv, COALESCE(SUM(uniqueVisitors),0) AS uv FROM traffic_daily WHERE visitDate >= ?");
+                $wkStmt->execute([$weekStart]);
+                if ($wk = $wkStmt->fetch()) {
+                    $summary['weekViews'] = (int)$wk['pv'];
+                    $summary['weekVisitors'] = (int)$wk['uv'];
+                }
+
+                $dayStmt = $pdo->prepare("SELECT visitDate, pageViews, uniqueVisitors, homeViews, promoViews FROM traffic_daily WHERE visitDate >= ? ORDER BY visitDate ASC");
+                $dayStmt->execute([$weekStart]);
+                $byDate = [];
+                foreach ($dayStmt->fetchAll() as $r) {
+                    $byDate[$r['visitDate']] = $r;
+                }
+                if (isset($byDate[$today])) {
+                    $summary['todayViews'] = (int)$byDate[$today]['pageViews'];
+                    $summary['todayVisitors'] = (int)$byDate[$today]['uniqueVisitors'];
+                }
+
+                for ($i = 6; $i >= 0; $i--) {
+                    $ts = $mmNow - ($i * 86400);
+                    $dKey = gmdate('Y-m-d', $ts);
+                    $row = $byDate[$dKey] ?? null;
+                    $summary['daily'][] = [
+                        'date'           => $dKey,
+                        'label'          => gmdate('d/m', $ts),
+                        'pageViews'      => $row ? (int)$row['pageViews'] : 0,
+                        'uniqueVisitors' => $row ? (int)$row['uniqueVisitors'] : 0,
+                    ];
+                }
+            } catch (\Throwable $e) {}
+
+            return $summary;
+        })(),
         'chatbotConfig' => $chatbotConfig,
         'paymentMethods' => (function() use ($pdo, $isAdmin) {
             $methods = [];
@@ -515,12 +585,49 @@ function buildScopedResponse($pdo, $sessionUser) {
     ];
 }
 
+function recordWebTraffic($pdo, $pageType) {
+    if (!in_array($pageType, ['home', 'promotions'], true)) return;
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    if ($ua !== '' && preg_match('/bot|crawl|spider|slurp|mediapartners/i', $ua)) {
+        return;
+    }
+
+    $mmNow = time() + 23400; // UTC+6:30 Myanmar Time
+    $visitDate = gmdate('Y-m-d', $mmNow);
+    $rawIp = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $ip = trim(explode(',', (string)$rawIp)[0]);
+    $visitorHash = hash('sha256', $ip . '|' . $ua . '|' . APP_SECRET_KEY);
+
+    try {
+        $visStmt = $pdo->prepare("INSERT IGNORE INTO traffic_visitors (visitDate, visitorHash, firstSeenAt) VALUES (?, ?, ?)");
+        $visStmt->execute([$visitDate, $visitorHash, gmdate('Y-m-d\TH:i:s\Z')]);
+        $isUnique = ($visStmt->rowCount() > 0) ? 1 : 0;
+
+        $isHome = ($pageType === 'home') ? 1 : 0;
+        $isPromo = ($pageType === 'promotions') ? 1 : 0;
+
+        $dailyStmt = $pdo->prepare("
+            INSERT INTO traffic_daily (visitDate, pageViews, uniqueVisitors, homeViews, promoViews)
+            VALUES (?, 1, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                pageViews = pageViews + 1,
+                uniqueVisitors = uniqueVisitors + ?,
+                homeViews = homeViews + ?,
+                promoViews = promoViews + ?
+        ");
+        $dailyStmt->execute([$visitDate, $isUnique, $isHome, $isPromo, $isUnique, $isHome, $isPromo]);
+    } catch (\Throwable $e) {}
+}
+
 $pdo = getDb();
 
 // --------------------------------------------------------------------------
-// GET Request: Return full scoped shop data
+// GET Request: Return full scoped shop data (and optionally track storefront visit)
 // --------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (!empty($_GET['track'])) {
+        recordWebTraffic($pdo, trim((string)$_GET['track']));
+    }
     $sessionUser = getAuthenticatedUser($pdo);
     echo json_encode(buildScopedResponse($pdo, $sessionUser), JSON_UNESCAPED_UNICODE);
     exit;
