@@ -325,23 +325,23 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
             </div>
         </div>
 
-        <!-- Best Selling Products Showcase -->
-        <section id="bestSellersSection" class="space-y-4 hidden">
-            <div class="flex items-center justify-between flex-wrap gap-3 bg-gradient-to-r from-amber-50 via-white to-rose-50 p-4 sm:p-5 rounded-3xl border border-amber-200/70">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-600/20">
-                        <i data-lucide="award" class="w-5 h-5"></i>
+        <!-- Best Selling Products Showcase (Compact) -->
+        <section id="bestSellersSection" class="space-y-2.5 hidden">
+            <div class="flex items-center justify-between flex-wrap gap-2 bg-gradient-to-r from-amber-50 via-white to-rose-50 px-4 py-2.5 rounded-2xl border border-amber-200/70">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs">
+                        <i data-lucide="award" class="w-4 h-4"></i>
                     </div>
                     <div>
-                        <h2 class="text-lg sm:text-xl font-extrabold text-stone-900">🔥 အရောင်းရဆုံး အိတ်များ (Best Sellers)</h2>
-                        <p class="text-xs text-stone-500 font-medium">ဝယ်ယူအားပေးမှု အများဆုံးနှင့် လူကြိုက်အများဆုံး ဒီဇိုင်းများ</p>
+                        <h2 class="text-sm sm:text-base font-extrabold text-stone-900">🔥 အရောင်းရဆုံး အိတ်များ (Best Sellers)</h2>
+                        <p class="text-[11px] text-stone-500 font-medium">ဝယ်ယူအားပေးမှု အများဆုံးနှင့် လူကြိုက်အများဆုံး ဒီဇိုင်းများ</p>
                     </div>
                 </div>
-                <a href="promotions.php" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-900 hover:bg-black text-amber-300 text-xs font-bold transition">
-                    <i data-lucide="flame" class="w-3.5 h-3.5"></i> Promotion စာမျက်နှာသို့
+                <a href="promotions.php" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-black text-amber-300 text-[11px] font-bold transition">
+                    <i data-lucide="flame" class="w-3 h-3"></i> Promotion စာမျက်နှာသို့
                 </a>
             </div>
-            <div id="bestSellersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div id="bestSellersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <!-- Best sellers injected dynamically -->
             </div>
         </section>
@@ -1842,6 +1842,29 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
             return card;
         }
 
+        function buildCompactBestSellerCard(p, rank) {
+            const card = document.createElement('div');
+            card.className = 'group bg-white rounded-2xl border border-stone-200/80 p-2.5 shadow-xs hover:shadow-md hover:border-amber-300 transition flex items-center gap-3';
+            card.innerHTML = `
+                <div class="relative w-16 h-16 rounded-xl bg-stone-100 overflow-hidden flex-shrink-0 cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">
+                    <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.nameEn)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                    <span class="absolute top-1 left-1 bg-amber-500 text-stone-950 font-black text-[9px] px-1.5 py-0.5 rounded-full leading-none shadow-xs">#${rank}</span>
+                </div>
+                <div class="flex-1 min-w-0 cursor-pointer" onclick="openProductModal('${escapeHtml(p.id)}')">
+                    <h3 class="font-extrabold text-stone-900 text-xs truncate group-hover:text-amber-700 transition">${escapeHtml(p.nameEn)}</h3>
+                    <p class="text-[11px] text-stone-500 truncate">${escapeHtml(p.nameMm)}</p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-xs font-black text-amber-900">${p.price.toLocaleString()} Ks</span>
+                        ${p.salesCount > 0 ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">${p.salesCount} ခု</span>` : ''}
+                    </div>
+                </div>
+                <button type="button" onclick="quickAddToCart('${escapeHtml(p.id)}')" title="ခြင်းတောင်းထဲ ထည့်မည်" class="w-8 h-8 rounded-xl bg-stone-900 hover:bg-black text-amber-400 flex items-center justify-center flex-shrink-0 transition shadow-xs">
+                    <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
+                </button>
+            `;
+            return card;
+        }
+
         function renderBestSellers() {
             const section = document.getElementById('bestSellersSection');
             const grid = document.getElementById('bestSellersGrid');
@@ -1865,10 +1888,7 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
             section.classList.remove('hidden');
             grid.innerHTML = '';
             ranked.forEach((p, idx) => {
-                grid.appendChild(buildProductCard(p, {
-                    rankLabel: `#${idx + 1} Best Seller`,
-                    showSalesCount: true
-                }));
+                grid.appendChild(buildCompactBestSellerCard(p, idx + 1));
             });
             lucide.createIcons();
         }
