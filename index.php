@@ -219,34 +219,75 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
         <?php else: ?>
         <!-- Hero Section -->
         <div id="heroBanner" class="rounded-3xl p-6 sm:p-10 text-white relative overflow-hidden shadow-2xl bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950">
-            <div class="relative z-10 max-w-2xl space-y-4">
-                <div class="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                    <span>✨ မန္တလေး လက်လီ/လက်ကား ဆိုင်ကြီး</span>
+            <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 lg:gap-8">
+                <div class="flex-1 max-w-2xl space-y-4">
+                    <div class="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
+                        <span>✨ မန္တလေး လက်လီ/လက်ကား ဆိုင်ကြီး</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
+                        ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး
+                    </h1>
+                    <p class="text-stone-300 text-sm sm:text-base leading-relaxed">
+                        ရုံးတက်၊ ကျောင်းတက်၊ ပွဲတက်နှင့် နေ့စဉ်သုံး လက်ကိုင်အိတ်၊ ဘေးလွယ်အိတ်၊ ကျောပိုးအိတ်များကို မန္တလေးမြို့ ဆိုင်ခွဲ (၃) ဆိုင်မှ လက်လီ/လက်ကား စိတ်ကြိုက်ရွေးချယ် မှာယူနိုင်ပါပြီ။
+                    </p>
+                    <div class="flex flex-wrap gap-2 pt-2">
+                        <span class="inline-flex items-center gap-1.5 bg-stone-800/80 px-3 py-1.5 rounded-xl text-xs text-amber-200">
+                            <i data-lucide="truck" class="w-3.5 h-3.5 text-amber-400"></i> မြန်မာတစ်နိုင်ငံလုံး ကားဂိတ်ပို့
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 bg-stone-800/80 px-3 py-1.5 rounded-xl text-xs text-amber-200">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-400"></i> လက်ကား (၅) လုံးဈေး သီးသန့်
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 bg-stone-800/80 px-3 py-1.5 rounded-xl text-xs text-amber-200">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-400"></i> KPay / WavePay / COD
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap gap-3 pt-2">
+                        <a href="promotions.php" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white text-xs sm:text-sm font-extrabold shadow-lg transition">
+                            <i data-lucide="flame" class="w-4 h-4"></i> Promotion ပစ္စည်းများ ကြည့်မည်
+                        </a>
+                        <a href="#bestSellersSection" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs sm:text-sm font-bold backdrop-blur-xs transition">
+                            <i data-lucide="award" class="w-4 h-4 text-amber-300"></i> အရောင်းရဆုံး အိတ်များ
+                        </a>
+                    </div>
                 </div>
-                <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
-                    ပုံ့ပုံ့ အိတ်အမျိုးမျိုး ရောင်းဝယ်ရေး
-                </h1>
-                <p class="text-stone-300 text-sm sm:text-base leading-relaxed">
-                    ရုံးတက်၊ ကျောင်းတက်၊ ပွဲတက်နှင့် နေ့စဉ်သုံး လက်ကိုင်အိတ်၊ ဘေးလွယ်အိတ်၊ ကျောပိုးအိတ်များကို မန္တလေးမြို့ ဆိုင်ခွဲ (၃) ဆိုင်မှ လက်လီ/လက်ကား စိတ်ကြိုက်ရွေးချယ် မှာယူနိုင်ပါပြီ။
-                </p>
-                <div class="flex flex-wrap gap-2 pt-2">
-                    <span class="inline-flex items-center gap-1.5 bg-stone-800/80 px-3 py-1.5 rounded-xl text-xs text-amber-200">
-                        <i data-lucide="truck" class="w-3.5 h-3.5 text-amber-400"></i> မြန်မာတစ်နိုင်ငံလုံး ကားဂိတ်ပို့
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 bg-stone-800/80 px-3 py-1.5 rounded-xl text-xs text-amber-200">
-                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-400"></i> လက်ကား (၅) လုံးဈေး သီးသန့်
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 bg-stone-800/80 px-3 py-1.5 rounded-xl text-xs text-amber-200">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-400"></i> KPay / WavePay / COD
-                    </span>
-                </div>
-                <div class="flex flex-wrap gap-3 pt-2">
-                    <a href="promotions.php" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white text-xs sm:text-sm font-extrabold shadow-lg transition">
-                        <i data-lucide="flame" class="w-4 h-4"></i> Promotion ပစ္စည်းများ ကြည့်မည်
-                    </a>
-                    <a href="#bestSellersSection" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs sm:text-sm font-bold backdrop-blur-xs transition">
-                        <i data-lucide="award" class="w-4 h-4 text-amber-300"></i> အရောင်းရဆုံး အိတ်များ
-                    </a>
+
+                <!-- Hero Right Box: TikTok Video Slideshow -->
+                <div id="heroTiktokBox" class="hidden w-full md:w-[300px] lg:w-[320px] flex-shrink-0">
+                    <div class="rounded-2xl bg-black/50 backdrop-blur-md border border-white/15 shadow-2xl overflow-hidden flex flex-col">
+                        <!-- Top Header -->
+                        <div class="px-3.5 py-2.5 bg-black/40 border-b border-white/10 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="w-6 h-6 rounded-lg bg-pink-600 text-white flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="video" class="w-3.5 h-3.5"></i>
+                                </span>
+                                <span id="heroTiktokSlideTitle" class="text-xs font-extrabold text-white truncate">TikTok ဗီဒီယိုများ</span>
+                            </div>
+                            <div id="heroTiktokNavControls" class="flex items-center gap-1 flex-shrink-0">
+                                <button type="button" onclick="prevHeroTiktokSlide()" title="ရှေ့သို့" class="w-6 h-6 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition">
+                                    <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" onclick="nextHeroTiktokSlide()" title="နောက်သို့" class="w-6 h-6 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition">
+                                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Slides Viewport -->
+                        <div class="relative overflow-hidden w-full bg-stone-950">
+                            <div id="heroTiktokTrack" class="flex transition-transform duration-500 ease-out w-full">
+                                <!-- TikTok slides injected dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Bottom Dots & Follow Bar -->
+                        <div class="px-3.5 py-2 bg-black/45 border-t border-white/10 flex items-center justify-between gap-2">
+                            <div id="heroTiktokDots" class="flex items-center gap-1.5"></div>
+                            <div class="flex items-center gap-2">
+                                <a id="heroTiktokOpenLink" href="#" target="_blank" rel="noopener" class="text-[11px] font-bold text-amber-300 hover:underline whitespace-nowrap">ဖွင့်ကြည့်မည် ↗</a>
+                                <a id="tiktokProfileFollowBtn" href="#" target="_blank" rel="noopener" class="hidden text-[11px] font-bold bg-pink-600 hover:bg-pink-700 text-white px-2 py-0.5 rounded-md transition whitespace-nowrap">Follow</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <!-- Decorative circle -->
@@ -302,27 +343,6 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
             </div>
             <div id="bestSellersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Best sellers injected dynamically -->
-            </div>
-        </section>
-
-        <!-- TikTok Videos Showcase -->
-        <section id="tiktokSection" class="space-y-4 hidden">
-            <div class="flex items-center justify-between flex-wrap gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-stone-900 text-pink-400 flex items-center justify-center shadow-md">
-                        <i data-lucide="video" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-lg sm:text-xl font-extrabold text-stone-900">🎵 TikTok ဗီဒီယိုများ</h2>
-                        <p class="text-xs text-stone-500 font-medium">အိတ်ဒီဇိုင်းအသစ်များနှင့် အပြင်ပုံစံ ဗီဒီယိုများကို တိုက်ရိုက်ကြည့်ရှုပါ</p>
-                    </div>
-                </div>
-                <a id="tiktokProfileFollowBtn" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold transition shadow-sm">
-                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> TikTok Follow လုပ်မည်
-                </a>
-            </div>
-            <div id="tiktokVideosGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <!-- TikTok embeds injected dynamically -->
             </div>
         </section>
         <?php endif; ?>
@@ -1640,54 +1660,114 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
             }
         }
 
+        let heroTiktokSlides = [];
+        let currentHeroTiktokSlide = 0;
+        let heroTiktokTimer = null;
+
         function extractTiktokVideoId(url) {
             const match = String(url || '').match(/\/video\/(\d+)/);
             return match ? match[1] : null;
         }
 
         function renderTiktokVideos() {
-            const section = document.getElementById('tiktokSection');
-            const grid = document.getElementById('tiktokVideosGrid');
-            if (!section || !grid) return;
+            const box = document.getElementById('heroTiktokBox');
+            const track = document.getElementById('heroTiktokTrack');
+            const dotsBox = document.getElementById('heroTiktokDots');
+            const navControls = document.getElementById('heroTiktokNavControls');
+            if (!box || !track) return;
+
+            if (heroTiktokTimer) {
+                clearInterval(heroTiktokTimer);
+                heroTiktokTimer = null;
+            }
 
             const s = shopData.settings || {};
             if (s.tiktok_enabled === '0') {
-                section.classList.add('hidden');
+                box.classList.add('hidden');
                 return;
             }
             const videos = safeParseJsonArray(s.tiktok_videos, []).filter(v => v && v.url);
             if (videos.length === 0) {
-                section.classList.add('hidden');
+                box.classList.add('hidden');
                 return;
             }
 
-            section.classList.remove('hidden');
-            grid.innerHTML = videos.map(v => {
+            heroTiktokSlides = videos;
+            box.classList.remove('hidden');
+
+            track.innerHTML = videos.map(v => {
                 const videoId = extractTiktokVideoId(v.url);
                 if (videoId) {
                     return `
-                        <div class="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-lg transition flex flex-col">
-                            <div class="relative w-full aspect-[9/16] bg-stone-950">
-                                <iframe src="https://www.tiktok.com/embed/v2/${escapeHtml(videoId)}" class="w-full h-full border-0" allow="encrypted-media;" allowfullscreen loading="lazy"></iframe>
-                            </div>
-                            <div class="p-3 flex items-center justify-between gap-2 border-t border-stone-100">
-                                <span class="text-xs font-bold text-stone-800 truncate">${escapeHtml(v.title || 'Pont Pont TikTok')}</span>
-                                <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="text-[11px] font-bold text-pink-600 hover:underline whitespace-nowrap">TikTok ↗</a>
-                            </div>
+                        <div class="w-full flex-shrink-0 min-w-full h-[300px] sm:h-[320px] bg-stone-950">
+                            <iframe src="https://www.tiktok.com/embed/v2/${escapeHtml(videoId)}" class="w-full h-full border-0" allow="encrypted-media;" allowfullscreen loading="lazy"></iframe>
                         </div>
                     `;
                 }
                 return `
-                    <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="bg-gradient-to-br from-stone-900 via-stone-800 to-pink-950 text-white rounded-3xl p-6 flex flex-col items-center justify-center text-center gap-3 aspect-[9/12] shadow-md hover:shadow-xl transition group">
+                    <a href="${escapeHtml(v.url)}" target="_blank" rel="noopener" class="w-full flex-shrink-0 min-w-full h-[300px] sm:h-[320px] bg-gradient-to-br from-stone-900 via-stone-900 to-pink-950 text-white p-6 flex flex-col items-center justify-center text-center gap-3 group">
                         <div class="w-14 h-14 rounded-2xl bg-pink-600/25 border border-pink-400/40 flex items-center justify-center group-hover:scale-110 transition">
                             <i data-lucide="play" class="w-7 h-7 text-pink-300"></i>
                         </div>
-                        <p class="font-extrabold text-sm">${escapeHtml(v.title || 'TikTok ဗီဒီယို ကြည့်ရှုရန်')}</p>
+                        <p class="font-extrabold text-sm line-clamp-2">${escapeHtml(v.title || 'TikTok ဗီဒီယို ကြည့်ရှုရန်')}</p>
                         <span class="text-xs text-pink-300 font-semibold">TikTok တွင် ဖွင့်ကြည့်မည် ↗</span>
                     </a>
                 `;
             }).join('');
+
+            if (dotsBox) {
+                dotsBox.innerHTML = videos.map((_, idx) => `
+                    <button type="button" onclick="goToHeroTiktokSlide(${idx})" class="h-1.5 rounded-full transition-all duration-300 ${idx === 0 ? 'w-5 bg-pink-500' : 'w-1.5 bg-white/40 hover:bg-white/75'}" title="Video ${idx + 1}"></button>
+                `).join('');
+                dotsBox.style.display = videos.length > 1 ? 'flex' : 'none';
+            }
+            if (navControls) {
+                navControls.style.display = videos.length > 1 ? 'flex' : 'none';
+            }
+
+            goToHeroTiktokSlide(0);
+            if (videos.length > 1) {
+                heroTiktokTimer = setInterval(() => nextHeroTiktokSlide(), 7000);
+                box.onmouseenter = () => { if (heroTiktokTimer) { clearInterval(heroTiktokTimer); heroTiktokTimer = null; } };
+                box.onmouseleave = () => {
+                    if (!heroTiktokTimer && heroTiktokSlides.length > 1) {
+                        heroTiktokTimer = setInterval(() => nextHeroTiktokSlide(), 7000);
+                    }
+                };
+            }
             lucide.createIcons();
+        }
+
+        function goToHeroTiktokSlide(idx) {
+            if (!heroTiktokSlides.length) return;
+            currentHeroTiktokSlide = (idx + heroTiktokSlides.length) % heroTiktokSlides.length;
+            const track = document.getElementById('heroTiktokTrack');
+            if (track) {
+                track.style.transform = `translateX(-${currentHeroTiktokSlide * 100}%)`;
+            }
+            const cur = heroTiktokSlides[currentHeroTiktokSlide];
+            const titleEl = document.getElementById('heroTiktokSlideTitle');
+            if (titleEl) {
+                titleEl.innerText = cur.title || `TikTok (${currentHeroTiktokSlide + 1}/${heroTiktokSlides.length})`;
+            }
+            const openLink = document.getElementById('heroTiktokOpenLink');
+            if (openLink) {
+                openLink.href = cur.url || '#';
+            }
+            const dots = document.querySelectorAll('#heroTiktokDots button');
+            dots.forEach((d, i) => {
+                d.className = i === currentHeroTiktokSlide
+                    ? 'w-5 h-1.5 rounded-full bg-pink-500 transition-all duration-300'
+                    : 'w-1.5 h-1.5 rounded-full bg-white/40 hover:bg-white/75 transition-all duration-300';
+            });
+        }
+
+        function nextHeroTiktokSlide() {
+            goToHeroTiktokSlide(currentHeroTiktokSlide + 1);
+        }
+
+        function prevHeroTiktokSlide() {
+            goToHeroTiktokSlide(currentHeroTiktokSlide - 1);
         }
 
         function buildProductCard(p, options = {}) {
