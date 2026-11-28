@@ -1695,12 +1695,13 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
             heroTiktokSlides = videos;
             box.classList.remove('hidden');
 
-            track.innerHTML = videos.map(v => {
+            track.innerHTML = videos.map((v, idx) => {
                 const videoId = extractTiktokVideoId(v.url);
                 if (videoId) {
+                    const playerUrl = `https://www.tiktok.com/player/v1/${escapeHtml(videoId)}?autoplay=1&muted=1&loop=1`;
                     return `
                         <div class="w-full flex-shrink-0 min-w-full h-[300px] sm:h-[320px] bg-stone-950">
-                            <iframe src="https://www.tiktok.com/embed/v2/${escapeHtml(videoId)}" class="w-full h-full border-0" allow="encrypted-media;" allowfullscreen loading="lazy"></iframe>
+                            <iframe data-slide-idx="${idx}" data-player-src="${playerUrl}" src="${idx === 0 ? playerUrl : 'about:blank'}" class="hero-tiktok-iframe w-full h-full border-0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
                         </div>
                     `;
                 }
@@ -1727,11 +1728,11 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
 
             goToHeroTiktokSlide(0);
             if (videos.length > 1) {
-                heroTiktokTimer = setInterval(() => nextHeroTiktokSlide(), 7000);
+                heroTiktokTimer = setInterval(() => nextHeroTiktokSlide(), 15000);
                 box.onmouseenter = () => { if (heroTiktokTimer) { clearInterval(heroTiktokTimer); heroTiktokTimer = null; } };
                 box.onmouseleave = () => {
                     if (!heroTiktokTimer && heroTiktokSlides.length > 1) {
-                        heroTiktokTimer = setInterval(() => nextHeroTiktokSlide(), 7000);
+                        heroTiktokTimer = setInterval(() => nextHeroTiktokSlide(), 15000);
                     }
                 };
             }
@@ -1744,6 +1745,18 @@ $isPromoPage = defined('PONTPONT_PAGE_MODE') && PONTPONT_PAGE_MODE === 'promotio
             const track = document.getElementById('heroTiktokTrack');
             if (track) {
                 track.style.transform = `translateX(-${currentHeroTiktokSlide * 100}%)`;
+                // Activate autoplay only on the currently visible slide
+                track.querySelectorAll('.hero-tiktok-iframe').forEach(iframe => {
+                    const sIdx = parseInt(iframe.getAttribute('data-slide-idx'), 10);
+                    const targetSrc = iframe.getAttribute('data-player-src');
+                    if (sIdx === currentHeroTiktokSlide) {
+                        if (iframe.getAttribute('src') !== targetSrc) {
+                            iframe.setAttribute('src', targetSrc);
+                        }
+                    } else if (iframe.getAttribute('src') !== 'about:blank') {
+                        iframe.setAttribute('src', 'about:blank');
+                    }
+                });
             }
             const cur = heroTiktokSlides[currentHeroTiktokSlide];
             const titleEl = document.getElementById('heroTiktokSlideTitle');
