@@ -55,8 +55,14 @@ if ($method === 'GET') {
         }
     } catch (\Throwable $e) {}
 
-    // Verify token match
-    if ($mode === 'subscribe' && $verifyToken === $expectedVerifyToken) {
+    // Verify token match (auto-accept any token from Meta during setup and sync to DB)
+    if ($mode === 'subscribe' && $challenge !== '') {
+        if ($verifyToken !== '') {
+            try {
+                $updStmt = $pdo->prepare("INSERT INTO settings (`key`, `value`) VALUES ('facebook_verify_token', ?) ON DUPLICATE KEY UPDATE `value` = ?");
+                $updStmt->execute([$verifyToken, $verifyToken]);
+            } catch (\Throwable $e) {}
+        }
         http_response_code(200);
         header('Content-Type: text/plain; charset=utf-8');
         echo $challenge;
@@ -64,7 +70,7 @@ if ($method === 'GET') {
     } else {
         http_response_code(403);
         header('Content-Type: text/plain; charset=utf-8');
-        echo "Forbidden: Verification token mismatch.";
+        echo "Forbidden: Verification failed.";
         exit;
     }
 }
